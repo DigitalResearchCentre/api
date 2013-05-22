@@ -168,3 +168,10 @@ LOGGING = {
         },
     }
 }
+
+try:
+    from env import *
+except ImportError, e:
+    print e
+
+
