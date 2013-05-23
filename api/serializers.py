@@ -6,7 +6,7 @@ class CommunitySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Community
         fields = (
-            'id', 'name', 'abbr', 'long_name', 'description', 
+            'id', 'url', 'name', 'abbr', 'long_name', 'description', 
             'docs', 'entities'
         )
 
@@ -14,7 +14,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email')
+        fields = ('id', 'url', 'username', 'first_name', 'last_name', 'email')
         read_only_fields = ('username',)
 
 class DocSerializer(serializers.HyperlinkedModelSerializer):
@@ -35,7 +35,7 @@ class DocSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Doc
         fields = (
-            'id', 'parent', 'prev', 'next', 'has_parts',
+            'id', 'url', 'parent', 'prev', 'next', 'has_parts',
             'name', 'label', 'has_text_in', 'has_image', 'has_transcript'
         )
 
@@ -54,7 +54,7 @@ class EntitySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Entity
         fields = (
-            'id', 'parent', 'prev', 'next', 'has_parts',
+            'id', 'url', 'parent', 'prev', 'next', 'has_parts',
             'name', 'label', 'has_text_of'
         )
 
@@ -77,7 +77,7 @@ class TextSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Text
         fields = (
-            'id', 'parent', 'prev', 'next', 'has_parts',
+            'id', 'url', 'parent', 'prev', 'next', 'has_parts',
             'element', 'is_text_in', 'is_text_of', 'xml', 
         )
 
