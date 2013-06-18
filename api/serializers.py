@@ -2,86 +2,54 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from api.models import *
 
-class CommunitySerializer(serializers.HyperlinkedModelSerializer):
+class CommunitySerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Community
-        fields = (
-            'id', 'url', 'name', 'abbr', 'long_name', 'description', 
-            'docs', 'entities'
-        )
+        fields = ('id', 'name', 'abbr', 'long_name', 'description',)
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('id', 'url', 'username', 'first_name', 'last_name', 'email')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email')
         read_only_fields = ('username',)
 
-class DocSerializer(serializers.HyperlinkedModelSerializer):
-    parent = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='doc-detail')
-    prev = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='doc-detail')
-    next = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='doc-detail')
-    has_parts = serializers.HyperlinkedRelatedField(
-        many=True, read_only=True, view_name='doc-detail')
-    has_text_in = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='text-detail')
-    has_image = serializers.URLField(source='has_image')
-    has_transcript = serializers.HyperlinkedRelatedField(
-        many=True, read_only=True, view_name='transcript-detail')
+class DocSerializer(serializers.ModelSerializer):
+#    parent = serializers.HyperlinkedRelatedField(
+#        read_only=True, view_name='doc-detail')
+#    prev = serializers.HyperlinkedRelatedField(
+#        read_only=True, view_name='doc-detail')
+#    next = serializers.HyperlinkedRelatedField(
+#        read_only=True, view_name='doc-detail')
+#    has_parts = serializers.HyperlinkedRelatedField(
+#        many=True, read_only=True, view_name='doc-detail')
+#    has_text_in = serializers.HyperlinkedRelatedField(
+#        read_only=True, view_name='text-detail')
+#    has_image = serializers.URLField(source='has_image')
+#    has_transcript = serializers.HyperlinkedRelatedField(
+#        many=True, read_only=True, view_name='transcript-detail')
+            #'parent', 'prev', 'next', 'has_parts',
+            #'has_text_in', 'has_image', 'has_transcript'
 
     class Meta:
         model = Doc
-        fields = (
-            'id', 'url', 'parent', 'prev', 'next', 'has_parts',
-            'name', 'label', 'has_text_in', 'has_image', 'has_transcript'
-        )
+        fields = ('id', 'name', 'label', )
 
-class EntitySerializer(serializers.HyperlinkedModelSerializer):
-    parent = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='entity-detail')
-    prev = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='entity-detail')
-    next = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='entity-detail')
-    has_parts = serializers.HyperlinkedRelatedField(
-        many=True, read_only=True, view_name='entity-detail')
-    has_text_of = serializers.HyperlinkedRelatedField(
-        many=True, read_only=True, view_name='text-detail')
+class EntitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Entity
-        fields = (
-            'id', 'url', 'parent', 'prev', 'next', 'has_parts',
-            'name', 'label', 'has_text_of'
-        )
+        fields = ('id', 'name', 'label', )
 
-class TextSerializer(serializers.HyperlinkedModelSerializer):
+class TextSerializer(serializers.ModelSerializer):
     element = serializers.Field(source='to_element')
-    xml = serializers.Field(source='xml')
-    parent = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='text-detail')
-    prev = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='text-detail')
-    next = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='text-detail')
-    has_parts = serializers.HyperlinkedRelatedField(
-        many=True, read_only=True, view_name='text-detail')
-    is_text_in = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='doc-detail')
-    is_text_of = serializers.HyperlinkedRelatedField(
-        read_only=True, view_name='entity-detail')
 
     class Meta:
         model = Text
-        fields = (
-            'id', 'url', 'parent', 'prev', 'next', 'has_parts',
-            'element', 'is_text_in', 'is_text_of', 'xml', 
-        )
+        fields = ('id', 'element',)
 
-class TranscriptSerializer(serializers.HyperlinkedModelSerializer):
+class TranscriptSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transcript

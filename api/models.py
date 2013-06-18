@@ -14,6 +14,12 @@ class Community(models.Model):
     docs = models.ManyToManyField('Doc')
     entities = models.ManyToManyField('Entity')
 
+    def get_docs(self):
+        return self.docs.all()
+
+    def get_entities(self):
+        return self.entities.all()
+
 class Node(NS_Node):
     class Meta:
         abstract = True
@@ -53,9 +59,25 @@ class Doc(Node):
     def has_transcript(self):
         return self.transcript_set.all()
 
+    def has_entities_in(self):
+        text = self.has_text_in()
+        if text:
+            qs = text.has_doc_parts()
+            min_depth = qs.aggregate(d=models.Min('entity__depth'))['d']
+            entity = text.is_text_of()
+            if entity:
+                min_depth = min(entity.depth, min_depth)
+            return Entity.objects.filter(
+                id__in=qs.filter(entity__depth=min_depth).values_list(
+                    'entity__id', flat=True
+                )
+            ) 
+        return Entity.objects.none()
+
 def _to_xml(qs):
     q = deque()
     xml, prev, prev_depth = ('', None, -1)
+    qs = qs.prefetch_related('attr_set')
 
     for node in qs:
         depth = node.get_depth()
@@ -70,8 +92,6 @@ def _to_xml(qs):
             parent = q.pop()
             xml += '</%s>' % parent.tag
 
-        print node.tag
-        print xml
         prev, prev_depth = (node, depth)
 
     if prev is not None: 
@@ -82,28 +102,6 @@ def _to_xml(qs):
         xml += '</%s>' % parent.tag
 
     return xml
-
-# from api.models import *
-# Doc.add_root(name='Hg', label='document')
-# hg = Doc.objects.get(pk=1)
-# hg.add_child(name='2r', label='folio')
-# pb = Doc.objects.get(pk=2)
-# gp = Entity.add_root(name='GP', label='group')
-# gp = Entity.objects.get(pk=gp.pk)
-# line = gp.add_child(name='1', label='line')
-# 
-# body = Text.add_root(tag='body', doc=hg)
-# body = Text.objects.get(pk=body.pk)
-# body.add_child(tag='pb', doc=pb)
-# body = Text.objects.get(pk=body.pk)
-# div = body.add_child(tag='div', entity=gp)
-# div = Text.objects.get(pk=div.pk)
-# l = div.add_child(tag='l', entity=line)
-# l = Text.objects.get(pk=l.pk)
-# l.add_child(text='hello world')
-# c = Community.objects.create(name='Cat', abbr='CTP2')
-# c.docs.add(hg)
-# c.entities.add(gp)
 
 class Text(Node):
     tag = models.CharField(max_length=15)
@@ -124,8 +122,7 @@ class Text(Node):
         else:
             return self.text
 
-    def xml(self):
-        xml = _to_xml(Text.get_tree(self))
+    def has_doc_parts(self):
         doc = self.doc
         if doc is not None:
             qs = Text.objects.filter(tree_id=self.tree_id, lft__gt=self.rgt)
@@ -135,8 +132,14 @@ class Text(Node):
                 doc__rgt__lt=doc.rgt
             )).exclude(doc__isnull=True)[:1])
             if r:
-                qs = qs.filter(rgt__lt=r[0].lft)
-            xml += _to_xml(qs)
+                return qs.filter(rgt__lt=r[0].lft)
+        return Text.objects.none()
+
+    def xml(self):
+        xml = _to_xml(Text.get_tree(self))
+        doc = self.doc
+        if doc is not None:
+            xml += _to_xml(self.has_doc_parts())
         return xml
 
     def is_text_in(self):
@@ -166,5 +169,9 @@ class Attr(models.Model):
 
 class Transcript(models.Model):
     doc = models.ForeignKey(Doc)
+
+
+
+
 
 
