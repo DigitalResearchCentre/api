@@ -103,3 +103,48 @@ urlpatterns = patterns(
         TranscriptDetail.as_view(), name='transcript-detail'),
 )
 
+
+
+#{
+#  community_list: {
+#    list: 'communities/$',
+#    single_object: 'communities/(?P<pk>\d+)/$',
+#    docs: 'communities/(?P<pk>\d+)/docs/$',
+#    entities: 'communities/(?P<pk>\d+)/entities/$',
+#  },
+#  doc: {
+#    list: 'docs/$',
+#    single_object: 'docs/(?P<pk>\d+)/$',
+#    next: 'docs/(?P<pk>\d+)/next/$',
+#    prev: 'docs/(?P<pk>\d+)/prev/$',
+#    parent: 'docs/(?P<pk>\d+)/parent/$',
+#    has_parts: 'docs/(?P<pk>\d+)/has_parts/$',
+#    has_entities_in: 'docs/(?P<pk>\d+)/has_entities_in/$',
+#    has_text_in: 'docs/(?P<pk>\d+)/has_text_in/$',
+#  },
+#  entity: {
+#    list: 'entities/$',
+#    single_object: 'entities/(?P<pk>\d+)/$',
+#    next: 'entities/(?P<pk>\d+)/next/$',
+#    prev: 'entities/(?P<pk>\d+)/prev/$',
+#    parent: 'entities/(?P<pk>\d+)/parent/$',
+#    has_parts: 'entities/(?P<pk>\d+)/has_parts/$',
+#    has_text_of: 'entities/(?P<pk>\d+)/has_text_of/$',
+#  },
+#  text: {
+#    list: 'texts/$',
+#    single_object: 'texts/(?P<pk>\d+)/$',
+#    next: 'texts/(?P<pk>\d+)/next/$',
+#    prev: 'texts/(?P<pk>\d+)/prev/$',
+#    parent: 'texts/(?P<pk>\d+)/parent/$',
+#    has_parts: 'texts/(?P<pk>\d+)/has_parts/$',
+#    is_text_in: 'texts/(?P<pk>\d+)/is_text_in/$',
+#    is_text_of: 'texts/(?P<pk>\d+)/is_text_of/$',
+#    xml: 'texts/(?P<pk>\d+)/xml/$',
+#  },
+#  user: {
+#    list: 'users/$',
+#    single_object: 'users/(?P<pk>\d+)/$',
+#  }
+#}
+#
