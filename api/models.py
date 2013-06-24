@@ -39,7 +39,9 @@ class Node(NS_Node):
 
     # deep first prev (include ancestor)
     def get_df_prev(self):
-        qs = self.__class__.objects.filter(lft__lt=self.lft).order_by('-lft')
+        qs = self.__class__.objects.filter(
+            lft__lt=self.lft, tree_id=self.tree_id
+        ).order_by('-lft')
         r = list(qs[:1])
         return r[0] if r else None
 
