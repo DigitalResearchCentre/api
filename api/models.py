@@ -113,7 +113,6 @@ def _to_xml(qs, prev_doc=None):
 
         if prev_doc is not None:
             urn_base = prev_doc.get_community().get_urn_base()
-            print urn_base
 
         ancestors = nodes[0].get_ancestors().select_related('entity', 'doc')
         for ancestor in ancestors:
@@ -133,7 +132,6 @@ def _to_xml(qs, prev_doc=None):
 
         for node in nodes[1:]:
             depth = node.get_depth()
-
             open = (depth > prev_depth)
             if open:
                 q.append(prev)
@@ -183,7 +181,7 @@ class Text(Node):
                 doc__rgt__lte=doc.rgt
             )).exclude(doc__isnull=True)[:1])
             if r:
-                return qs.filter(rgt__lt=r[0].lft)
+                return qs.filter(lft__lt=r[0].lft)
         return Text.objects.none()
 
     def xml(self):
