@@ -43,6 +43,8 @@ urlpatterns = patterns(
         'model': Doc, 'rel': 'has_entities_in',
         'serializer_class': EntitySerializer
     }),
+    url(r'docs/(?P<pk>\d+)/has_image/$', fake_image),
+    url(r'docs/(?P<pk>\d+)/has_image/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', fake_image),
     url(r'entities/$', EntityList.as_view(), name='entity-list'),
     url(r'entities/(?P<pk>\d+)/$', 
         EntityDetail.as_view(), name='entity-detail'),

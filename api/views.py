@@ -99,4 +99,8 @@ class TranscriptList(generics.ListCreateAPIView):
     model = Transcript
     serializer_class = TranscriptSerializer
 
-
+def fake_image(request, pk, zoom=None, x=None, y=None):
+    url = 'http://textualcommunities.usask.ca/drc/community/file/2188/'
+    if zoom is not None and x is not None and y is not None:
+        url = '%s%s/%s/%s/' % (url, zoom, x, y)
+    return HttpResponseRedirect(url)

@@ -9,3 +9,5 @@ DATABASES = {
     }
 }
 
+STATIC_ROOT = '/var/www/static/api/'
+STATIC_URL = 'http://textualcommunities.usask.ca/static/api/'
