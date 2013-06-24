@@ -99,7 +99,7 @@ def get_urn(urn_base, doc=None, entity=None):
             parts += [
                 '%s=%s' % (ancestor.label, ancestor.name) 
                 for ancestor in det.get_ancestors()
-            ]
+            ] + ['%s=%s' % (det.label, det.name)]
     return ':'.join(parts)
 
 def _to_xml(qs, prev_doc=None):
@@ -150,7 +150,6 @@ def _to_xml(qs, prev_doc=None):
         while q:
             parent = q.pop()
             xml += '</%s>' % parent.tag
-
     return xml
 
 class Text(Node):
