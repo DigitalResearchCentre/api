@@ -98,7 +98,8 @@ class Doc(DETNode):
         qs = self.get_texts()
         doc_urn = get_urn(urn_base, doc=self)
         entity_json = lambda e: {'id': e.id, 'name': e.name, 'label': e.label}
-        last_entity = entity_json(text.is_text_of())
+        entity = text.is_text_of()
+        if entity: last_entity = entity_json(entity)
         qs = qs.exclude(entity__isnull=True, doc__isnull=True).select_related('entity', 'doc')
         entities = []
         for text in qs:
