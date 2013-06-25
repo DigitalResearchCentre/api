@@ -97,17 +97,16 @@ class Doc(DETNode):
             return []
         qs = self.get_texts()
         doc_urn = get_urn(urn_base, doc=self)
-        last_entity = text.is_text_of()
+        entity_json = lambda e: {'id': e.id, 'name': e.name, 'label': e.label}
+        last_entity = entity_json(text.is_text_of())
         qs = qs.exclude(entity__isnull=True, doc__isnull=True).select_related('entity', 'doc')
         entities = []
         for text in qs:
             if text.doc_id is not None:
                 doc_urn = get_urn(urn_base, doc=text.doc)
             if text.entity_id is not None:
-                entity = {
-                    'id': text.entity.id, 'name': text.entity.name,
-                    'label': text.entity.label, 'firstlocation': doc_urn
-                }
+                entity = entity_json(text.entity)
+                entity['firstlocation'] = doc_urn
                 entities.append(entity)
                 if last_entity is not None:
                     last_entity['lastlocation'] = doc_urn
