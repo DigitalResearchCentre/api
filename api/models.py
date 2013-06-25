@@ -64,6 +64,16 @@ class Entity(DETNode):
     def has_text_of(self):
         return self.text_set.all()
 
+def get_urn(urn_base, doc=None, entity=None):
+    parts = [urn_base]
+    for det in (doc, entity):
+        if det is not None:
+            parts += [
+                '%s=%s' % (ancestor.label, ancestor.name) 
+                for ancestor in det.get_ancestors()
+            ] + ['%s=%s' % (det.label, det.name)]
+    return ':'.join(parts)
+
 class Doc(DETNode):
 
     def has_text_in(self):
@@ -80,7 +90,7 @@ class Doc(DETNode):
 
     def get_texts(self):
         text = self.has_text_in()
-        qs = Text.objects.filter(tree_id=text.tree_id, lft__gte=text.lft)
+        qs = Text.objects.filter(tree_id=text.tree_id, lft__gt=text.lft)
         # find the first text with a doc 
         # which isnot decensder of current doc
         r = list(qs.filter(~Q(
@@ -91,41 +101,34 @@ class Doc(DETNode):
             qs = qs.filter(lft__lt=r[0].lft)
         return qs
 
-    def has_entities_in(self):
-        urn_base = self.get_community().get_urn_base()
+    def has_entities_in(self, limit):
         text = self.has_text_in()
         if text is None:
             return []
         qs = self.get_texts()
-        doc_urn = get_urn(urn_base, doc=self)
+        #doc_urn = get_urn(urn_base, doc=self)
+        doc = self
         entity_json = lambda e: {'id': e.id, 'name': e.name, 'label': e.label}
         entity = text.is_text_of()
         last_entity = entity_json(entity) if entity else None
-        qs = qs.exclude(entity__isnull=True, doc__isnull=True).select_related('entity', 'doc')
+        qs = qs.exclude(
+            entity__isnull=True, doc__isnull=True
+        ).select_related('entity', 'doc')
         entities = []
         for text in qs:
             if text.doc_id is not None:
-                doc_urn = get_urn(urn_base, doc=text.doc)
+                #doc_urn = get_urn(urn_base, doc=text.doc)
+                doc = text.doc
             if text.entity_id is not None:
                 entity = entity_json(text.entity)
-                entity['firstlocation'] = doc_urn
+                entity['firstlocation'] = doc.id #doc_urn
                 entities.append(entity)
                 if last_entity is not None:
-                    last_entity['lastlocation'] = doc_urn
+                    last_entity['lastlocation'] = doc.id # doc_urn
                 last_entity = entity
         if last_entity:
-            last_entity['lastlocation'] = doc_urn
+            last_entity['lastlocation'] = doc.id #doc_urn
         return entities
-
-def get_urn(urn_base, doc=None, entity=None):
-    parts = [urn_base]
-    for det in (doc, entity):
-        if det is not None:
-            parts += [
-                '%s=%s' % (ancestor.label, ancestor.name) 
-                for ancestor in det.get_ancestors()
-            ] + ['%s=%s' % (det.label, det.name)]
-    return ':'.join(parts)
 
 def _to_xml(qs, prev_doc=None):
     xml = ''
