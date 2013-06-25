@@ -92,10 +92,13 @@ class Doc(DETNode):
 
     def has_entities_in(self):
         urn_base = self.get_community().get_urn_base()
+        text = self.has_text_in()
+        if text is None:
+            return []
         qs = self.get_texts()
-        qs = qs.exclude(entity__isnull=True, doc__isnull=True).select_related('entity', 'doc')
         doc_urn = get_urn(urn_base, doc=self)
-        last_entity = None
+        last_entity = text.is_text_of()
+        qs = qs.exclude(entity__isnull=True, doc__isnull=True).select_related('entity', 'doc')
         entities = []
         for text in qs:
             if text.doc_id is not None:
@@ -109,7 +112,8 @@ class Doc(DETNode):
                 if last_entity is not None:
                     last_entity['lastlocation'] = doc_urn
                 last_entity = entity
-        last_entity['lastlocation'] = doc_urn
+        if last_entity:
+            last_entity['lastlocation'] = doc_urn
         return entities
 
 def get_urn(urn_base, doc=None, entity=None):
