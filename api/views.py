@@ -41,10 +41,11 @@ class RelationView(
         elif isinstance(rel, models.Model):
             serializer = self.get_serializer(rel)
             return Response(serializer.data)
-        elif isinstance(rel, basestring):
-            return Response(rel)
-        else:
+        elif rel is None:
             raise Http404
+        else:
+            return Response(rel)
+
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
