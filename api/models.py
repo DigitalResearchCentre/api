@@ -84,11 +84,12 @@ class Doc(DETNode):
         # find the first text with a doc 
         # which isnot decensder of current doc
         r = list(qs.filter(~Q(
-            doc__tree_id=self.tree_id, doc__lft__gte=self.lft, doc__rgt__lte=self.rgt
+            doc__tree_id=self.tree_id, 
+            doc__lft__gte=self.lft, doc__rgt__lte=self.rgt
         )).exclude(doc__isnull=True)[:1])
         if r:
-            return qs.filter(lft__lt=r[0].lft)
-        return Text.objects.none()
+            qs = qs.filter(lft__lt=r[0].lft)
+        return qs
 
     def has_entities_in(self):
         urn_base = self.get_community().get_urn_base()
