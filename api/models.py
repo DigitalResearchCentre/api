@@ -1,3 +1,4 @@
+import json
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -77,20 +78,39 @@ class Doc(DETNode):
     def has_transcript(self):
         return self.transcript_set.all()
 
-    def has_entities_in(self):
+    def get_texts(self):
         text = self.has_text_in()
-        if text:
-            qs = text.get_doc_tree()
-            min_depth = qs.aggregate(d=models.Min('entity__depth'))['d']
-            entity = text.is_text_of()
-            if entity:
-                min_depth = min(entity.depth, min_depth)
-            return Entity.objects.filter(
-                id__in=qs.filter(entity__depth=min_depth).values_list(
-                    'entity__id', flat=True
-                )
-            ) 
-        return Entity.objects.none()
+        qs = Text.objects.filter(tree_id=text.tree_id, lft__gte=text.lft)
+        # find the first text with a doc 
+        # which isnot decensder of current doc
+        r = list(qs.filter(~Q(
+            doc__tree_id=self.tree_id, doc__lft__gte=self.lft, doc__rgt__lte=self.rgt
+        )).exclude(doc__isnull=True)[:1])
+        if r:
+            return qs.filter(lft__lt=r[0].lft)
+        return Text.objects.none()
+
+    def has_entities_in(self):
+        urn_base = self.get_community().get_urn_base()
+        qs = self.get_texts()
+        qs = qs.exclude(entity__isnull=True, doc__isnull=True).select_related('entity', 'doc')
+        doc_urn = get_urn(urn_base, doc=self)
+        last_entity = None
+        entities = []
+        for text in qs:
+            if text.doc_id is not None:
+                doc_urn = get_urn(urn_base, doc=text.doc)
+            if text.entity_id is not None:
+                entity = {
+                    'id': text.entity.id, 'name': text.entity.name,
+                    'label': text.entity.label, 'firstlocation': doc_urn
+                }
+                entities.append(entity)
+                if last_entity is not None:
+                    last_entity['lastlocation'] = doc_urn
+                last_entity = entity
+        last_entity['lastlocation'] = doc_urn
+        return entities
 
 def get_urn(urn_base, doc=None, entity=None):
     parts = [urn_base]
@@ -169,27 +189,12 @@ class Text(Node):
         else:
             return self.text
 
-    def get_doc_tree(self):
-        if self.doc_id is not None:
-            doc = self.doc
-            qs = Text.objects.filter(tree_id=self.tree_id, lft__gte=self.lft)
-            # find the first text with a doc 
-            # which isnot decensder of current doc
-            r = list(qs.filter(~Q(
-                doc__tree_id=doc.tree_id, 
-                doc__lft__gte=doc.lft, 
-                doc__rgt__lte=doc.rgt
-            )).exclude(doc__isnull=True)[:1])
-            if r:
-                return qs.filter(lft__lt=r[0].lft)
-        return Text.objects.none()
-
     def xml(self):
         if self.doc_id is None:
             qs = Text.get_tree(self)
             prev_doc = None
         else:
-            qs = self.get_doc_tree()
+            qs = self.doc.get_texts()
             prev_doc = self.doc.get_df_prev()
         return _to_xml(qs, prev_doc=prev_doc)
 
