@@ -38,6 +38,9 @@ class Node(NS_Node):
     def prev(self):
         return self.get_prev_sibling()
 
+    def parent(self):
+        return self.get_parent()
+
     # deep first prev (include ancestor)
     def get_df_prev(self):
         qs = self.__class__.objects.filter(
@@ -46,8 +49,18 @@ class Node(NS_Node):
         r = list(qs[:1])
         return r[0] if r else None
 
-    def parent(self):
-        return self.get_parent()
+    # deep first prev (include ancestor)
+    def get_df_next(self):
+        qs = self.__class__.objects.filter(
+            lft__gt=self.lft, tree_id=self.tree_id
+        ).order_by('lft')
+        r = list(qs[:1])
+        return r[0] if r else None
+
+    def get_all_after(self):
+        return self.__class__.objects.filter(
+            tree_id=self.tree_id, lft__gt=self.lft
+        )
 
 class DETNode(Node):
     name = models.CharField(max_length=63)
@@ -59,11 +72,6 @@ class DETNode(Node):
     def get_community(self):
         return self.get_root().community_set.get()
 
-class Entity(DETNode):
-
-    def has_text_of(self):
-        return self.text_set.all()
-
 def get_urn(urn_base, doc=None, entity=None):
     parts = [urn_base]
     for det in (doc, entity):
@@ -73,6 +81,14 @@ def get_urn(urn_base, doc=None, entity=None):
                 for ancestor in det.get_ancestors()
             ] + ['%s=%s' % (det.label, det.name)]
     return ':'.join(parts)
+
+class Entity(DETNode):
+
+    def has_text_of(self):
+        return self.text_set.all()
+
+    def get_urn(self):
+        return get_urn(self.get_community().get_urn_base(), entity=self)
 
 class Doc(DETNode):
 
@@ -101,34 +117,44 @@ class Doc(DETNode):
             qs = qs.filter(lft__lt=r[0].lft)
         return qs
 
-    def has_entities_in(self, limit):
+    def _get_texts_bound(self):
+        text = self.has_text_in()
+        # find the first text with a doc 
+        # which isnot decensder of current doc
+        return text and text.get_all_after().exclude(
+            doc__tree_id=self.tree_id, 
+            doc__lft__gte=self.lft, doc__rgt__lte=self.rgt
+        ).exclude(doc__isnull=True).first()
+
+    def has_entities(self, parent=None):
         text = self.has_text_in()
         if text is None:
-            return []
-        qs = self.get_texts()
-        #doc_urn = get_urn(urn_base, doc=self)
-        doc = self
-        entity_json = lambda e: {'id': e.id, 'name': e.name, 'label': e.label}
-        entity = text.is_text_of()
-        last_entity = entity_json(entity) if entity else None
-        qs = qs.exclude(
-            entity__isnull=True, doc__isnull=True
-        ).select_related('entity', 'doc')
-        entities = []
-        for text in qs:
-            if text.doc_id is not None:
-                #doc_urn = get_urn(urn_base, doc=text.doc)
-                doc = text.doc
-            if text.entity_id is not None:
-                entity = entity_json(text.entity)
-                entity['firstlocation'] = doc.id #doc_urn
-                entities.append(entity)
-                if last_entity is not None:
-                    last_entity['lastlocation'] = doc.id # doc_urn
-                last_entity = entity
-        if last_entity:
-            last_entity['lastlocation'] = doc.id #doc_urn
-        return entities
+            return self.__class__.objects.none()
+
+        qs = Entity.objects.filter(
+            text__tree_id=text.tree_id, text__rgt__gt=text.lft
+        )
+        bound = self._get_texts_bound()
+        if bound is not None:
+            qs = qs.filter(text__lft__lt=bound.lft)
+
+        # TODO: <div><pb/><l>line1</l>text mix with entity<l>line2</l></div>
+        # in above case "text mix with entity" will lost
+        if parent is None:
+            # exclude outer entity
+            if bound is not None:
+                qs = qs.exclude( 
+                    text__lft__lt=text.lft, text__rgt__gt=bound.lft
+                )
+            qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
+        else:
+            qs = qs.filter(
+                tree_id=parent.tree_id, lft__range(parent.lft, parent.rgt - 1)
+            )
+        return qs
+
+    def get_urn(self):
+        return get_urn(self.get_community().get_urn_base(), doc=self)
 
 def _to_xml(qs, prev_doc=None):
     xml = ''
@@ -184,6 +210,13 @@ class Text(Node):
     doc = models.OneToOneField(Doc, null=True, blank=True, editable=False)
     entity = models.ForeignKey(Entity, null=True, blank=True, editable=False)
 
+    def get_urn(self):
+        doc = self.is_text_in()
+        return get_urn(
+            doc.get_community().get_urn_base(), 
+            doc=doc, entity=self.is_text_of()
+        )
+
     def to_element(self, open=False, extra_attrs=None):
         if self.tag:
             attrs = [self.tag] + [
@@ -198,7 +231,8 @@ class Text(Node):
             return self.text
 
     def xml(self):
-        if self.doc_id is None:
+        # <text/> element can have both entity and doc
+        if self.entity_id is not None or self.doc_id is None:
             qs = Text.get_tree(self)
             prev_doc = None
         else:

@@ -43,6 +43,9 @@ urlpatterns = patterns(
         'model': Doc, 'rel': 'has_entities_in',
         'serializer_class': EntitySerializer
     }),
+    url(r'docs/(?P<pk>\d+)/urn$', RelationView.as_view(), {
+        'model': Doc, 'rel': 'get_urn',
+    }),
     url(r'entities/$', EntityList.as_view(), name='entity-list'),
     url(r'entities/(?P<pk>\d+)/$', 
         EntityDetail.as_view(), name='entity-detail'),
@@ -66,6 +69,9 @@ urlpatterns = patterns(
         'model': Entity, 'rel': 'has_text_of',
         'serializer_class': TextSerializer
     }),   
+    url(r'entities/(?P<pk>\d+)/urn$', RelationView.as_view(), {
+        'model': Entity, 'rel': 'get_urn',
+    }),
     url(r'texts/$', TextList.as_view(), name='text-list'),
     url(r'texts/(?P<pk>\d+)/$', TextDetail.as_view(), name='text-detail'),
     url(r'texts/(?P<pk>\d+)/next$', RelationView.as_view(), {
@@ -94,6 +100,9 @@ urlpatterns = patterns(
     }),
     url(r'texts/(?P<pk>\d+)/xml$', RelationView.as_view(), {
         'model': Text, 'rel': 'xml',
+    }),
+    url(r'texts/(?P<pk>\d+)/urn$', RelationView.as_view(), {
+        'model': Text, 'rel': 'get_urn',
     }),
 
     url(r'users/$', UserList.as_view(), name='user-list'),
