@@ -108,13 +108,18 @@ class Entity(DETNode):
 
         result = Doc.objects.none()
         for text in texts:
-            text_parts = (text.get_tree(text)
-                          .filter(doc__isnull=False).select_related('doc'))
-            first = get_first(text_parts)
-            last = get_last(text_parts)
+            descendants = text.get_descendants()
+            first = get_first(descendants)
+            if first is None:
+                first = text
+                last = text
+            else:
+                last = get_last(descendants)
+            first_doc = first.is_text_in()
+            last_doc = last.is_text_in()
             qs = Doc.objects.filter(
-                tree_id=first.doc.tree_id, 
-                rgt__gt=first.doc.lft, lft__lt=last.doc.rgt
+                tree_id=first_doc.tree_id, 
+                rgt__gt=first_doc.lft, lft__lt=last_doc.lft
             )
             if doc is None:
                 qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
