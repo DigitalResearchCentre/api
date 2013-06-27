@@ -43,19 +43,15 @@ class Node(NS_Node):
 
     # deep first prev (include ancestor)
     def get_df_prev(self):
-        qs = self.__class__.objects.filter(
-            lft__lt=self.lft, tree_id=self.tree_id
-        ).order_by('-lft')
-        r = list(qs[:1])
-        return r[0] if r else None
+        return (self.__class__.objects
+                .filter(lft__lt=self.lft, tree_id=self.tree_id)
+                .order_by('-lft').first())
 
     # deep first prev (include ancestor)
     def get_df_next(self):
-        qs = self.__class__.objects.filter(
-            lft__gt=self.lft, tree_id=self.tree_id
-        ).order_by('lft')
-        r = list(qs[:1])
-        return r[0] if r else None
+        return (self.__class__.objects
+                .filter(lft__gt=self.lft, tree_id=self.tree_id)
+                .order_by('lft').first())
 
     def get_all_after(self):
         return self.__class__.objects.filter(
@@ -121,19 +117,19 @@ class Doc(DETNode):
         text = self.has_text_in()
         # find the first text with a doc 
         # which isnot decensder of current doc
-        return text and text.get_all_after().exclude(
-            doc__tree_id=self.tree_id, 
-            doc__lft__gte=self.lft, doc__rgt__lte=self.rgt
-        ).exclude(doc__isnull=True).first()
+        return text and (
+            text.get_all_after()
+            .exclude(doc__tree_id=self.tree_id, 
+                     doc__lft__gte=self.lft, doc__rgt__lte=self.rgt)
+            .exclude(doc__isnull=True).first())
 
     def has_entities(self, parent=None):
         text = self.has_text_in()
         if text is None:
             return self.__class__.objects.none()
 
-        qs = Entity.objects.filter(
-            text__tree_id=text.tree_id, text__rgt__gt=text.lft
-        )
+        qs = Entity.objects.filter(text__tree_id=text.tree_id,
+                                   text__rgt__gt=text.lft)
         bound = self._get_texts_bound()
         if bound is not None:
             qs = qs.filter(text__lft__lt=bound.lft)
@@ -143,14 +139,12 @@ class Doc(DETNode):
         if parent is None:
             # exclude outer entity
             if bound is not None:
-                qs = qs.exclude( 
-                    text__lft__lt=text.lft, text__rgt__gt=bound.lft
-                )
+                qs = qs.exclude(text__lft__lt=text.lft,
+                                text__rgt__gt=bound.lft)
             qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
         else:
-            qs = qs.filter(
-                tree_id=parent.tree_id, lft__range(parent.lft, parent.rgt - 1)
-            )
+            qs = qs.filter(tree_id=parent.tree_id,
+                           lft__range(parent.lft, parent.rgt - 1))
         return qs
 
     def get_urn(self):
