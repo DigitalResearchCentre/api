@@ -58,6 +58,9 @@ class Node(NS_Node):
             tree_id=self.tree_id, lft__gt=self.lft
         )
 
+    def get_tree(self):
+        return self.__class__.get_tree(self)
+
 class DETNode(Node):
     name = models.CharField(max_length=63)
     label = models.CharField(max_length=63)
@@ -86,6 +89,31 @@ class Entity(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)
 
+    def get_docs(self, parent=None):
+        texts = self.has_text_of()
+        if parent is not None:
+            doc_text = parent.has_text_in()
+            if doc_text is not None:
+                texts = texts.filter(tree_id=doc_text.tree_id)
+
+        result = Doc.objects.none()
+        for text in texts:
+            text_parts = (text.get_tree()
+                          .filter(doc__isnull=False).select_related('doc'))
+            first = text_parts.first()
+            last = text_parts.last()
+            qs = Doc.objects.filter(
+                tree_id=first.doc.tree_id, 
+                rgt__gt=first.doc.lft, lft__lt=last.doc.rgt
+            )
+            if parent is None:
+                qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
+            else:
+                qs = qs.filter(tree_id=parent.tree_id,
+                               lft__range(parent.lft, parent.rgt - 1))
+            result = result | qs
+        return result
+
 class Doc(DETNode):
 
     def has_text_in(self):
@@ -103,14 +131,9 @@ class Doc(DETNode):
     def get_texts(self):
         text = self.has_text_in()
         qs = Text.objects.filter(tree_id=text.tree_id, lft__gt=text.lft)
-        # find the first text with a doc 
-        # which isnot decensder of current doc
-        r = list(qs.filter(~Q(
-            doc__tree_id=self.tree_id, 
-            doc__lft__gte=self.lft, doc__rgt__lte=self.rgt
-        )).exclude(doc__isnull=True)[:1])
-        if r:
-            qs = qs.filter(lft__lt=r[0].lft)
+        bound = self._get_texts_bound()
+        if bound is not None:
+            qs = qs.filter(lft__lt=bound.lft)
         return qs
 
     def _get_texts_bound(self):
@@ -227,7 +250,7 @@ class Text(Node):
     def xml(self):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:
-            qs = Text.get_tree(self)
+            qs = self.get_tree()
             prev_doc = None
         else:
             qs = self.doc.get_texts()
