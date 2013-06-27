@@ -27,11 +27,11 @@ class Community(models.Model):
 
 def get_first(qs):
     lst = list(qs[:1])
-    return lst and lst[0]
+    return lst[0] if lst else None
 
 def get_last(qs):
     lst = list(qs.reverse()[:1])
-    return lst and lst[0]
+    return lst[0] if lst else None
 
 class Node(NS_Node):
     class Meta:
