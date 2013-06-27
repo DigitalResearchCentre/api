@@ -91,8 +91,17 @@ def get_urn(urn_base, doc=None, entity=None):
 
 class Entity(DETNode):
 
-    def has_text_of(self):
-        return self.text_set.all()
+    def has_text_of(self, doc_pk=None):
+        qs = self.text_set.all()
+        if doc_pk is not None:
+            doc = Doc.objects.get(pk=doc_pk)
+            start = doc.has_text_in()
+            if start is not None:
+                qs = qs.filter(tree_id=text.tree_id, lft__gt=start.lft)
+                bound = doc._get_texts_bound()
+                if bound is not None:
+                    qs = qs.filter(lft__lt=bound.lft)
+        return qs
 
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)

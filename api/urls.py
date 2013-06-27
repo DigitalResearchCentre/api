@@ -77,6 +77,12 @@ urlpatterns = patterns(
         'model': Entity, 'rel': 'has_text_of',
         'serializer_class': TextSerializer
     }),   
+    url(r'^entities/(?P<pk>\d+)/has_text_of/(?P<doc_pk>\d+)/$', 
+        RelationView.as_view(), {
+            'model': Entity, 'rel': 'has_text_of',
+            'serializer_class': TextSerializer,
+            'url_args': ['doc_pk'],
+        }),   
     url(r'^entities/(?P<pk>\d+)/urn/$', RelationView.as_view(), {
         'model': Entity, 'rel': 'get_urn',
     }),
