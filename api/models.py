@@ -117,7 +117,8 @@ class Entity(DETNode):
                 qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
             else:
                 qs = qs.filter(tree_id=doc.tree_id,
-                               lft__range=(doc.lft+1, doc.rgt - 1))
+                               lft__range=(doc.lft+1, doc.rgt - 1),
+                               depth=doc.get_depth()+1)
             result = result | qs
         return result
 
