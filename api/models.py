@@ -108,7 +108,7 @@ class Entity(DETNode):
 
         result = Doc.objects.none()
         for text in texts:
-            text_parts = (text.get_tree()
+            text_parts = (text.get_tree(text)
                           .filter(doc__isnull=False).select_related('doc'))
             first = get_first(text_parts)
             last = get_last(text_parts)
@@ -262,7 +262,7 @@ class Text(Node):
     def xml(self):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:
-            qs = self.get_tree()
+            qs = self.get_tree(self)
             prev_doc = None
         else:
             qs = self.doc.get_texts()
