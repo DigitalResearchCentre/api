@@ -25,6 +25,14 @@ class Community(models.Model):
     def get_urn_base(self):
         return 'urn:det:TCUSask:' + self.abbr
 
+def get_first(qs):
+    lst = list(qs[:1])
+    return lst and lst[0]
+
+def get_last(qs):
+    lst = list(qs.reverse()[:1])
+    return lst and lst[0]
+
 class Node(NS_Node):
     class Meta:
         abstract = True
@@ -43,23 +51,20 @@ class Node(NS_Node):
 
     # deep first prev (include ancestor)
     def get_df_prev(self):
-        return (self.__class__.objects
+        return get_first(self.__class__.objects
                 .filter(lft__lt=self.lft, tree_id=self.tree_id)
-                .order_by('-lft').first())
+                .order_by('-lft'))
 
     # deep first prev (include ancestor)
     def get_df_next(self):
-        return (self.__class__.objects
+        return get_first(self.__class__.objects
                 .filter(lft__gt=self.lft, tree_id=self.tree_id)
-                .order_by('lft').first())
+                .order_by('lft'))
 
     def get_all_after(self):
         return self.__class__.objects.filter(
             tree_id=self.tree_id, lft__gt=self.lft
         )
-
-    def get_tree(self):
-        return self.__class__.get_tree(self)
 
 class DETNode(Node):
     name = models.CharField(max_length=63)
@@ -89,10 +94,12 @@ class Entity(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)
 
-    def get_docs(self, parent=None):
+    def get_docs(self, doc_pk=None):
         texts = self.has_text_of()
-        if parent is not None:
-            doc_text = parent.has_text_in()
+        doc = None
+        if doc_pk is not None:
+            doc = Doc.objects.get(pk=doc_pk)
+            doc_text = doc.has_text_in()
             if doc_text is not None:
                 texts = texts.filter(tree_id=doc_text.tree_id)
 
@@ -100,17 +107,17 @@ class Entity(DETNode):
         for text in texts:
             text_parts = (text.get_tree()
                           .filter(doc__isnull=False).select_related('doc'))
-            first = text_parts.first()
-            last = text_parts.last()
+            first = get_first(text_parts)
+            last = get_last(text_parts)
             qs = Doc.objects.filter(
                 tree_id=first.doc.tree_id, 
                 rgt__gt=first.doc.lft, lft__lt=last.doc.rgt
             )
-            if parent is None:
+            if doc is None:
                 qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
             else:
-                qs = qs.filter(tree_id=parent.tree_id,
-                               lft__range(parent.lft, parent.rgt - 1))
+                qs = qs.filter(tree_id=doc.tree_id,
+                               lft__range=(doc.lft+1, doc.rgt - 1))
             result = result | qs
         return result
 
@@ -140,13 +147,13 @@ class Doc(DETNode):
         text = self.has_text_in()
         # find the first text with a doc 
         # which isnot decensder of current doc
-        return text and (
-            text.get_all_after()
-            .exclude(doc__tree_id=self.tree_id, 
-                     doc__lft__gte=self.lft, doc__rgt__lte=self.rgt)
-            .exclude(doc__isnull=True).first())
+        return text and get_first(text.get_all_after()
+                                  .exclude(doc__tree_id=self.tree_id, 
+                                           doc__lft__gte=self.lft,
+                                           doc__rgt__lte=self.rgt)
+                                  .exclude(doc__isnull=True))
 
-    def has_entities(self, parent=None):
+    def has_entities(self, entity_pk=None):
         text = self.has_text_in()
         if text is None:
             return self.__class__.objects.none()
@@ -159,15 +166,16 @@ class Doc(DETNode):
 
         # TODO: <div><pb/><l>line1</l>text mix with entity<l>line2</l></div>
         # in above case "text mix with entity" will lost
-        if parent is None:
+        if entity_pk is None:
             # exclude outer entity
             if bound is not None:
                 qs = qs.exclude(text__lft__lt=text.lft,
                                 text__rgt__gt=bound.lft)
             qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
         else:
-            qs = qs.filter(tree_id=parent.tree_id,
-                           lft__range(parent.lft, parent.rgt - 1))
+            entity = Entity.objects.get(pk=entity_pk)
+            qs = qs.filter(tree_id=entity.tree_id,
+                           lft__range=(entity.lft+1, entity.rgt - 1))
         return qs
 
     def get_urn(self):

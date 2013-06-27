@@ -28,13 +28,17 @@ class RelationView(
 ):
 
     def get(self, request, 
-            model=None, rel=None, serializer_class=None, *args, **kwargs):
+            model=None, rel=None, serializer_class=None, url_args=[],
+            *args, **kwargs):
         self.model = model
         self.serializer_class = serializer_class
         obj = self.get_object()
         rel = getattr(obj, rel)
         if callable(rel): 
-            rel = rel() # TODO: here can support url parameters
+            kw = {}
+            for key in url_args:
+                kw[key] = self.kwargs.get(key)
+            rel = rel(**kw)
         if isinstance(rel, query.QuerySet):
             self.queryset = rel
             return self.list(request, *args, **kwargs)
