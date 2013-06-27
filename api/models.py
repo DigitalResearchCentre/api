@@ -97,7 +97,7 @@ class Entity(DETNode):
             doc = Doc.objects.get(pk=doc_pk)
             start = doc.has_text_in()
             if start is not None:
-                qs = qs.filter(tree_id=text.tree_id, lft__gt=start.lft)
+                qs = qs.filter(tree_id=start.tree_id, lft__gt=start.lft)
                 bound = doc._get_texts_bound()
                 if bound is not None:
                     qs = qs.filter(lft__lt=bound.lft)
