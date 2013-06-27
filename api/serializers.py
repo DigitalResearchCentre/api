@@ -15,34 +15,29 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'first_name', 'last_name', 'email')
         read_only_fields = ('username',)
 
-class DocSerializer(serializers.ModelSerializer):
-#    parent = serializers.HyperlinkedRelatedField(
-#        read_only=True, view_name='doc-detail')
-#    prev = serializers.HyperlinkedRelatedField(
-#        read_only=True, view_name='doc-detail')
-#    next = serializers.HyperlinkedRelatedField(
-#        read_only=True, view_name='doc-detail')
-#    has_parts = serializers.HyperlinkedRelatedField(
-#        many=True, read_only=True, view_name='doc-detail')
-#    has_text_in = serializers.HyperlinkedRelatedField(
-#        read_only=True, view_name='text-detail')
-#    has_image = serializers.URLField(source='has_image')
-#    has_transcript = serializers.HyperlinkedRelatedField(
-#        many=True, read_only=True, view_name='transcript-detail')
-            #'parent', 'prev', 'next', 'has_parts',
-            #'has_text_in', 'has_image', 'has_transcript'
+class NodeSerializer(serializers.ModelSerializer):
+
+    def has_parent(self, obj):
+        return not obj.is_root()
+
+    def has_parts(self, obj):
+        return not obj.is_leaf()
+
+class DocSerializer(NodeSerializer):
+    has_parent = serializers.SerializerMethodField('has_parent')
+    has_parts = serializers.SerializerMethodField('has_parts')
 
     class Meta:
         model = Doc
-        fields = ('id', 'name', 'label', )
 
-class EntitySerializer(serializers.ModelSerializer):
+class EntitySerializer(NodeSerializer):
+    has_parent = serializers.SerializerMethodField('has_parent')
+    has_parts = serializers.SerializerMethodField('has_parts')
 
     class Meta:
         model = Entity
-        fields = ('id', 'name', 'label', )
 
-class TextSerializer(serializers.ModelSerializer):
+class TextSerializer(NodeSerializer):
     element = serializers.Field(source='to_element')
 
     class Meta:

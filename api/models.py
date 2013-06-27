@@ -38,7 +38,7 @@ class Node(NS_Node):
         abstract = True
 
     def has_parts(self):
-        return self.get_children()
+        return self.get_children().order_by('lft')
 
     def next(self):
         return self.get_next_sibling()
@@ -62,9 +62,12 @@ class Node(NS_Node):
                 .order_by('lft'))
 
     def get_all_after(self):
-        return self.__class__.objects.filter(
-            tree_id=self.tree_id, lft__gt=self.lft
-        )
+        return (self.__class__.objects
+                .filter(tree_id=self.tree_id, lft__gt=self.lft)
+                .order_by('lft'))
+
+    def is_root(self):
+        return self.lft == 1
 
 class DETNode(Node):
     name = models.CharField(max_length=63)
@@ -142,7 +145,7 @@ class Doc(DETNode):
         bound = self._get_texts_bound()
         if bound is not None:
             qs = qs.filter(lft__lt=bound.lft)
-        return qs
+        return qs.order_by('lft')
 
     def _get_texts_bound(self):
         text = self.has_text_in()
@@ -177,7 +180,7 @@ class Doc(DETNode):
             entity = Entity.objects.get(pk=entity_pk)
             qs = qs.filter(tree_id=entity.tree_id,
                            lft__range=(entity.lft+1, entity.rgt - 1))
-        return qs
+        return qs.order_by('lft')
 
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
