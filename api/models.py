@@ -94,7 +94,7 @@ class Entity(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)
 
-    def get_docs(self, doc_pk=None):
+    def has_docs(self, doc_pk=None):
         texts = self.has_text_of()
         doc = None
         if doc_pk is not None:
