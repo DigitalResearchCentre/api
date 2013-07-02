@@ -39,6 +39,24 @@ urlpatterns = patterns(
         'model': Doc, 'rel': 'has_text_in',
         'serializer_class': TextSerializer
     }),
+    url(r'^docs/(?P<pk>\d+)/has_image/$', RelationView.as_view(), {
+        'model': Doc, 'rel': 'has_image',
+        'serializer_class': TilerImageSerializer,
+    }),
+    url(r'^docs/(?P<pk>\d+)/has_image/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', 
+        RelationView.as_view(), {
+        'model': Doc, 'rel': 'has_image',
+        'serializer_class': TilerImageSerializer,
+        'url_args': ['zoom', 'x', 'y'],
+    }),
+    url(r'^docs/(?P<pk>\d+)/has_revisions/$', RelationView.as_view(), {
+        'model': Doc, 'rel': 'has_revisions',
+        'serializer_class': RevisionSerializer,
+    }),
+    url(r'^docs/(?P<pk>\d+)/cur_revision/$', RelationView.as_view(), {
+        'model': Doc, 'rel': 'cur_revision',
+        'serializer_class': RevisionSerializer,
+    }),
     url(r'^docs/(?P<pk>\d+)/urn/$', RelationView.as_view(), {
         'model': Doc, 'rel': 'get_urn',
     }),
@@ -46,8 +64,6 @@ urlpatterns = patterns(
         'model': Doc, 'rel': 'has_entities', 
         'serializer_class': EntitySerializer
     }),
-    url(r'^docs/(?P<pk>\d+)/has_image/$', fake_image),
-    url(r'^docs/(?P<pk>\d+)/has_image/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', fake_image),
     url(r'^docs/(?P<pk>\d+)/has_entities/(?P<entity_pk>\d+)/$', 
         RelationView.as_view(), {
             'model': Doc, 'rel': 'has_entities', 
@@ -130,9 +146,6 @@ urlpatterns = patterns(
 
     url(r'^users/$', UserList.as_view(), name='user-list'),
     url(r'^users/(?P<pk>\d+)/$', UserDetail.as_view(), name='user-detail'),
-    url(r'^transcripts/$', TranscriptList.as_view(), name='transcript-list'),
-    url(r'^transcripts/(?P<pk>\d+)/$', 
-        TranscriptDetail.as_view(), name='transcript-detail'),
 )
 
 

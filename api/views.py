@@ -20,7 +20,6 @@ def api_root(request, format=None):
         'entities': reverse('entity-list', request=request),
         'texts': reverse('text-list', request=request),
         'users': reverse('user-list', request=request),
-        'transcripts': reverse('transcript-list', request=request),
     })
 
 class RelationView(
@@ -38,18 +37,22 @@ class RelationView(
             kw = {}
             for key in url_args:
                 kw[key] = self.kwargs.get(key)
+            print 'start'
             rel = rel(**kw)
+            from django.db import connection
+            print connection.queries
         if isinstance(rel, query.QuerySet):
             self.queryset = rel
             return self.list(request, *args, **kwargs)
         elif isinstance(rel, models.Model):
             serializer = self.get_serializer(rel)
             return Response(serializer.data)
+        elif isinstance(rel, Response):
+            return rel
         elif rel is None:
             raise Http404
         else:
             return Response(rel)
-
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
@@ -95,14 +98,6 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 class UserList(generics.ListCreateAPIView):
     model = User
     serializer_class = UserSerializer
-
-class TranscriptDetail(generics.RetrieveUpdateDestroyAPIView):
-    model = Transcript
-    serializer_class = TranscriptSerializer
-
-class TranscriptList(generics.ListCreateAPIView):
-    model = Transcript
-    serializer_class = TranscriptSerializer
 
 def fake_image(request, pk, zoom=None, x=None, y=None):
     url = 'http://textualcommunities.usask.ca/drc/community/file/2188/'

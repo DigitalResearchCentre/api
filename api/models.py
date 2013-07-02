@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Q
 from treebeard.ns_tree import NS_Node
 from django.contrib.auth.models import User
+from rest_framework.response import Response
 
 class Community(models.Model):
     name = models.CharField(max_length=20, unique=True)
@@ -141,17 +142,35 @@ class Entity(DETNode):
 
 class Doc(DETNode):
 
+    cur_rev = models.OneToOneField(
+        'Revision', related_name='+', null=True, blank=True
+    )
+
     def has_text_in(self):
         try:
             return self.text
         except Text.DoesNotExist, e:
             return None
 
-    def has_image(self):
-        return None
+    def has_image(self, zoom=None, x=None, y=None):
+        try:
+            print dir(self)
+            tiler_image = self.tilerimage
+            try:
+                return Response(
+                    tiler_image.read_tile(*map(int, (zoom, x, y,))), 
+                    content_type='image/jpeg'
+                )
+            except TypeError, e:
+                return tiler_image
+        except TilerImage.DoesNotExist, e:
+            return None
 
-    def has_transcript(self):
-        return self.transcript_set.all()
+    def cur_revision(self):
+        return self.cur_rev
+
+    def has_revisions(self):
+        return self.revision_set.all()
 
     def get_texts(self):
         text = self.has_text_in()
@@ -187,14 +206,17 @@ class Doc(DETNode):
         if entity_pk is None:
             # exclude outer entity
             if bound is not None:
-                qs = qs.exclude(text__lft__lt=text.lft,
-                                text__rgt__gt=bound.lft)
+                qs = qs.filter(
+                    Q(text__lft__lt=text.lft, text__rgt__lt=bound.lft) |
+                    Q(text__lft__gt=text.lft, text__rgt__lt=bound.lft) |
+                    Q(text__lft__gt=text.lft, text__rgt__gt=bound.lft)
+                )
             qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
         else:
             entity = Entity.objects.get(pk=entity_pk)
             qs = qs.filter(tree_id=entity.tree_id,
                            lft__range=(entity.lft+1, entity.rgt - 1))
-        return qs.order_by('lft')
+        return qs.distinct().order_by('lft')
 
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
@@ -314,11 +336,103 @@ class Attr(models.Model):
     name = models.CharField(max_length=63)
     value = models.CharField(max_length=255, blank=True)
 
-class Transcript(models.Model):
+    class Meta:
+        unique_together = (('text', 'name'), )
+
+class Revision(models.Model):
     doc = models.ForeignKey(Doc)
+    user = models.ForeignKey(User)
+    prev = models.ForeignKey(
+        'self', related_name='next', null=True, blank=True)
+    create_date = models.DateTimeField(auto_now_add=True)
+    edit_date = models.DateTimeField(auto_now=True)
+    text = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-create_date',]
+
+def get_path(instance, filename):
+    path = os.path.join(instance.base_path(), 'image')
+    full_path = os.path.join(settings.MEDIA_ROOT, path)
+    if not os.path.isdir(full_path):
+        os.makedirs(full_path, 0755)
+    return os.path.join(path, filename)
+
+class TilerImage(models.Model):
+    image = models.ImageField(
+        upload_to=get_path, height_field='height', width_field='width'
+    )
+    doc = models.OneToOneField(Doc)
+    width = models.IntegerField()
+    height = models.IntegerField()
+    # the length of dir name, so 2 means for doc.pk == 12345
+    # we will save image at: 12/34/5/image/foo.jpg 
+    PATH = 'tiler_image'
+    DIR_LENGTH = 2
+    TILE_SIZE = 256
+
+    class Meta:
+        db_table = 'det_tilerimage'
+
+    def base_path(self):
+        doc_pk = str(self.doc_id)
+        return os.path.join(self.PATH, *[
+            doc_pk[i:i+self.DIR_LENGTH] 
+            for i in range(0, len(doc_pk), self.DIR_LENGTH)
+        ])
+
+    def max_zoom(self):
+        return int(math.ceil(
+            math.log(max(self.width, self.height)/float(self.TILE_SIZE), 2)
+        ))
+
+    def read_tile(self, zoom, x, y):
+        if zoom > self.max_zoom():
+            raise Tile.DoesNotExist('zoom: %s' % zoom)
+        radio = self.width / float(self.height)
+        size = 2**zoom
+        if radio > 1:
+            w = size
+            h = w/radio
+        else:
+            h = size
+            w = h * radio
+
+        if x > w or y > h:
+            return ''
+
+        try:
+            tile = self.tile_set.get(zoom=zoom, x=x, y=y)
+        except Tile.DoesNotExist, e:
+            self.image.open()
+            tile = self.save_tile(
+                Tiler().create_tile(self.image, zoom, x, y), zoom, x, y
+            )
+        return tile.blob
+
+    def save_tile(self, tile, zoom, x, y):
+        blob = StringIO.StringIO()
+        tile.save(blob, 'JPEG')
+        tile, _ = Tile.objects.get_or_create(
+            image=self, zoom=zoom, x=x, y=y
+        )
+        tile.blob = blob.getvalue()
+        tile.save()
+        blob.close()
+        return tile
 
 
+class BlobField(models.Field):
+    def db_type(self, connection):
+        return 'blob'
 
+class Tile(models.Model):
+    image = models.ForeignKey(TilerImage)
+    zoom = models.IntegerField()
+    x = models.IntegerField()
+    y = models.IntegerField()
+    blob = BlobField()
 
-
-
+    class Meta:
+        unique_together = (('image', 'zoom', 'x', 'y'), )
+        db_table = 'det_tile'

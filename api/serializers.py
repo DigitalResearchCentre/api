@@ -44,10 +44,15 @@ class TextSerializer(NodeSerializer):
         model = Text
         fields = ('id', 'element',)
 
-class TranscriptSerializer(serializers.ModelSerializer):
+class RevisionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Transcript
+        model = Revision
 
+class TilerImageSerializer(serializers.ModelSerializer):
+    max_zoom = serializers.SerializerMethodField('max_zoom')
 
+    class Meta:
+        model = TilerImage
+        fields = ('id', 'doc_id', 'width', 'height', 'max_zoom')
 
