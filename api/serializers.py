@@ -54,5 +54,5 @@ class TilerImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TilerImage
-        fields = ('id', 'doc_id', 'width', 'height', 'max_zoom')
+        fields = ('id', 'doc', 'width', 'height', 'max_zoom')
 

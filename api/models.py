@@ -436,3 +436,4 @@ class Tile(models.Model):
     class Meta:
         unique_together = (('image', 'zoom', 'x', 'y'), )
         db_table = 'det_tile'
+
