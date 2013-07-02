@@ -236,7 +236,7 @@ def _to_xml(qs, prev_doc=None):
 
             for i in range(0, prev_depth - depth):
                 parent = q.pop()
-                xml += '</%s>' % parent.tag
+                xml += '</%s>%s' % (parent.tag, parent.tail)
 
             prev, prev_depth = (node, depth)
 
@@ -244,12 +244,13 @@ def _to_xml(qs, prev_doc=None):
 
         while q:
             parent = q.pop()
-            xml += '</%s>' % parent.tag
+            xml += '</%s>%s' % (parent.tag, parent.tail)
     return xml
 
 class Text(Node):
     tag = models.CharField(max_length=15)
-    text = models.TextField(blank=True) # should only have one of tag or text
+    text = models.TextField(blank=True)
+    tail = models.TextField(blank=True)
     doc = models.OneToOneField(Doc, null=True, blank=True, editable=False)
     entity = models.ForeignKey(Entity, null=True, blank=True, editable=False)
 
@@ -261,17 +262,24 @@ class Text(Node):
         )
 
     def to_element(self, open=False, extra_attrs=None):
-        if self.tag:
-            attrs = [self.tag] + [
-                '%s="%s"' % (attr.name, attr.value) 
-                for attr in self.attr_set.all()
-            ]
-            if extra_attrs:
-                for name, value in extra_attrs.items():
-                    attrs.append('%s="%s"' % (name, value))
-            return ('<%s>' if open else '<%s/>') % ' '.join(attrs)
+        attrs = [self.tag] + [
+            '%s="%s"' % (attr.name, attr.value) 
+            for attr in self.attr_set.all()
+        ]
+        if extra_attrs:
+            for name, value in extra_attrs.items():
+                attrs.append('%s="%s"' % (name, value))
+        xml = '<%s' % ' '.join(attrs)
+        if open:
+            xml += '>%s' % self.text
         else:
-            return self.text
+            text = self.text.strip()
+            if text:
+                xml += '>%s</%s>' % (text, self.tag)
+            else:
+                xml += '/>'
+            xml += self.tail.strip()
+        return xml
 
     def xml(self):
         # <text/> element can have both entity and doc
