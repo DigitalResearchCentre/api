@@ -3,9 +3,9 @@ from collections import deque
 from django.db import models
 from django.db.models import Q
 from django.conf import settings
+from django.http import HttpResponse
 from treebeard.ns_tree import NS_Node
 from django.contrib.auth.models import User
-from rest_framework.response import Response
 
 class Community(models.Model):
     name = models.CharField(max_length=20, unique=True)
@@ -155,10 +155,9 @@ class Doc(DETNode):
 
     def has_image(self, zoom=None, x=None, y=None):
         try:
-            print dir(self)
             tiler_image = self.tilerimage
             try:
-                return Response(
+                return HttpResponse(
                     tiler_image.read_tile(*map(int, (zoom, x, y,))), 
                     content_type='image/jpeg'
                 )

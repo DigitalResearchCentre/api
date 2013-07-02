@@ -1,6 +1,6 @@
 from django.db.models import Q, query
 from django.contrib.auth.models import User
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.views.generic.detail import DetailView
 
 import django_filters
@@ -47,7 +47,7 @@ class RelationView(
         elif isinstance(rel, models.Model):
             serializer = self.get_serializer(rel)
             return Response(serializer.data)
-        elif isinstance(rel, Response):
+        elif isinstance(rel, HttpResponse):
             return rel
         elif rel is None:
             raise Http404
