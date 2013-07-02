@@ -50,7 +50,7 @@ class RevisionSerializer(serializers.ModelSerializer):
         model = Revision
 
 class TilerImageSerializer(serializers.ModelSerializer):
-    max_zoom = serializers.SerializerMethodField('max_zoom')
+    max_zoom = serializers.Field(source='max_zoom')
 
     class Meta:
         model = TilerImage
