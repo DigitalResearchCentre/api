@@ -244,4 +244,7 @@ UPDATE api_doc d JOIN community_transcript t ON t.doc_id = d.id
 SET d.cur_rev_id = t.cur_rev_id
 WHERE t.cur_rev_id IS NOT NULL;
 
+INSERT INTO api_attr (id, text_id, name, value)
+SELECT da.id, da.element_id, da.name, da.value 
+FROM det_attr da INNER JOIN api_text t on t.id = da.element_id;
 

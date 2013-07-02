@@ -295,12 +295,12 @@ class Text(Node):
         if open:
             xml += '>%s' % self.text
         else:
-            text = self.text.strip()
+            text = self.text
             if text:
                 xml += '>%s</%s>' % (text, self.tag)
             else:
                 xml += '/>'
-            xml += self.tail.strip()
+            xml += self.tail
         return xml
 
     def xml(self):
