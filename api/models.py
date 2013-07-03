@@ -399,7 +399,7 @@ class TilerImage(models.Model):
             h = size
             w = h * radio
 
-        if x > w or y > h:
+        if x + 1 > w or y + 1 > h:
             return ''
 
         try:
