@@ -399,7 +399,7 @@ class TilerImage(models.Model):
                 w = size
             h = w/radio
         else:
-            if self.height > size:
+            if h > size:
                 h = size
             w = h * radio
 
