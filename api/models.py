@@ -4,8 +4,9 @@ from django.db import models
 from django.db.models import Q
 from django.conf import settings
 from django.http import HttpResponse
-from treebeard.ns_tree import NS_Node
 from django.contrib.auth.models import User
+from treebeard.ns_tree import NS_Node
+from tiler.tiler import Tiler
 
 class Community(models.Model):
     name = models.CharField(max_length=20, unique=True)

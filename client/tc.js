@@ -98,3 +98,7 @@ TC.getCommunities().done(function (communities) {
     });
   });
 });
+
+var imageMap = new ImageMap($('.map')[0], 'http://textualcommunities.usask.ca/api/docs/353959/has_image/', {zoom: 4, minZoom: 0, maxZoom: 6});
+
+
