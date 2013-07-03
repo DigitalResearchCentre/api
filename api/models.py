@@ -392,14 +392,18 @@ class TilerImage(models.Model):
             raise Tile.DoesNotExist('zoom: %s' % zoom)
         radio = self.width / float(self.height)
         size = 2**zoom
+        w = self.width / self.TILE_SIZE
+        h = self.height / self.TILE_SIZE
         if radio > 1:
-            w = size
+            if w > size:
+                w = size
             h = w/radio
         else:
-            h = size
+            if self.height > size:
+                h = size
             w = h * radio
 
-        if x + 1 > w or y + 1 > h:
+        if x > w or y > h:
             return ''
 
         try:
