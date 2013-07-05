@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import patterns, url, include
 from api.views import *
 from api.models import *
 from api.serializers import *
@@ -18,7 +18,12 @@ urlpatterns = patterns(
         'serializer_class': EntitySerializer
     }),
     url(r'^docs/$', DocList.as_view(), name='doc-list'),
-    url(r'^docs/(?P<pk>\d+)/$', DocDetail.as_view(), name='doc-detail'),
+    url(r'^docs/(?P<pk>\d+)/', include(
+        MyAPIView.urlpatterns([
+            {'serializer_class': DocSerializer},
+            {'func': 'has_text_in', 'serializer_class': TextSerializer} 
+        ], extra={'model': Doc})
+    )),
     url(r'^docs/(?P<pk>\d+)/next/$', RelationView.as_view(), {
         'model': Doc, 'rel': 'next',
         'serializer_class': DocSerializer
@@ -34,10 +39,6 @@ urlpatterns = patterns(
     url(r'^docs/(?P<pk>\d+)/has_parts/$', RelationView.as_view(), {
         'model': Doc, 'rel': 'has_parts',
         'serializer_class': DocSerializer
-    }),
-    url(r'^docs/(?P<pk>\d+)/has_text_in/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'has_text_in',
-        'serializer_class': TextSerializer
     }),
     url(r'^docs/(?P<pk>\d+)/has_image/$', RelationView.as_view(), {
         'model': Doc, 'rel': 'has_image',
@@ -69,6 +70,22 @@ urlpatterns = patterns(
             'model': Doc, 'rel': 'has_entities', 
             'serializer_class': EntitySerializer,
             'url_args': ['entity_pk'],
+        }),
+    url(r'^docs/(?P<pk>\d+)/transcribe/$', 
+        RelationView.as_view(), {
+            'model': Doc, 'rel': 'transcribe',
+            'serializer_class': RevisionSerializer,
+        }),
+    url(r'^docs/(?P<pk>\d+)/commit/(?P<revision_pk>\d+)/$', 
+        RelationView.as_view(), {
+            'model': Doc, 'rel': 'commit',
+            'serializer_class': RevisionSerializer,
+            'url_args': ['revision_pk'],
+        }),
+    url(r'^docs/(?P<pk>\d+)/publish/$', 
+        RelationView.as_view(), {
+            'model': Doc, 'rel': 'publish',
+            'serializer_class': DocSerializer,
         }),
     url(r'^entities/$', EntityList.as_view(), name='entity-list'),
     url(r'^entities/(?P<pk>\d+)/$', 

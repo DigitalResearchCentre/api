@@ -140,7 +140,8 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    )
+    ),
+    'FORM_METHOD_OVERRIDE': None,
 }
 
 CORS_ORIGIN_ALLOW_ALL = True

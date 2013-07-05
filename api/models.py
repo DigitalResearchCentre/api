@@ -346,7 +346,7 @@ class Revision(models.Model):
     prev = models.ForeignKey(
         'self', related_name='next', null=True, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
-    edit_date = models.DateTimeField(auto_now=True)
+    commit_date = models.DateTimeField(null=True, blank=True)
     text = models.TextField(blank=True)
 
     class Meta:

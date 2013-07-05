@@ -1,9 +1,12 @@
 from django.db.models import Q, query
 from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, Http404, HttpResponse
+from django.conf.urls import patterns, url
 from django.views.generic.detail import DetailView
+from django.views.decorators.csrf import csrf_exempt
 
 import django_filters
+from rest_framework import permissions
 from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
 from rest_framework.response import Response
@@ -22,6 +25,90 @@ def api_root(request, format=None):
         'users': reverse('user-list', request=request),
     })
 
+class MyAPIView(
+    mixins.ListModelMixin, generics.RetrieveAPIView
+):
+    func = None
+    response_class = None
+    reserve_kwargs = ['slug', 'pk']
+
+    def get_response(self, result):
+        if self.response_class is not None:
+            return self.response_class(result)
+        elif isinstance(result, query.QuerySet):
+            self.queryset = result
+            return self.list(self.request)
+        elif isinstance(result, models.Model):
+            serializer = self.get_serializer(result)
+            return Response(serializer.data)
+        elif isinstance(result, HttpResponse):
+            return result
+        elif result is None:
+            raise Http404
+        else:
+            return Response(result)
+
+    def api_handler(self, request, *args, **kwargs):
+        obj = self.get_object()
+        result = getattr(obj, self.func)
+        if callable(result): 
+            kwargs = dict(self.kwargs)
+            for k in self.reserve_kwargs:
+                kwargs.pop(k, None)
+            result = result(**kwargs)
+        return self.get_response(result)
+
+    # Note: session based authentication is explicitly CSRF validated,
+    # all other authentication is CSRF exempt.
+    @csrf_exempt
+    def dispatch(self, request, *args, **kwargs):
+        """
+        `.dispatch()` is pretty much the same as Django's regular dispatch,
+        but with extra hooks for startup, finalize, and exception handling.
+        """
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.args = args
+        self.kwargs = kwargs
+        self.headers = self.default_response_headers  # deprecate?
+
+        try:
+            self.initial(request, *args, **kwargs)
+            method = request.method.lower()
+            methods = getattr(self, 'methods', None)
+
+            # Get the appropriate handler method
+            if method in self.http_method_names and (
+                methods is None or method in methods
+            ):
+                if self.func is None:
+                    handler = getattr(self, request.method.lower(),
+                                      self.http_method_not_allowed)
+                else:
+                    handler = getattr(self, '_%s_%s' % (method, self.func),
+                                      self.api_handler)
+            else:
+                handler = self.http_method_not_allowed
+            response = handler(request, *args, **kwargs)
+
+        except Exception as exc:
+            response = self.handle_exception(exc)
+
+        self.response = self.finalize_response(request, response, 
+                                               *args, **kwargs)
+        return self.response
+
+    @classmethod
+    def urlpatterns(cls, configs, extra={}):
+        args = ['']
+        for conf in configs:
+            conf = dict(extra, **conf)
+            args.append(url(
+                r'^%s%s/$' % (conf.get('func', ''), conf.get('func_args', '')),
+                cls.as_view(**conf)
+            ))
+        return patterns(*args)
+
 class RelationView(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, generics.GenericAPIView
 ):
@@ -37,22 +124,7 @@ class RelationView(
             kw = {}
             for key in url_args:
                 kw[key] = self.kwargs.get(key)
-            print 'start'
             rel = rel(**kw)
-            from django.db import connection
-            print connection.queries
-        if isinstance(rel, query.QuerySet):
-            self.queryset = rel
-            return self.list(request, *args, **kwargs)
-        elif isinstance(rel, models.Model):
-            serializer = self.get_serializer(rel)
-            return Response(serializer.data)
-        elif isinstance(rel, HttpResponse):
-            return rel
-        elif rel is None:
-            raise Http404
-        else:
-            return Response(rel)
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
@@ -66,7 +138,11 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Doc
     serializer_class = DocSerializer
     url_name = 'doc-detail'
+    permission_classes = (permissions.AllowAny,)
+    post_form = None
+    put_form = None
 
+    
 #    has_image = serializers.URLField(source='has_image')
 #    has_transcript = serializers.HyperlinkedRelatedField(
 #        many=True, read_only=True, view_name='transcript-detail')
@@ -99,8 +175,7 @@ class UserList(generics.ListCreateAPIView):
     model = User
     serializer_class = UserSerializer
 
-def fake_image(request, pk, zoom=None, x=None, y=None):
-    url = 'http://textualcommunities.usask.ca/drc/community/file/2188/'
-    if zoom is not None and x is not None and y is not None:
-        url = '%s%s/%s/%s/' % (url, zoom, x, y)
-    return HttpResponseRedirect(url)
+class TranscribeView(generics.CreateAPIView):
+    model = Revision
+    serializer_class = RevisionSerializer
+    permission_classes = (permissions.AllowAny,)
