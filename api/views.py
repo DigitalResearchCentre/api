@@ -25,13 +25,14 @@ def api_root(request, format=None):
         'users': reverse('user-list', request=request),
     })
 
-class APIView(
+class RelationView(
     mixins.ListModelMixin, generics.RetrieveAPIView
 ):
     func = None
     response_class = None
     reserve_kwargs = ['slug', 'pk']
     methods = None
+    permission_classes = [permissions.AllowAny]
 
     def get_response(self, result):
         if self.response_class is not None:
@@ -76,6 +77,9 @@ class APIView(
         try:
             self.initial(request, *args, **kwargs)
             method = request.method.lower()
+            print method
+            print self.func
+            print self.methods
 
             # Get the appropriate handler method
             if method in self.http_method_names and (
@@ -103,28 +107,20 @@ class APIView(
         args = ['']
         for conf in configs:
             conf = dict(extra, **conf)
-            args.append(url(
-                r'^%s%s/$' % (conf.get('func', ''), conf.pop('func_args', '')),
-                cls.as_view(**conf)
-            ))
+            func = conf.get('func', '')
+            u = '%s/%s' % (func, conf.pop('func_args', '')) if func else ''
+            args.append(url(r'^%s$' % u, cls.as_view(**conf),))
         return patterns(*args)
 
-class RelationView(
-    mixins.ListModelMixin, mixins.RetrieveModelMixin, generics.GenericAPIView
-):
+class APIView(RelationView):
 
-    def get(self, request, 
-            model=None, rel=None, serializer_class=None, url_args=[],
-            *args, **kwargs):
-        self.model = model
-        self.serializer_class = serializer_class
-        obj = self.get_object()
-        rel = getattr(obj, rel)
-        if callable(rel): 
-            kw = {}
-            for key in url_args:
-                kw[key] = self.kwargs.get(key)
-            rel = rel(**kw)
+    def _post_transcribe(self, request, *args, **kwargs):
+        fake = {}
+        fake.DATA = dict(request.DATA, doc_id=self.kwargs['pk'])
+        fake.FILES = request.FILES
+        return generics.CreateAPIView.as_view(
+            model=Revision, serializer_class=RevisionSerializer
+        )(request, *args, **kwargs)
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
