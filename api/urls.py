@@ -19,74 +19,28 @@ urlpatterns = patterns(
     }),
     url(r'^docs/$', DocList.as_view(), name='doc-list'),
     url(r'^docs/(?P<pk>\d+)/', include(
-        MyAPIView.urlpatterns([
+        APIView.urlpatterns([
             {'serializer_class': DocSerializer},
-            {'func': 'has_text_in', 'serializer_class': TextSerializer} 
+            {'func': 'has_text_in', 'serializer_class': TextSerializer},
+            {'func': 'next', 'serializer_class': DocSerializer},
+            {'func': 'prev', 'serializer_class': DocSerializer},
+            {'func': 'parent', 'serializer_class': DocSerializer},
+            {'func': 'has_parts', 'serializer_class': DocSerializer},
+            {'func': 'has_revisions', 'serializer_class': RevisionSerializer},
+            {'func': 'cur_revision', 'serializer_class': RevisionSerializer},
+            {'func': 'has_entities', 'serializer_class': EntitySerializer},
+            {'func': 'has_entities', 'serializer_class': EntitySerializer,
+             'func_args': '/has_entities/(?P<entity_pk>\d+)'},
+            {'func': 'has_image', 'serializer_class': TilerImageSerializer},
+            {'func': 'has_image', 
+             'func_args': '/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)'},
+            {'func': 'transcribe', 'serializer_class': RevisionSerializer,
+             'methods': ['post']},
+            {'func': 'commit', 'serializer_class': RevisionSerializer,
+             'func_args': '/(?P<revision_pk>\d+)', 'methods': ['put']},
+            {'func': 'publish', 'serializer_class': DocSerializer, },
         ], extra={'model': Doc})
     )),
-    url(r'^docs/(?P<pk>\d+)/next/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'next',
-        'serializer_class': DocSerializer
-    }),
-    url(r'^docs/(?P<pk>\d+)/prev/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'prev',
-        'serializer_class': DocSerializer
-    }),
-    url(r'^docs/(?P<pk>\d+)/parent/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'parent',
-        'serializer_class': DocSerializer
-    }),
-    url(r'^docs/(?P<pk>\d+)/has_parts/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'has_parts',
-        'serializer_class': DocSerializer
-    }),
-    url(r'^docs/(?P<pk>\d+)/has_image/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'has_image',
-        'serializer_class': TilerImageSerializer,
-    }),
-    url(r'^docs/(?P<pk>\d+)/has_image/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', 
-        RelationView.as_view(), {
-        'model': Doc, 'rel': 'has_image',
-        'serializer_class': TilerImageSerializer,
-        'url_args': ['zoom', 'x', 'y'],
-    }),
-    url(r'^docs/(?P<pk>\d+)/has_revisions/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'has_revisions',
-        'serializer_class': RevisionSerializer,
-    }),
-    url(r'^docs/(?P<pk>\d+)/cur_revision/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'cur_revision',
-        'serializer_class': RevisionSerializer,
-    }),
-    url(r'^docs/(?P<pk>\d+)/urn/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'get_urn',
-    }),
-    url(r'^docs/(?P<pk>\d+)/has_entities/$', RelationView.as_view(), {
-        'model': Doc, 'rel': 'has_entities', 
-        'serializer_class': EntitySerializer
-    }),
-    url(r'^docs/(?P<pk>\d+)/has_entities/(?P<entity_pk>\d+)/$', 
-        RelationView.as_view(), {
-            'model': Doc, 'rel': 'has_entities', 
-            'serializer_class': EntitySerializer,
-            'url_args': ['entity_pk'],
-        }),
-    url(r'^docs/(?P<pk>\d+)/transcribe/$', 
-        RelationView.as_view(), {
-            'model': Doc, 'rel': 'transcribe',
-            'serializer_class': RevisionSerializer,
-        }),
-    url(r'^docs/(?P<pk>\d+)/commit/(?P<revision_pk>\d+)/$', 
-        RelationView.as_view(), {
-            'model': Doc, 'rel': 'commit',
-            'serializer_class': RevisionSerializer,
-            'url_args': ['revision_pk'],
-        }),
-    url(r'^docs/(?P<pk>\d+)/publish/$', 
-        RelationView.as_view(), {
-            'model': Doc, 'rel': 'publish',
-            'serializer_class': DocSerializer,
-        }),
     url(r'^entities/$', EntityList.as_view(), name='entity-list'),
     url(r'^entities/(?P<pk>\d+)/$', 
         EntityDetail.as_view(), name='entity-detail'),

@@ -25,12 +25,13 @@ def api_root(request, format=None):
         'users': reverse('user-list', request=request),
     })
 
-class MyAPIView(
+class APIView(
     mixins.ListModelMixin, generics.RetrieveAPIView
 ):
     func = None
     response_class = None
     reserve_kwargs = ['slug', 'pk']
+    methods = None
 
     def get_response(self, result):
         if self.response_class is not None:
@@ -75,11 +76,10 @@ class MyAPIView(
         try:
             self.initial(request, *args, **kwargs)
             method = request.method.lower()
-            methods = getattr(self, 'methods', None)
 
             # Get the appropriate handler method
             if method in self.http_method_names and (
-                methods is None or method in methods
+                self.methods is None or method in self.methods
             ):
                 if self.func is None:
                     handler = getattr(self, request.method.lower(),
@@ -104,7 +104,7 @@ class MyAPIView(
         for conf in configs:
             conf = dict(extra, **conf)
             args.append(url(
-                r'^%s%s/$' % (conf.get('func', ''), conf.get('func_args', '')),
+                r'^%s%s/$' % (conf.get('func', ''), conf.pop('func_args', '')),
                 cls.as_view(**conf)
             ))
         return patterns(*args)
