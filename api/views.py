@@ -77,9 +77,6 @@ class RelationView(
         try:
             self.initial(request, *args, **kwargs)
             method = request.method.lower()
-            print method
-            print self.func
-            print self.methods
 
             # Get the appropriate handler method
             if method in self.http_method_names and (
@@ -112,15 +109,33 @@ class RelationView(
             args.append(url(r'^%s$' % u, cls.as_view(**conf),))
         return patterns(*args)
 
-class APIView(RelationView):
+class CreateModelMixin(object):
+    """
+    Create a model instance.
+    """
+    def create(self, data={}, files=None, *args, **kwargs):
+        serializer = self.get_serializer(data=data, files=files)
+
+        if serializer.is_valid():
+            self.pre_save(serializer.object)
+            self.object = serializer.save(force_insert=True)
+            self.post_save(self.object, created=True)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED,
+                            headers=headers)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': data['url']}
+        except (TypeError, KeyError):
+            return {}
+
+class APIView(CreateModelMixin, RelationView):
 
     def _post_transcribe(self, request, *args, **kwargs):
-        fake = {}
-        fake.DATA = dict(request.DATA, doc_id=self.kwargs['pk'])
-        fake.FILES = request.FILES
-        return generics.CreateAPIView.as_view(
-            model=Revision, serializer_class=RevisionSerializer
-        )(request, *args, **kwargs)
+        return self.create(dict(request.DATA, doc_id=self.kwargs['pk']))
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
