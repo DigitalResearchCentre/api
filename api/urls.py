@@ -23,7 +23,7 @@ urlpatterns = patterns(
         {'func': 'cur_revision', 'serializer_class': RevisionSerializer},
         {'func': 'has_entities', 'serializer_class': EntitySerializer},
         {'func': 'has_entities', 'serializer_class': EntitySerializer,
-         'func_args': 'has_entities/(?P<entity_pk>\d+)/'},
+         'func_args': '(?P<entity_pk>\d+)/'},
         {'func': 'has_image'},
         {'func': 'has_image', 
          'func_args': '(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/'},
@@ -61,6 +61,7 @@ urlpatterns = patterns(
     ], extra={'model': Text, 'serializer_class': TextSerializer}))),
     url(r'^users/$', UserList.as_view(), name='user-list'),
     url(r'^users/(?P<pk>\d+)/$', UserDetail.as_view(), name='user-detail'),
+    url(r'^test/$', TranscribeView.as_view()),
 )
 
 

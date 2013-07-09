@@ -16,8 +16,8 @@ class Community(models.Model):
     long_name = models.CharField(max_length=80, blank=True)
     description = models.TextField(blank=True)
     # Not a real m2m here, there is a unique community in database level
-    docs = models.ManyToManyField('Doc')
-    entities = models.ManyToManyField('Entity')
+    docs = models.ManyToManyField('Doc', limit_choices_to={'depth':0})
+    entities = models.ManyToManyField('Entity', limit_choices_to={'depth':0})
 
     def get_docs(self):
         return self.docs.all()
@@ -217,12 +217,12 @@ class Doc(DETNode):
             entity = Entity.objects.get(pk=entity_pk)
             qs = qs.filter(tree_id=entity.tree_id,
                            lft__range=(entity.lft+1, entity.rgt - 1))
-        return qs.distinct().order_by('lft')
+        return qs.distinct().order_by('text__lft')
 
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
-def _to_xml(qs, prev_doc=None):
+def _to_xml(qs, prev_doc=None, text=''):
     xml = ''
     qs = qs.prefetch_related('attr_set')
 
@@ -236,17 +236,19 @@ def _to_xml(qs, prev_doc=None):
 
         ancestors = nodes[0].get_ancestors().select_related('entity', 'doc')
         for ancestor in ancestors:
-            q.append(ancestor)
+            q.append('</%s>' % ancestor.tag)
             extra_attrs = {}
-            if prev_doc is not None and ancestor.entity_id is not None:
+            if prev_doc is not None and ancestor.entity is not None:
                 doc = ancestor.is_text_in()
                 if doc is None or doc.lft < prev_doc.lft:
                     doc = prev_doc
                 extra_attrs['prev'] = get_urn(
                     urn_base, doc=doc, entity=ancestor.entity
                 )
-            xml += ancestor.to_element(open=True, extra_attrs=extra_attrs)
+            xml += ancestor.to_element(open=True, text=False,
+                                       extra_attrs=extra_attrs)
 
+        xml += text
         prev = nodes[0]
         prev_depth = prev.get_depth()
 
@@ -254,20 +256,18 @@ def _to_xml(qs, prev_doc=None):
             depth = node.get_depth()
             open = (depth > prev_depth)
             if open:
-                q.append(prev)
+                q.append('</%s>%s' % (prev.tag, prev.tail))
             xml += prev.to_element(open=open)
 
             for i in range(0, prev_depth - depth):
-                parent = q.pop()
-                xml += '</%s>%s' % (parent.tag, parent.tail)
+                xml += q.pop()
 
             prev, prev_depth = (node, depth)
 
         xml += prev.to_element()
 
         while q:
-            parent = q.pop()
-            xml += '</%s>%s' % (parent.tag, parent.tail)
+            xml += q.pop()
     return xml
 
 class Text(Node):
@@ -284,7 +284,7 @@ class Text(Node):
             doc=doc, entity=self.is_text_of()
         )
 
-    def to_element(self, open=False, extra_attrs=None):
+    def to_element(self, open=False, text=True, extra_attrs=None):
         attrs = [self.tag] + [
             '%s="%s"' % (attr.name, attr.value) 
             for attr in self.attr_set.all()
@@ -294,11 +294,10 @@ class Text(Node):
                 attrs.append('%s="%s"' % (name, value))
         xml = '<%s' % ' '.join(attrs)
         if open:
-            xml += '>%s' % self.text
+            xml += '>%s' % (self.text if text else '')
         else:
-            text = self.text
-            if text:
-                xml += '>%s</%s>' % (text, self.tag)
+            if self.text:
+                xml += '>%s</%s>' % (self.text, self.tag)
             else:
                 xml += '/>'
             xml += self.tail
@@ -309,10 +308,12 @@ class Text(Node):
         if self.entity_id is not None or self.doc_id is None:
             qs = self.get_tree(self)
             prev_doc = None
+            text = ''
         else:
             qs = self.doc.get_texts()
             prev_doc = self.doc.get_df_prev()
-        return _to_xml(qs, prev_doc=prev_doc)
+            text = self.tail
+        return _to_xml(qs, prev_doc=prev_doc, text=text)
 
     def is_text_in(self):
         if self.doc_id is not None:

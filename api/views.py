@@ -3,9 +3,11 @@ from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.conf.urls import patterns, url
 from django.views.generic.detail import DetailView
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 
 import django_filters
+from rest_framework import status
 from rest_framework import permissions
 from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
@@ -16,6 +18,7 @@ from api.models import *
 from api.serializers import *
 
 @api_view(['GET'])
+@ensure_csrf_cookie
 def api_root(request, format=None):
     return Response({
         'communities': reverse('community-list', request=request),
@@ -39,6 +42,9 @@ class RelationView(
             return self.response_class(result)
         elif isinstance(result, query.QuerySet):
             self.queryset = result
+            return self.list(self.request)
+        elif isinstance(result, models.Manager):
+            self.queryset = result.all()
             return self.list(self.request)
         elif isinstance(result, models.Model):
             serializer = self.get_serializer(result)
@@ -135,7 +141,9 @@ class CreateModelMixin(object):
 class APIView(CreateModelMixin, RelationView):
 
     def _post_transcribe(self, request, *args, **kwargs):
-        return self.create(dict(request.DATA, doc_id=self.kwargs['pk']))
+        data = request.DATA.copy()
+        data.update({'doc': self.kwargs['pk']})
+        return self.create(data=data)
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
