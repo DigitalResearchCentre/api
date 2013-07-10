@@ -145,6 +145,12 @@ class APIView(CreateModelMixin, RelationView):
         data.update({'doc': self.kwargs['pk']})
         return self.create(data=data)
 
+    def _get_has_image(self, request, *args, **kwargs):
+        zoom = request.REQUEST.get('zoom', None)
+        x = request.REQUEST.get('x', None)
+        y = request.REQUEST.get('y', None)
+        return self.get_response(self.get_object().has_image(zoom=zoom, x=x, y=y))
+
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
     serializer_class = CommunitySerializer
