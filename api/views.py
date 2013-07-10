@@ -146,9 +146,9 @@ class APIView(CreateModelMixin, RelationView):
         return self.create(data=data)
 
     def _get_has_image(self, request, *args, **kwargs):
-        zoom = request.REQUEST.get('zoom', None)
-        x = request.REQUEST.get('x', None)
-        y = request.REQUEST.get('y', None)
+        zoom = self.kwargs.get('zoom', None)
+        x = self.kwargs.get('x', None)
+        y = self.kwargs.get('y', None)
         return self.get_response(self.get_object().has_image(zoom=zoom, x=x, y=y))
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
