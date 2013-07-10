@@ -6,7 +6,7 @@ class CommunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Community
-        fields = ('id', 'name', 'abbr', 'long_name', 'description',)
+        fields = ('id', 'name', 'abbr', 'long_name', 'font', 'description',)
 
 class UserSerializer(serializers.ModelSerializer):
     
@@ -56,3 +56,6 @@ class TilerImageSerializer(serializers.ModelSerializer):
         model = TilerImage
         fields = ('id', 'doc', 'width', 'height', 'max_zoom')
 
+class CSSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CSS

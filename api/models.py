@@ -1,4 +1,4 @@
-import json, math, os, StringIO
+import math, os, StringIO
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -18,6 +18,7 @@ class Community(models.Model):
     # Not a real m2m here, there is a unique community in database level
     docs = models.ManyToManyField('Doc', limit_choices_to={'depth':0})
     entities = models.ManyToManyField('Entity', limit_choices_to={'depth':0})
+    font = models.CharField(max_length=255, blank=True)
 
     def get_docs(self):
         return self.docs.all()
@@ -27,6 +28,27 @@ class Community(models.Model):
 
     def get_urn_base(self):
         return 'urn:det:TCUSask:' + self.abbr
+
+    def css(self):
+        return self.css_set.all()
+
+    def info(self):
+        num_pages = num_entity_parts= num_transcribed = num_committed = 0
+        for doc in self.docs.all():
+            pages = doc.get_descendants().filter(depth=2)
+            num_pages += pages.count()
+            num_transcribed += pages.filter(revision__isnull=False).count()
+            num_committed = pages.filter(cur_rev__isnull=False).count()
+        for entity in self.entities.all():
+            num_entity_parts += entity.get_descendants().count()
+        return {
+            'num_docs': self.docs.count(),
+            'num_pages': num_pages,
+            'num_entities': self.entities.count(),
+            'num_entity_parts': num_entity_parts,
+            'num_page_transcribed': num_transcribed,
+            'num_page_committed': num_committed,
+        }
 
 def get_first(qs):
     lst = list(qs[:1])
@@ -443,3 +465,19 @@ class Tile(models.Model):
         unique_together = (('image', 'zoom', 'x', 'y'), )
         db_table = 'det_tile'
 
+def css_upload_to(instance, filename):
+    path = os.path.join('css', str(instance.community_id))
+    full_path = os.path.join(settings.MEDIA_ROOT, path)
+    if not os.path.isdir(full_path):
+        os.makedirs(full_path, 0755)
+    return os.path.join(path, filename)
+
+class CSS(models.Model):
+    community = models.ForeignKey(Community)
+    css = models.FileField(upload_to=css_upload_to, verbose_name='CSS')
+    
+    class Meta:
+        db_table = 'det_css'
+
+    def name(self):
+        return os.path.basename(self.css.name) 
