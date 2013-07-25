@@ -207,6 +207,7 @@ class Doc(DETNode):
         text = self.has_text_in()
         # find the first text with a doc 
         # which isnot decensder of current doc
+        # TODO: exclude is slow
         return text and get_first(text.get_all_after()
                                   .exclude(doc__tree_id=self.tree_id, 
                                            doc__lft__gte=self.lft,
@@ -218,25 +219,25 @@ class Doc(DETNode):
         if text is None:
             return self.__class__.objects.none()
 
-        qs = Entity.objects.filter(text__tree_id=text.tree_id,
-                                   text__rgt__gt=text.lft)
+        q = Q(text__tree_id=text.tree_id, text__rgt__gt=text.lft)
         bound = self._get_texts_bound()
         if bound is not None:
-            qs = qs.filter(text__lft__lt=bound.lft)
+            q &= Q(text__lft__lt=bound.lft)
+        
 
         # TODO: <div><pb/><l>line1</l>text mix with entity<l>line2</l></div>
         # in above case "text mix with entity" will lost
         if entity_pk is None:
             # exclude outer entity
             if bound is not None:
-                qs = qs.filter(
-                    Q(text__lft__lt=text.lft, text__rgt__lt=bound.lft) |
-                    Q(text__lft__gt=text.lft, text__rgt__lt=bound.lft) |
-                    Q(text__lft__gt=text.lft, text__rgt__gt=bound.lft)
-                )
+                q &= (Q(text__lft__lt=text.lft, text__rgt__lt=bound.lft) |
+                      Q(text__lft__gt=text.lft, text__rgt__lt=bound.lft) |
+                      Q(text__lft__gt=text.lft, text__rgt__gt=bound.lft))
+            qs = Entity.objects.filter(q)
             qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
         else:
             entity = Entity.objects.get(pk=entity_pk)
+            qs = Entity.objects.filter(q)
             qs = qs.filter(tree_id=entity.tree_id,
                            lft__range=(entity.lft+1, entity.rgt - 1))
         return qs.distinct().order_by('text__lft')
@@ -364,6 +365,8 @@ class Attr(models.Model):
         unique_together = (('text', 'name'), )
 
 class Revision(models.Model):
+    # only support page level document
+    # TODO: add check to make sure doc is a page
     doc = models.ForeignKey(Doc)
     user = models.ForeignKey(User)
     prev = models.ForeignKey(
