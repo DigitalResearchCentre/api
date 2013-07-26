@@ -224,20 +224,13 @@ class Doc(DETNode):
         if bound is not None:
             q &= Q(text__lft__lt=bound.lft)
         
-
         # TODO: <div><pb/><l>line1</l>text mix with entity<l>line2</l></div>
         # in above case "text mix with entity" will lost
+        qs = Entity.objects.filter(q)
         if entity_pk is None:
-            # exclude outer entity
-            if bound is not None:
-                q &= (Q(text__lft__lt=text.lft, text__rgt__lt=bound.lft) |
-                      Q(text__lft__gt=text.lft, text__rgt__lt=bound.lft) |
-                      Q(text__lft__gt=text.lft, text__rgt__gt=bound.lft))
-            qs = Entity.objects.filter(q)
             qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
         else:
             entity = Entity.objects.get(pk=entity_pk)
-            qs = Entity.objects.filter(q)
             qs = qs.filter(tree_id=entity.tree_id,
                            lft__range=(entity.lft+1, entity.rgt - 1))
         return qs.distinct().order_by('text__lft')
