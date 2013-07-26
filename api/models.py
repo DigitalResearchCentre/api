@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.contrib.auth.models import User
 from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
+from lxml import etree
 
 class Community(models.Model):
     name = models.CharField(max_length=20, unique=True)
@@ -356,6 +357,26 @@ class Text(Node):
         if r:
             return r[0].entity
 
+    def load_el(self, el, ancestors):
+        children_el = el.getchildren()
+        parent = ancestors.pop(0)
+        if ancestors:
+            self.load_el(children_el.pop(0), ancestors)
+        if children_el:
+            el = children_el.pop(0)
+            kwargs = {'tag': el.tag, 'text': el.text, 'tail': el.tail}
+            sibling = list(parent.get_children().filter(lft__gt=self.lft)[:1])
+            if sibling:
+                obj = sibling[0].add_sibling('left', **kwargs)
+            else:
+                obj = parent.add_child(**kwargs)
+
+            for el in children_el:
+                kwargs = {'tag': el.tag, 'text': el.text, 'tail': el.tail}
+                obj = Text.objects.get(pk=obj.pk)
+                obj.add_sibling('right', **kwargs)
+                # load_bulk
+
 class Attr(models.Model):
     text = models.ForeignKey(Text)
     name = models.CharField(max_length=63)
@@ -377,6 +398,15 @@ class Revision(models.Model):
 
     class Meta:
         ordering = ['-create_date',]
+
+    def commit(self):
+        # TODO: verify against cref
+        doc = self.doc
+        pb = doc.has_text_in()
+        texts = doc.get_texts()
+        ancestors = list(pb.get_ancestors())
+        root = etree.XML(self.text)
+        root.xpath('//text')
 
 def get_path(instance, filename):
     path = os.path.join(instance.base_path(), 'image')
