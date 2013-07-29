@@ -129,6 +129,20 @@ class Entity(DETNode):
                     qs = qs.filter(lft__lt=bound.lft)
         return qs
 
+    def xml(self, doc_pk=None):
+        result = []
+        if doc_pk is not None:
+            doc = Doc.objects.get(pk=doc_pk)
+            pb = doc.has_text_in()
+            doc_texts = doc.get_texts()
+            for text in self.text_set.filter(tree_id=pb.tree_id):
+                qs = doc_texts.filter(lft__gte=text.lft, lft__lte=text.rgt)
+                result.append(_to_xml(qs))
+        else:
+            for text in self.text_set.all():
+                result.append(text.xml())
+        return result
+
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)
 
@@ -176,6 +190,16 @@ class Doc(DETNode):
             return self.text
         except Text.DoesNotExist, e:
             return None
+
+    def xml(self, entity_pk=None):
+        if entity_pk is not None:
+            entity = Entity.objects.get(pk=entity_pk)
+            return entity.xml(doc_pk=self.pk)
+        else:
+            text = self.has_text_in()
+            if text is not None:
+                return [text.xml()]
+        return []
 
     def has_image(self, zoom=None, x=None, y=None):
         try:
