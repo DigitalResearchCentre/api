@@ -137,7 +137,7 @@ class Entity(DETNode):
             doc_texts = doc.get_texts()
             for text in self.text_set.filter(tree_id=pb.tree_id):
                 qs = doc_texts.filter(lft__gte=text.lft, lft__lte=text.rgt)
-                result.append(_to_xml(qs))
+                result.append(_to_xml(qs, exclude=pb))
         else:
             for text in self.text_set.all():
                 result.append(text.xml())
@@ -270,7 +270,6 @@ def _to_xml(qs, exclude=None):
     nodes = list(qs)
     if nodes: 
         q = deque()
-        urn_base = ''
         node = nodes[0]
 
         if node.doc is None:
@@ -278,8 +277,11 @@ def _to_xml(qs, exclude=None):
         else:
             prev_doc = node.doc.get_df_prev()
 
-        if prev_doc is not None:
-            urn_base = prev_doc.get_community().get_urn_base()
+        base_det = prev_doc or node.doc or node.is_text_of()
+        if base_det is None:
+            urn_base = ''
+        else:
+            urn_base = base_det.get_community().get_urn_base()
 
         ancestors = node.get_ancestors().select_related('entity', 'doc')
         for ancestor in ancestors:
@@ -291,17 +293,15 @@ def _to_xml(qs, exclude=None):
                     prev_doc is not None and doc.lft < prev_doc.lft
                 ):
                     doc = prev_doc
-                extra_attrs['prev'] = get_urn(
-                    urn_base, doc=doc, entity=ancestor.entity
-                )
+                extra_attrs['prev'] = get_urn(urn_base, doc=doc, 
+                                              entity=ancestor.entity)
             xml += ancestor.to_element(open=True, text=False,
                                        extra_attrs=extra_attrs)
 
         if exclude == node:
-            # if first node is doc, only display it's tail in xml
+            # if first node is exclude, only display it's tail in xml
             xml += nodes.pop(0).tail
 
-    if nodes:
         prev = nodes.pop(0)
         prev_depth = prev.get_depth()
 
@@ -360,9 +360,11 @@ class Text(Node):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:
             qs = self.get_tree(self)
+            exclude = None
         else:
             qs = self.doc.get_texts()
-        return _to_xml(qs)
+            exclude = self.doc.has_text_in()
+        return _to_xml(qs, exclude=exclude)
 
     def is_text_in(self):
         if self.doc_id is not None:
