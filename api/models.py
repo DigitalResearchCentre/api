@@ -302,6 +302,7 @@ def _to_xml(qs, exclude=None):
             # if first node is exclude, only display it's tail in xml
             xml += nodes.pop(0).tail
 
+    if nodes:
         prev = nodes.pop(0)
         prev_depth = prev.get_depth()
 
