@@ -137,10 +137,7 @@ class Entity(DETNode):
             doc_texts = doc.get_texts()
             for text in self.text_set.filter(tree_id=pb.tree_id):
                 qs = doc_texts.filter(lft__gte=text.lft, lft__lte=text.rgt)
-                if pb.lft < text.lft:
-                    result.append(_to_xml(qs))
-                else:
-                    result.append(_to_xml(qs, text=pb.tail))
+                result.append(_to_xml(qs))
         else:
             for text in self.text_set.all():
                 result.append(text.xml())
@@ -225,7 +222,7 @@ class Doc(DETNode):
 
     def get_texts(self):
         text = self.has_text_in()
-        qs = Text.objects.filter(tree_id=text.tree_id, lft__gt=text.lft)
+        qs = Text.objects.filter(tree_id=text.tree_id, lft__gte=text.lft)
         bound = self._get_texts_bound()
         if bound is not None:
             qs = qs.filter(lft__lt=bound.lft)
@@ -266,7 +263,7 @@ class Doc(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
-def _to_xml(qs, prev_doc=None, text=''):
+def _to_xml(qs, exclude=None):
     xml = ''
     qs = qs.prefetch_related('attr_set')
 
@@ -274,17 +271,25 @@ def _to_xml(qs, prev_doc=None, text=''):
     if nodes: 
         q = deque()
         urn_base = ''
+        node = nodes[0]
+
+        if node.doc is None:
+            prev_doc = node.is_text_in()
+        else:
+            prev_doc = node.doc.get_df_prev()
 
         if prev_doc is not None:
             urn_base = prev_doc.get_community().get_urn_base()
 
-        ancestors = nodes[0].get_ancestors().select_related('entity', 'doc')
+        ancestors = node.get_ancestors().select_related('entity', 'doc')
         for ancestor in ancestors:
             q.append('</%s>' % ancestor.tag)
             extra_attrs = {}
-            if prev_doc is not None and ancestor.entity is not None:
+            if ancestor.entity is not None:
                 doc = ancestor.is_text_in()
-                if doc is None or doc.lft < prev_doc.lft:
+                if doc is None or (
+                    prev_doc is not None and doc.lft < prev_doc.lft
+                ):
                     doc = prev_doc
                 extra_attrs['prev'] = get_urn(
                     urn_base, doc=doc, entity=ancestor.entity
@@ -292,11 +297,15 @@ def _to_xml(qs, prev_doc=None, text=''):
             xml += ancestor.to_element(open=True, text=False,
                                        extra_attrs=extra_attrs)
 
-        xml += text
-        prev = nodes[0]
+        if exclude == node:
+            # if first node is doc, only display it's tail in xml
+            xml += nodes.pop(0).tail
+
+    if nodes:
+        prev = nodes.pop(0)
         prev_depth = prev.get_depth()
 
-        for node in nodes[1:]:
+        for node in nodes:
             depth = node.get_depth()
             open = (depth > prev_depth)
             if open:
@@ -351,13 +360,9 @@ class Text(Node):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:
             qs = self.get_tree(self)
-            prev_doc = None
-            text = ''
         else:
             qs = self.doc.get_texts()
-            prev_doc = self.doc.get_df_prev()
-            text = self.tail
-        return _to_xml(qs, prev_doc=prev_doc, text=text)
+        return _to_xml(qs)
 
     def is_text_in(self):
         if self.doc_id is not None:
@@ -423,7 +428,7 @@ class Revision(models.Model):
         # TODO: verify against cref
         doc = self.doc
         pb = doc.has_text_in()
-        texts = doc.get_texts()
+        texts = doc.get_texts() # this include pb
         ancestors = list(pb.get_ancestors())
         root = etree.XML(self.text)
         root.xpath('//text')
