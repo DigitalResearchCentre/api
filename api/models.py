@@ -137,7 +137,10 @@ class Entity(DETNode):
             doc_texts = doc.get_texts()
             for text in self.text_set.filter(tree_id=pb.tree_id):
                 qs = doc_texts.filter(lft__gte=text.lft, lft__lte=text.rgt)
-                result.append(_to_xml(qs))
+                if pb.lft < text.lft:
+                    result.append(_to_xml(qs))
+                else:
+                    result.append(_to_xml(qs, text=pb.tail))
         else:
             for text in self.text_set.all():
                 result.append(text.xml())
