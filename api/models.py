@@ -542,3 +542,24 @@ class CSS(models.Model):
 
     def name(self):
         return os.path.basename(self.css.name) 
+
+class RefsDecl(models.Model):
+    DOC_TYPE, ENTITY_TYPE, TEXT_TYPE = range(3)
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    type = models.IntegerField(choices=(
+        (DOC_TYPE, 'document'),
+        (ENTITY_TYPE, 'entity'),
+        (TEXT_TYPE, 'text'),
+    ), default=TEXT_TYPE)
+    text = models.ForeignKey(Text, null=True, blank=True)
+    xml = models.TextField()
+    template = models.TextField()
+
+    def __unicode__(self):
+        display_name = self.name
+        if self.description:
+            display_name += ' - ' + self.description
+        return display_name
+
+
