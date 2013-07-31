@@ -13,6 +13,7 @@ urlpatterns = patterns(
         {'func': 'entities', 'serializer_class': EntitySerializer}, 
         {'func': 'css', 'serializer_class': CSSSerializer}, 
         {'func': 'info'}, 
+        {'func': 'get_refs_decls', 'serializer_class': RefsDeclSerializer}, 
     ], extra={'model': Community}))), 
     url(r'^docs/$', DocList.as_view(), name='doc-list'),
     url(r'^docs/(?P<pk>\d+)/', include(APIView.urlpatterns([

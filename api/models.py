@@ -20,6 +20,7 @@ class Community(models.Model):
     docs = models.ManyToManyField('Doc', limit_choices_to={'depth':0})
     entities = models.ManyToManyField('Entity', limit_choices_to={'depth':0})
     font = models.CharField(max_length=255, blank=True)
+    refs_decls = models.ManyToManyField('RefsDecl', blank=True)
 
     def get_docs(self):
         return self.docs.all()
@@ -29,6 +30,9 @@ class Community(models.Model):
 
     def get_urn_base(self):
         return 'urn:det:TCUSask:' + self.abbr
+
+    def get_refs_decls(self):
+        return self.refs_decls.all()
 
     def css(self):
         return self.css_set.all()

@@ -59,3 +59,7 @@ class TilerImageSerializer(serializers.ModelSerializer):
 class CSSSerializer(serializers.ModelSerializer):
     class Meta:
         model = CSS
+
+class RefsDeclSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RefsDecl
