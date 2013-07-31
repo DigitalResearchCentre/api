@@ -20,7 +20,7 @@ class Community(models.Model):
     docs = models.ManyToManyField('Doc', limit_choices_to={'depth':0})
     entities = models.ManyToManyField('Entity', limit_choices_to={'depth':0})
     font = models.CharField(max_length=255, blank=True)
-    refs_decls = models.ManyToManyField('RefsDecl', blank=True)
+    refsdecls = models.ManyToManyField('RefsDecl', blank=True)
 
     def get_docs(self):
         return self.docs.all()
@@ -31,8 +31,8 @@ class Community(models.Model):
     def get_urn_base(self):
         return 'urn:det:TCUSask:' + self.abbr
 
-    def get_refs_decls(self):
-        return self.refs_decls.all()
+    def get_refsdecls(self):
+        return self.refsdecls.all()
 
     def css(self):
         return self.css_set.all()
@@ -388,8 +388,8 @@ class Text(Node):
         if r:
             return r[0].entity
 
-    def get_refs_decls(self):
-        return self.get_root().refs_decl_set.all()
+    def get_refsdecls(self):
+        return self.get_root().refsdecl_set.all()
 
     def load_el(self, el, ancestors):
         children_el = el.getchildren()
