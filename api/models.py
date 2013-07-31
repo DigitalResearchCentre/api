@@ -388,6 +388,9 @@ class Text(Node):
         if r:
             return r[0].entity
 
+    def get_refs_decls(self):
+        return self.get_root().refs_decl_set.all()
+
     def load_el(self, el, ancestors):
         children_el = el.getchildren()
         parent = ancestors.pop(0)

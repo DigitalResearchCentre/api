@@ -66,6 +66,7 @@ urlpatterns = patterns(
         {'func': 'is_text_in', 'serializer_class': DocSerializer}, 
         {'func': 'is_text_of', 'serializer_class': EntitySerializer}, 
         {'func': 'xml', 'serializer_class': None}, 
+        {'func': 'get_refs_decls', 'serializer_class': RefsDeclSerializer}, 
     ], extra={'model': Text, 'serializer_class': TextSerializer}))),
     url(r'^users/$', UserList.as_view(), name='user-list'),
     url(r'^users/(?P<pk>\d+)/$', UserDetail.as_view(), name='user-detail'),
