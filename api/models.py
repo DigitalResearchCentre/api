@@ -549,6 +549,20 @@ class CSS(models.Model):
     def name(self):
         return os.path.basename(self.css.name) 
 
+def js_upload_to(instance, filename):
+    path = os.path.join('js', str(instance.community_id))
+    full_path = os.path.join(settings.MEDIA_ROOT, path)
+    if not os.path.isdir(full_path):
+        os.makedirs(full_path, 0755)
+    return os.path.join(path, filename)
+
+class JS(models.Model):
+    community = models.ForeignKey(Community)
+    js = models.FileField(upload_to=js_upload_to, verbose_name='Javascript')
+    
+    def name(self):
+        return os.path.basename(self.js.name) 
+
 class RefsDecl(models.Model):
     DOC_TYPE, ENTITY_TYPE, TEXT_TYPE = range(3)
     name = models.CharField(max_length=255)
