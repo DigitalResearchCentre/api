@@ -102,6 +102,42 @@ class Node(NS_Node):
     def is_root(self):
         return self.lft == 1
 
+    def _prepare_bulk_data(self, bulk_data, tree_id, depth, lft):
+        for node in bulk_data:
+            data = node['data']
+            data.update({'tree_id': tree_id, 'depth': depth, 'lft': lft})
+            children = data.get('children', [])
+            self._prepare_bulk_data(children, depth+1, lft+1)
+            if children:
+                data['rgt'] = children[-1]['data']['rgt'] + 1
+            else:
+                data['rgt'] = lft + 1
+            lft = data['rgt'] + 1
+
+    @classmethod
+    def load_bulk(cls, bulk_data):
+        stack, objs, roots = [], [], []
+        for node in bulk_data:
+            root = cls.add_root(**node['data'])
+            root = cls.objects.get(pk=root.pk)
+            children = node.get('children', [])
+            if children:
+                self._prepare_bulk_data(children, root.tree_id, 2, 2)
+                root.rgt = children[-1]['data']['rgt'] + 1
+                root.save()
+                stack.extend(children)
+            roots.append(root)
+        while stack:
+            node = stack.pop(0)
+            objs.append(cls(**node['data'])) 
+            stack.extend(node.get('children', []))
+        if objs:
+            cls.objects.bulk_create(objs)
+        print roots
+        return roots
+
+
+
 class DETNode(Node):
     name = models.CharField(max_length=63)
     label = models.CharField(max_length=63)
@@ -399,33 +435,48 @@ class Text(Node):
         parent = ancestors.pop(0)
         if ancestors:
             self.load_el(children_el.pop(0), ancestors)
-        if children_el:
-            el = children_el.pop(0)
-            kwargs = {'tag': el.tag, 
-                      'text': el.text or '', 'tail': el.tail or ''}
-            sibling = list(parent.get_children().filter(lft__gt=self.lft)[:1])
-            if sibling:
-                obj = sibling[0].add_sibling('left', **kwargs)
-            else:
-                obj = parent.add_child(**kwargs)
+        bulk_data = self._el_to_bulk_data(children_el)
 
+        roots = Text.load_bulk(bulk_data)
+        if roots:
+
+            attrs = []
+            j = 0
             for el in children_el:
-                kwargs = {'tag': el.tag, 
-                          'text': el.text or '', 'tail': el.tail or ''}
-                obj = Text.objects.get(pk=obj.pk)
-                new_obj = obj.add_sibling('right', **kwargs)
-                Text.load_bulk(self._el_to_bulk_data(el), parent=new_obj)
+                texts = list(Text.get_tree(parent=roots[j]))
+                j += 1
+                i = 0
+                for descendant_el in el.iter():
+                    attrib = descendant_el.attrib
+                    for key in attrib:
+                        attrs.append(
+                            Attr(text=texts[i], name=key, value=attrib[key]))
+                    i += 1
+            Attr.objects.bulk_create(attrs)
 
-    def _el_to_bulk_data(self, el):
+            lft = roots[0].lft
+            rgt = roots[-1].rgt
+            sibling = list(parent.get_children()
+                           .filter(lft__lte=self.lft).order_by('-lft')[:1])
+            if not sibling:
+                sibling = roots.pop(0)
+                sibling.move(parent, pos='first-child')
+            else:
+                sibling = sibling[0]
+
+            for root in roots:
+                sibling = Text.objects.get(pk=sibling.pk)
+                root.move(sibling, pos='right')
+
+    def _el_to_bulk_data(self, bulk_el):
         bulk_data = []
-        for child_el in el.getchildren():
+        for el in bulk_el:
             bulk_data.append({
                 'data': {
-                    'tag': child_el.tag,
-                    'text': child_el.text or '',
-                    'tail': child_el.tail or '',
+                    'tag': el.tag, 'text': el.text or '', 
+                    'tail': el.tail or '',
                 }, 
-                'children': self._el_to_bulk_data(child_el)
+                'children': self._el_to_bulk_data(el.getchildren())
             })
         return bulk_data
 
