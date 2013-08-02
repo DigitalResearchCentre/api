@@ -1,4 +1,4 @@
-
+from django.db import models
 
 class OldRefsDecl(models.Model):
     DOC_TYPE, ENTITY_TYPE, TEXT_TYPE = range(3)

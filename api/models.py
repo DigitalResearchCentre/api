@@ -1,4 +1,4 @@
-import math, os, StringIO
+import math, os, StringIO, datetime
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -401,7 +401,8 @@ class Text(Node):
             self.load_el(children_el.pop(0), ancestors)
         if children_el:
             el = children_el.pop(0)
-            kwargs = {'tag': el.tag, 'text': el.text, 'tail': el.tail}
+            kwargs = {'tag': el.tag, 
+                      'text': el.text or '', 'tail': el.tail or ''}
             sibling = list(parent.get_children().filter(lft__gt=self.lft)[:1])
             if sibling:
                 obj = sibling[0].add_sibling('left', **kwargs)
@@ -409,7 +410,8 @@ class Text(Node):
                 obj = parent.add_child(**kwargs)
 
             for el in children_el:
-                kwargs = {'tag': el.tag, 'text': el.text, 'tail': el.tail}
+                kwargs = {'tag': el.tag, 
+                          'text': el.text or '', 'tail': el.tail or ''}
                 obj = Text.objects.get(pk=obj.pk)
                 new_obj = obj.add_sibling('right', **kwargs)
                 Text.load_bulk(self._el_to_bulk_data(el), parent=new_obj)
@@ -420,8 +422,8 @@ class Text(Node):
             bulk_data.append({
                 'data': {
                     'tag': child_el.tag,
-                    'text': child_el.text,
-                    'tail': child_el.tail,
+                    'text': child_el.text or '',
+                    'tail': child_el.tail or '',
                 }, 
                 'children': self._el_to_bulk_data(child_el)
             })
@@ -454,11 +456,15 @@ class Revision(models.Model):
         # TODO: verify against cref
         doc = self.doc
         pb = doc.has_text_in()
-        texts = doc.get_texts()[1:] # this include pb
+        texts = doc.get_texts().exclude(pk=pb.pk) # this include pb
         texts.delete()
         ancestors = list(pb.get_ancestors())
         root = etree.XML(self.text)
         pb.load_el(root, ancestors=ancestors)
+        doc.cur_rev = self
+        doc.save()
+        self.commit_date = datetime.datetime.now()
+        self.save()
         return {'success': 'success'}
 
 def get_path(instance, filename):
