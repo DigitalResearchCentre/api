@@ -63,3 +63,8 @@ class CSSSerializer(serializers.ModelSerializer):
 class RefsDeclSerializer(serializers.ModelSerializer):
     class Meta:
         model = RefsDecl
+
+class JSSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = JS

@@ -151,6 +151,15 @@ class APIView(CreateModelMixin, RelationView):
         y = self.kwargs.get('y', None)
         return self.get_response(self.get_object().has_image(zoom=zoom, x=x, y=y))
 
+    def _post_js(self, request, *args, **kwargs):
+        print request.DATA
+        return {}
+
+    def _post_css(self, request, *args, **kwargs):
+        print request.DATA
+        return {}
+
+
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
     serializer_class = CommunitySerializer
