@@ -109,14 +109,13 @@ class Node(NS_Node):
             for node in bulk_data:
                 data = node['data']
                 data.update({'tree_id': tree_id, 'depth': depth, 'lft': lft})
-                children = data.get('children', [])
-                _prepare_bulk_data(children, tree_id, depth+1, lft+1)
+                children = node.get('children', [])
                 if children:
+                    _prepare_bulk_data(children, tree_id, depth+1, lft+1)
                     data['rgt'] = children[-1]['data']['rgt'] + 1
                 else:
                     data['rgt'] = lft + 1
                 lft = data['rgt'] + 1
-
 
         stack, objs, roots = [], [], []
         for node in bulk_data:
@@ -132,7 +131,8 @@ class Node(NS_Node):
         while stack:
             node = stack.pop(0)
             objs.append(cls(**node['data'])) 
-            stack.extend(node.get('children', []))
+            children = node.get('children', [])
+            stack.extend(children)
         if objs:
             cls.objects.bulk_create(objs)
         return roots
@@ -437,7 +437,6 @@ class Text(Node):
         if ancestors:
             self.load_el(children_el.pop(0), ancestors)
         bulk_data = self._el_to_bulk_data(children_el)
-
         roots = Text.load_bulk(bulk_data)
         if roots:
 
