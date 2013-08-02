@@ -39,7 +39,7 @@ urlpatterns = patterns(
          'func_args': '(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/'},
         {'methods': ['post'],
          'func': 'transcribe', 'serializer_class': RevisionSerializer },
-        {'methods': ['put'], 
+        {'methods': ['post', 'put'], 
          'func': 'commit', 'serializer_class': RevisionSerializer,
          'func_args': '(?P<revision_pk>\d+)/'},
         {'methods': ['put'], 'func': 'publish'},
