@@ -102,27 +102,29 @@ class Node(NS_Node):
     def is_root(self):
         return self.lft == 1
 
-    def _prepare_bulk_data(self, bulk_data, tree_id, depth, lft):
-        for node in bulk_data:
-            data = node['data']
-            data.update({'tree_id': tree_id, 'depth': depth, 'lft': lft})
-            children = data.get('children', [])
-            self._prepare_bulk_data(children, depth+1, lft+1)
-            if children:
-                data['rgt'] = children[-1]['data']['rgt'] + 1
-            else:
-                data['rgt'] = lft + 1
-            lft = data['rgt'] + 1
-
     @classmethod
     def load_bulk(cls, bulk_data):
+
+        def _prepare_bulk_data(bulk_data, tree_id, depth, lft):
+            for node in bulk_data:
+                data = node['data']
+                data.update({'tree_id': tree_id, 'depth': depth, 'lft': lft})
+                children = data.get('children', [])
+                _prepare_bulk_data(children, depth+1, lft+1)
+                if children:
+                    data['rgt'] = children[-1]['data']['rgt'] + 1
+                else:
+                    data['rgt'] = lft + 1
+                lft = data['rgt'] + 1
+
+
         stack, objs, roots = [], [], []
         for node in bulk_data:
             root = cls.add_root(**node['data'])
             root = cls.objects.get(pk=root.pk)
             children = node.get('children', [])
             if children:
-                self._prepare_bulk_data(children, root.tree_id, 2, 2)
+                _prepare_bulk_data(children, root.tree_id, 2, 2)
                 root.rgt = children[-1]['data']['rgt'] + 1
                 root.save()
                 stack.extend(children)
@@ -133,7 +135,6 @@ class Node(NS_Node):
             stack.extend(node.get('children', []))
         if objs:
             cls.objects.bulk_create(objs)
-        print roots
         return roots
 
 
