@@ -37,6 +37,9 @@ class Community(models.Model):
     def css(self):
         return self.css_set.all()
 
+    def js(self):
+        return self.js_set.all()
+
     def info(self):
         num_pages = num_entity_parts= num_transcribed = num_committed = 0
         for doc in self.docs.all():

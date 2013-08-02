@@ -152,8 +152,9 @@ class APIView(CreateModelMixin, RelationView):
         return self.get_response(self.get_object().has_image(zoom=zoom, x=x, y=y))
 
     def _post_js(self, request, *args, **kwargs):
-        print request.DATA
-        return {}
+        data = request.DATA.copy()
+        data.update({'community': self.kwargs['pk']})
+        return self.create(data=data, files=request.FILES)
 
     def _post_css(self, request, *args, **kwargs):
         print request.DATA
