@@ -411,8 +411,22 @@ class Text(Node):
             for el in children_el:
                 kwargs = {'tag': el.tag, 'text': el.text, 'tail': el.tail}
                 obj = Text.objects.get(pk=obj.pk)
-                obj.add_sibling('right', **kwargs)
-                # load_bulk
+                new_obj = obj.add_sibling('right', **kwargs)
+                Text.load_bulk(self._el_to_bulk_data(el), parent=new_obj)
+
+    def _el_to_bulk_data(self, el):
+        bulk_data = []
+        for child_el in el.getchildren():
+            bulk_data.append({
+                'data': {
+                    'tag': child_el.tag,
+                    'text': child_el.text,
+                    'tail': child_el.tail,
+                }, 
+                'children': self._el_to_bulk_data(child_el)
+            })
+        return bulk_data
+
 
 class Attr(models.Model):
     text = models.ForeignKey(Text)
@@ -440,10 +454,12 @@ class Revision(models.Model):
         # TODO: verify against cref
         doc = self.doc
         pb = doc.has_text_in()
-        texts = doc.get_texts() # this include pb
+        texts = doc.get_texts()[1:] # this include pb
+        texts.delete()
         ancestors = list(pb.get_ancestors())
         root = etree.XML(self.text)
-        root.xpath('//text')
+        pb.load_el(root, ancestors=ancestors)
+        return {'success': 'success'}
 
 def get_path(instance, filename):
     path = os.path.join(instance.base_path(), 'image')
