@@ -39,9 +39,6 @@ urlpatterns = patterns(
          'func_args': '(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/'},
         {'methods': ['post'],
          'func': 'transcribe', 'serializer_class': RevisionSerializer },
-        {'methods': ['post', 'put'], 
-         'func': 'commit', 'serializer_class': RevisionSerializer,
-         'func_args': '(?P<revision_pk>\d+)/'},
         {'methods': ['put'], 'func': 'publish'},
     ], extra={'model': Doc, 'serializer_class': DocSerializer}))),
     url(r'^entities/$', EntityList.as_view(), name='entity-list'),
@@ -74,6 +71,10 @@ urlpatterns = patterns(
     ], extra={'model': Text, 'serializer_class': TextSerializer}))),
     url(r'^users/$', UserList.as_view(), name='user-list'),
     url(r'^users/(?P<pk>\d+)/$', UserDetail.as_view(), name='user-detail'),
+    url(r'^revision/(?P<pk>\d+)/', include(APIView.urlpatterns([
+        {'methods': ['post', 'put'], 
+         'func': 'commit', 'serializer_class': RevisionSerializer, },
+    ], extra={'model': Revision, 'serializer_class': RevisionSerializer}))),
     url(r'^test/$', TranscribeView.as_view()),
 )
 

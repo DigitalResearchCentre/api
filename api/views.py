@@ -160,7 +160,6 @@ class APIView(CreateModelMixin, RelationView):
         print request.DATA
         return {}
 
-
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
     serializer_class = CommunitySerializer
