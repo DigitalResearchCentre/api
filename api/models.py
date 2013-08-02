@@ -110,7 +110,7 @@ class Node(NS_Node):
                 data = node['data']
                 data.update({'tree_id': tree_id, 'depth': depth, 'lft': lft})
                 children = data.get('children', [])
-                _prepare_bulk_data(children, depth+1, lft+1)
+                _prepare_bulk_data(children, tree_id, depth+1, lft+1)
                 if children:
                     data['rgt'] = children[-1]['data']['rgt'] + 1
                 else:
