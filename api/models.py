@@ -307,7 +307,7 @@ class Doc(DETNode):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
 def _to_xml(qs, exclude=None):
-    xml = ''
+    root_el = prev_el = parent_el = etree.Element('TEI')
     qs = qs.prefetch_related('attr_set')
 
     nodes = list(qs)
@@ -328,7 +328,6 @@ def _to_xml(qs, exclude=None):
 
         ancestors = node.get_ancestors().select_related('entity', 'doc')
         for ancestor in ancestors:
-            q.append('</%s>' % ancestor.tag)
             extra_attrs = {}
             if ancestor.entity is not None:
                 doc = ancestor.is_text_in()
@@ -338,34 +337,31 @@ def _to_xml(qs, exclude=None):
                     doc = prev_doc
                 extra_attrs['prev'] = get_urn(urn_base, doc=doc, 
                                               entity=ancestor.entity)
-            xml += ancestor.to_element(open=True, text=False,
-                                       extra_attrs=extra_attrs)
+            prev_el = parent_el = ancestor.to_el(parent=parent_el,
+                                                 extra_attrs=extra_attrs)
+            parent_el.text = None
+            # TODO: should not display tail if el is continue on next page
+            # need add someting: if ancestor.is_continue: el.tail = ''
+            q.append(parent_el)
 
+        prev_depth = node.get_depth() - 1
         if exclude == node:
             # if first node is exclude, only display it's tail in xml
-            xml += nodes.pop(0).tail
-
-    if nodes:
-        prev = nodes.pop(0)
-        prev_depth = prev.get_depth()
+            parent_el.text = nodes.pop(0).tail
 
         for node in nodes:
             depth = node.get_depth()
             open = (depth > prev_depth)
             if open:
-                q.append('</%s>%s' % (prev.tag, prev.tail))
-            xml += prev.to_element(open=open)
+                q.append(prev_el)
+                parent_el = prev_el
 
             for i in range(0, prev_depth - depth):
-                xml += q.pop()
+                parent_el = q.pop()
 
-            prev, prev_depth = (node, depth)
-
-        xml += prev.to_element()
-
-        while q:
-            xml += q.pop()
-    return xml
+            prev_depth = depth
+            prev_el = node.to_el(parent=parent_el)
+    return etree.tostring(root)[len('<TEI>'):- len('</TEI>')]
 
 class Text(Node):
     tag = models.CharField(max_length=15)
@@ -380,6 +376,21 @@ class Text(Node):
             doc.get_community().get_urn_base(), 
             doc=doc, entity=self.is_text_of()
         )
+
+    def to_el(self, parent=None, extra_attrs={}):
+        attrs = {}
+        attrs.update(extra_attrs)
+        for attr in self.attr_set.all():
+            attrs[attr.name] = attr.value
+        if parent is None:
+            el = etree.Element(self.tag, attrs)
+        else:
+            el = etree.SubElement(parent, self.tag, attrs)
+        # use text or None is because:
+        #   lxml will treat None as <tag/>, but '' as <tag></tag>
+        el.text = self.text or None
+        el.tail = self.tail or None
+        return el
 
     def to_element(self, open=False, text=True, extra_attrs=None):
         attrs = [self.tag] + [
@@ -438,6 +449,7 @@ class Text(Node):
             self.load_el(children_el.pop(0), ancestors)
         bulk_data = self._el_to_bulk_data(children_el)
         roots = Text.load_bulk(bulk_data)
+        print [r.tag for r in roots]
         if roots:
 
             attrs = []
@@ -458,15 +470,19 @@ class Text(Node):
             rgt = roots[-1].rgt
             sibling = list(parent.get_children()
                            .filter(lft__lte=self.lft).order_by('-lft')[:1])
+            print 'p: ', parent.tag
             if not sibling:
                 sibling = roots.pop(0)
+                print 'c: ', sibling.tag
                 sibling.move(parent, pos='first-child')
             else:
                 sibling = sibling[0]
 
             for root in roots:
                 sibling = Text.objects.get(pk=sibling.pk)
+                print 's: ', sibling.tag, 'r: ', root.tag
                 root.move(sibling, pos='right')
+                sibling = root
 
     def _el_to_bulk_data(self, bulk_el):
         bulk_data = []
@@ -507,8 +523,9 @@ class Revision(models.Model):
         # TODO: verify against cref
         doc = self.doc
         pb = doc.has_text_in()
-        texts = doc.get_texts().exclude(pk=pb.pk) # this include pb
-        texts.delete()
+        if pb is not None:
+            texts = doc.get_texts().exclude(pk=pb.pk) # this include pb
+            texts.delete()
         ancestors = list(pb.get_ancestors())
         root = etree.XML(self.text)
         pb.load_el(root, ancestors=ancestors)
