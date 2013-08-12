@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.conf import settings
 from django.http import HttpResponse
 from django.contrib.auth.models import User
+from django.utils.timezone import utc
 from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
 from lxml import etree
@@ -318,9 +319,18 @@ class Doc(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
+    def upload_xml(self, xml):
+        root_el = etree.XML(xml)
+        text = self.has_text_in()
+        if text is None:
+            text = Text.add_root(tag='text', doc=self)
+            text = Text.objects.get(pk=text.pk)
+            text.load_bulk_el(root_el.getchildren())
+
 def _to_xml(qs, exclude=None):
     root_el = prev_el = parent_el = etree.Element('TEI')
     qs = qs.prefetch_related('attr_set')
+    prev_depth = 0
 
     nodes = list(qs)
     if nodes: 
@@ -352,20 +362,24 @@ def _to_xml(qs, exclude=None):
             prev_el = parent_el = ancestor.to_el(parent=parent_el,
                                                  extra_attrs=extra_attrs)
             parent_el.text = None
+            prev_depth = ancestor.get_depth()
             # TODO: should not display tail if el is continue on next page
             # need add someting: if ancestor.is_continue: el.tail = ''
             q.append(parent_el)
 
-        prev_depth = node.get_depth() - 1
         if exclude == node:
             # if first node is exclude, only display it's tail in xml
             parent_el.text = nodes.pop(0).tail
+
+        # prev_el is already append to q, remove it to prevent duplicate
+        if q:
+            q.pop()
 
         for node in nodes:
             depth = node.get_depth()
             open = (depth > prev_depth)
             if open:
-                q.append(prev_el)
+                q.append(parent_el)
                 parent_el = prev_el
 
             for i in range(0, prev_depth - depth):
@@ -373,7 +387,7 @@ def _to_xml(qs, exclude=None):
 
             prev_depth = depth
             prev_el = node.to_el(parent=parent_el)
-    return etree.tostring(root)[len('<TEI>'):- len('</TEI>')]
+    return etree.tostring(root_el)[len('<TEI>'):- len('</TEI>')]
 
 class Text(Node):
     tag = models.CharField(max_length=15)
@@ -517,14 +531,13 @@ class Revision(models.Model):
     class Meta:
         ordering = ['-create_date',]
 
-    def _commit_el(self, parent_el, parent, after=None):
+    def _commit_el(self, parent_el, ancestors, after=None):
         bulk_el = parent_el.getchildren()
-        if bulk_el:
-            el = bulk_el[0]
-            if el.attrib.has_key('prev'):
-                child = parent.get_or_create_child_by_el(bulk_el.pop(0))
-                self._commit_el(el, child, after=after)
-        if parent.rgt > after.lft:
+        parent = ancestors.pop(0)
+        if ancestors and bulk_el:
+            self._commit_el(bulk_el.pop(0), ancestors, after=after)
+
+        if bulk_el and (after is None or parent.rgt > after.lft):
             parent.load_bulk_el(bulk_el, after=after)
 
     def commit(self):
@@ -539,17 +552,21 @@ class Revision(models.Model):
                 root.get_descendants().filter(doc__lft__gte=doc.lft))
             if sibling is None:
                 # TODO
-                body = root.get_children().get(tag='body')
+                try:
+                    body = root.get_children().get(tag='body')
+                except Text.DoesNotExist, e:
+                    body = root.add_child(tag='body')
+                    body = Text.objects.get(pk=body.pk)
                 pb = body.add_child(tag='pb', doc=doc)
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
         root_el = etree.XML(self.text)
-        # TODO: verify against cref
-        self._commit_el(root_el, root, after=pb)
+        # TODO: verify root_el against cref
+        self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         # TODO: rebind all doc/entity
         doc.cur_rev = self
         doc.save()
-        self.commit_date = datetime.datetime.now()
+        self.commit_date = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.save()
         return {'success': 'success'}
 

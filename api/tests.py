@@ -36,7 +36,7 @@ class RevisionTestCase(TestCase):
     def setUp(self):
         user = User.objects.create_user('test', 'test@test.com', 'password')
         doc = Doc.add_root(name='Hg', label='document')
-        com = Community.objects.create()
+        self.com = com = Community.objects.create()
         com.docs.add(doc)
         pb = doc.add_child(name='1r', label='pb')
         text = Text.add_root(tag='text', doc=doc)
@@ -53,5 +53,14 @@ class RevisionTestCase(TestCase):
         self.assertEqual(
             re.sub('\s+', '', TEST_XML).strip(),
             re.sub('\s+', '', self.rev.doc.xml()[0]).strip())
+
+    def test_upload_xml(self):
+        root_doc = Doc.add_root(name='Hg1', label='document')
+        self.com.docs.add(root_doc)
+        root_doc.upload_xml(TEST_XML)
+        self.assertEqual(
+            re.sub('\s+', '', TEST_XML).strip(),
+            re.sub('\s+', '', root_doc.xml()[0]).strip())
+
 
 
