@@ -19,6 +19,8 @@ urlpatterns = patterns(
         {'methods': ['post'], 'func': 'js', 'serializer_class': JSSerializer},
         {'methods': ['post'], 
          'func': 'css', 'serializer_class': CSSSerializer}, 
+        {'methods': ['post'], 
+         'func': 'upload_tei', 'serializer_class': TextSerializer}, 
     ], extra={'model': Community}))), 
     url(r'^docs/$', DocList.as_view(), name='doc-list'),
     url(r'^docs/(?P<pk>\d+)/', include(APIView.urlpatterns([
@@ -59,7 +61,6 @@ urlpatterns = patterns(
          'func_args': '(?P<doc_pk>\d+)/'}, 
     ], extra={'model': Entity, 'serializer_class': EntitySerializer}))),
     url(r'^texts/$', TextList.as_view(), name='text-list'),
-    url(r'^upload_xml/$', UploadXML.as_view()),
     url(r'^texts/(?P<pk>\d+)/', include(APIView.urlpatterns([
         {},
         {'func': 'next'}, 

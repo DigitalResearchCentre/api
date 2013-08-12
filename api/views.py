@@ -160,15 +160,9 @@ class APIView(CreateModelMixin, RelationView):
         print request.DATA
         return {}
 
-class UploadXML(generics.ListCreateAPIView):
-    model = Text
-    serializer_class = TextSerializer
-    permission_classes = (permissions.AllowAny,)
-
-    def post(self, request, *args, **kwargs):
+    def _post_upload_tei(self, request, *args, **kwargs):
         f = request.FILES['xml']
-        serializer = self.get_serializer(Text.load_tei(f.read()))
-        return Response(serializer.data)
+        return self.get_response(Text.load_tei(f.read(), self.get_object()))
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community

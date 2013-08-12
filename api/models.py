@@ -1,4 +1,4 @@
-import math, os, StringIO, datetime
+import math, os, StringIO, datetime, re
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -6,6 +6,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.utils.timezone import utc
+from django.template import Template, Context
 from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
 from lxml import etree
@@ -381,6 +382,27 @@ def _to_xml(qs, exclude=None):
             prev_el = node.to_el(parent=parent_el)
     return etree.tostring(root_el)[len('<TEI>'):- len('</TEI>')]
 
+def _prepare_doc_refsdecl(doc_xpath):
+    def add_tag_lst(node, tag_lst, mp=None):
+        if tag_lst:
+            children = node['children']
+            tag = tag_lst[0]
+            if not children.has_key(tag):
+                children[tag] = {'mp': None, 'children': {}}
+            add_tag_lst(children[tag], tag_lst[1:], mp=mp)
+        else:
+            node['mp'] = mp
+
+    tag_tree = {'children': {}}
+    tag_set = set()
+    for mp, xpath in doc_xpath.items():
+        # //pb[@n]/following::cb[@n]/following::lb[@n]
+        # -> [pb, cb, lb]
+        tag_lst = re.findall('(?:following::)?(\w+)\[@n\]', xpath)
+        tag_set = tag_set.union(set(tag_lst))
+        add_tag_lst(tag_tree, tag_lst, mp=mp)
+    return tag_tree, tag_set
+
 class Text(Node):
     tag = models.CharField(max_length=15)
     text = models.TextField(blank=True)
@@ -478,7 +500,7 @@ class Text(Node):
         for el in bulk_el:
             bulk_data.append({
                 'data': {
-                    'tag': el.xpath('local-name'), 'text': el.text or '', 
+                    'tag': el.xpath('local-name()'), 'text': el.text or '', 
                     'tail': el.tail or '',
                 }, 
                 'children': cls._el_to_bulk_data(el.getchildren())
@@ -486,11 +508,60 @@ class Text(Node):
         return bulk_data
 
     @classmethod
-    def load_xml(self, xml):
-        root_el = etree.XML(xml)
-        text = Text.add_root(tag='TEI')
+    def load_tei(self, xml, community):
+        tei_el = etree.XML(xml)
+        nsmap = {
+            'tei': 'http://www.tei-c.org/ns/1.0',
+            # TODO: need update to something like:
+            # 'det': 'http://textualcommunities.usask.ca/ns/1.0'
+            'det': 'http://textualcommunities.usask.ca/',
+        }
+        header_el = tei_el.xpath('/tei:TEI/tei:teiHeader', namespaces=nsmap)[0]
+        text_el = tei_el.xpath('/tei:TEI/tei:text', namespaces=nsmap)[0]
+
+        text = Text.add_root(tag='text')
         text = Text.objects.get(pk=text.pk)
-        text.load_bulk_el(root_el.getchildren())
+        text.load_bulk_el(text_el.getchildren())
+        Header.objects.create(xml=etree.tostring(header_el), text=text)
+        doc_name = header_el.xpath('//tei:sourceDesc/*/@det:document',
+                                   namespaces=nsmap)[0]
+        refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
+        doc_refsdecl = community.refsdecls.get(
+            name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
+        entity_refsdecl = community.refsdecls.get(
+            name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
+        
+        text_refsdecl_el = etree.Element('refsDecl')
+        for refs in (doc_refsdecl, entity_refsdecl):
+            tmpl = Template(refs.xml)
+            el = etree.XML(
+                tmpl.render(Context({'document_identifier': doc_name, }))
+            )
+            for crefpattern in el.getchildren():
+                text_refsdecl_el.append(el)
+
+        RefsDecl.objects.create(
+            text=text, xml=etree.tostring(text_refsdecl_el),
+            template=entity_refsdecl.template
+        )
+
+        doc_xpath, entity_xpath = {}, {}
+        for cref in text_refsdecl_el.xpath('//cRefPattern'):
+            match = cref.get('matchPattern')
+            replace = cref.get('replacementPattern')
+            # #xpath(//body/div[@n='$1']) -> //body/div[@n]
+            xpath = re.match(r'#xpath\((.+)\)', replace).group(1)
+            xpath = re.sub(r'=[\'"]\$\d+[\'"]', '', xpath)
+            # urn:det:TCUSask:TC:entity=(.+) -> urn:det:TCUSask:TC:entity=%s
+            mp = re.sub(r'\([^\)]+\)', '%s', match)
+            if re.findall(r'^(?:\w+:)+document', mp):
+                doc_xpath[mp] = xpath
+            elif re.findall(r'^(?:\w+:)+entity', mp):
+                entity_xpath[mp] = xpath
+
+        tag_tree, tag_set = _prepare_doc_refsdecl(doc_xpath)
+        print doc_xpath, tag_tree, tag_set
+
         return text
 
 class Attr(models.Model):
@@ -500,6 +571,10 @@ class Attr(models.Model):
 
     class Meta:
         unique_together = (('text', 'name'), )
+
+class Header(models.Model):
+    xml = models.TextField()
+    text = models.ForeignKey(Text)
 
 class Revision(models.Model):
     # only support page level document

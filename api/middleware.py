@@ -9,10 +9,11 @@ class QueryLogMiddleware(object):
                 query_time = query.get('time')
                 total_time += float(query_time)
                 try:
-                    print query_time, query.get('sql')
+                    # print query_time, query.get('sql')
+                    pass
                 except Exception, e:
                     print e
 
-            print total_time
+            # print total_time
         return response
 
