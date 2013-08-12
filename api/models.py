@@ -410,6 +410,10 @@ class Text(Node):
         el.tail = self.tail or None
         return el
 
+    def to_el_str(self, parent=None, extra_attrs={}):
+        el = self.to_el(parent=parent, extra_attrs=extra_attrs)
+        return etree.tostring(el)
+
     def xml(self):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:

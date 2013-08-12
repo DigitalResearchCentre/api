@@ -38,7 +38,7 @@ class EntitySerializer(NodeSerializer):
         model = Entity
 
 class TextSerializer(NodeSerializer):
-    element = serializers.Field(source='to_element')
+    element = serializers.Field(source='to_el_str')
 
     class Meta:
         model = Text
