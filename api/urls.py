@@ -1,4 +1,5 @@
 from django.conf.urls import patterns, url, include
+from rest_framework import generics, permissions
 from api.views import *
 from api.models import *
 from api.serializers import *
@@ -75,6 +76,8 @@ urlpatterns = patterns(
         {'methods': ['post', 'put'], 
          'func': 'commit', 'serializer_class': RevisionSerializer, },
     ], extra={'model': Revision, 'serializer_class': RevisionSerializer}))),
+    url(r'^js/(?P<pk>\d+)/', generics.RetrieveUpdateDestroyAPIView.as_view(
+        model=JS, serializer_class=JSSerializer, permission_classes=(permissions.AllowAny,))),
     url(r'^test/$', TranscribeView.as_view()),
 )
 

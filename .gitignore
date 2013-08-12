@@ -2,6 +2,7 @@
 *.pot
 *.pyc
 *.swp
+api/env.py
 local_settings.py
 venv
 client/lib
