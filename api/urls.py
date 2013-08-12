@@ -59,9 +59,7 @@ urlpatterns = patterns(
          'func_args': '(?P<doc_pk>\d+)/'}, 
     ], extra={'model': Entity, 'serializer_class': EntitySerializer}))),
     url(r'^texts/$', TextList.as_view(), name='text-list'),
-    url(r'^upload_xml/$', include(APIView.urlpatterns([
-        {'methods': ['post']},
-    ], extra={'model': Text, 'serializer_class': TextSerializer}))),
+    url(r'^upload_xml/$', UploadXML.as_view()),
     url(r'^texts/(?P<pk>\d+)/', include(APIView.urlpatterns([
         {},
         {'func': 'next'}, 
