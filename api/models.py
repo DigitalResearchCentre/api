@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.conf import settings
 from django.http import HttpResponse
 from django.contrib.auth.models import User
+from django.utils.timezone import utc
 from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
 from lxml import etree
@@ -101,6 +102,18 @@ class Node(NS_Node):
 
     def is_root(self):
         return self.lft == 1
+
+    def get_child_after(self, after):
+        qs = self.get_children()
+        if after is not None:
+            qs.filter(lft__gt=after.rgt)
+        return get_first(qs)
+
+    def get_child_before(self, before):
+        qs = self.get_children()
+        if before is not None:
+            qs.filter(lft__lte=before.lft)
+        return get_last(qs)
 
     @classmethod
     def load_bulk(cls, bulk_data):
@@ -306,9 +319,18 @@ class Doc(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
+    def upload_xml(self, xml):
+        root_el = etree.XML(xml)
+        text = self.has_text_in()
+        if text is None:
+            text = Text.add_root(tag='text', doc=self)
+            text = Text.objects.get(pk=text.pk)
+            text.load_bulk_el(root_el.getchildren())
+
 def _to_xml(qs, exclude=None):
     root_el = prev_el = parent_el = etree.Element('TEI')
     qs = qs.prefetch_related('attr_set')
+    prev_depth = 0
 
     nodes = list(qs)
     if nodes: 
@@ -340,20 +362,24 @@ def _to_xml(qs, exclude=None):
             prev_el = parent_el = ancestor.to_el(parent=parent_el,
                                                  extra_attrs=extra_attrs)
             parent_el.text = None
+            prev_depth = ancestor.get_depth()
             # TODO: should not display tail if el is continue on next page
             # need add someting: if ancestor.is_continue: el.tail = ''
             q.append(parent_el)
 
-        prev_depth = node.get_depth() - 1
         if exclude == node:
             # if first node is exclude, only display it's tail in xml
             parent_el.text = nodes.pop(0).tail
+
+        # prev_el is already append to q, remove it to prevent duplicate
+        if q:
+            q.pop()
 
         for node in nodes:
             depth = node.get_depth()
             open = (depth > prev_depth)
             if open:
-                q.append(prev_el)
+                q.append(parent_el)
                 parent_el = prev_el
 
             for i in range(0, prev_depth - depth):
@@ -361,7 +387,7 @@ def _to_xml(qs, exclude=None):
 
             prev_depth = depth
             prev_el = node.to_el(parent=parent_el)
-    return etree.tostring(root)[len('<TEI>'):- len('</TEI>')]
+    return etree.tostring(root_el)[len('<TEI>'):- len('</TEI>')]
 
 class Text(Node):
     tag = models.CharField(max_length=15)
@@ -424,67 +450,53 @@ class Text(Node):
     def is_text_in(self):
         if self.doc_id is not None:
             return self.doc
-        r = list(Text.objects.filter(
-            tree_id=self.tree_id, lft__lt=self.lft, doc__isnull=False
-        ).select_related('doc').order_by('-lft')[:1])
-        if r:
-            return r[0].doc
+        last = get_last(
+            Text.objects
+            .filter(tree_id=self.tree_id, lft__lt=self.lft, doc__isnull=False)
+            .select_related('doc')
+        )
+        return last.doc if last else None
 
     def is_text_of(self):
         if self.entity_id is not None:
             return self.entity
-        r = list(self.get_ancestors().filter(
+        first = get_first(self.get_ancestors().filter(
             entity__isnull=False
-        ).order_by('-depth')[:1])
-        if r:
-            return r[0].entity
+        ).order_by('-depth'))
+        return first.entity if first else None
 
     def get_refsdecls(self):
         return self.get_root().refsdecl_set.all()
 
-    def load_el(self, el, ancestors):
-        children_el = el.getchildren()
-        parent = ancestors.pop(0)
-        if ancestors:
-            self.load_el(children_el.pop(0), ancestors)
-        bulk_data = self._el_to_bulk_data(children_el)
+    def load_bulk_el(self, bulk_el, after=None):
+        bulk_data = self.__class__._el_to_bulk_data(bulk_el)
         roots = Text.load_bulk(bulk_data)
-        print [r.tag for r in roots]
-        if roots:
-
-            attrs = []
-            j = 0
-            for el in children_el:
-                texts = list(Text.get_tree(parent=roots[j]))
-                j += 1
-                i = 0
-                for descendant_el in el.iter():
-                    attrib = descendant_el.attrib
-                    for key in attrib:
-                        attrs.append(
-                            Attr(text=texts[i], name=key, value=attrib[key]))
-                    i += 1
+        attrs = []
+        for el, root in zip(bulk_el, roots):
+            texts = list(Text.get_tree(parent=root))
+            i = 0
+            for descendant_el in el.iter():
+                attrib = descendant_el.attrib
+                for key in attrib:
+                    attrs.append(
+                        Attr(text=texts[i], name=key, value=attrib[key]))
+                i += 1
+        if attrs:
             Attr.objects.bulk_create(attrs)
 
-            lft = roots[0].lft
-            rgt = roots[-1].rgt
-            sibling = list(parent.get_children()
-                           .filter(lft__lte=self.lft).order_by('-lft')[:1])
-            print 'p: ', parent.tag
-            if not sibling:
-                sibling = roots.pop(0)
-                print 'c: ', sibling.tag
-                sibling.move(parent, pos='first-child')
-            else:
-                sibling = sibling[0]
+        sibling = self.get_child_before(after)
+                      
+        if sibling is None and roots:
+            sibling = roots.pop(0)
+            sibling.move(self, pos='first-child')
+        sibling = Text.objects.get(pk=sibling.pk)
 
-            for root in roots:
-                sibling = Text.objects.get(pk=sibling.pk)
-                print 's: ', sibling.tag, 'r: ', root.tag
-                root.move(sibling, pos='right')
-                sibling = root
+        for root in roots:
+            root.move(sibling, pos='right')
+            sibling = Text.objects.get(pk=root.pk)
 
-    def _el_to_bulk_data(self, bulk_el):
+    @classmethod
+    def _el_to_bulk_data(cls, bulk_el):
         bulk_data = []
         for el in bulk_el:
             bulk_data.append({
@@ -492,7 +504,7 @@ class Text(Node):
                     'tag': el.tag, 'text': el.text or '', 
                     'tail': el.tail or '',
                 }, 
-                'children': self._el_to_bulk_data(el.getchildren())
+                'children': cls._el_to_bulk_data(el.getchildren())
             })
         return bulk_data
 
@@ -519,19 +531,42 @@ class Revision(models.Model):
     class Meta:
         ordering = ['-create_date',]
 
+    def _commit_el(self, parent_el, ancestors, after=None):
+        bulk_el = parent_el.getchildren()
+        parent = ancestors.pop(0)
+        if ancestors and bulk_el:
+            self._commit_el(bulk_el.pop(0), ancestors, after=after)
+
+        if bulk_el and (after is None or parent.rgt > after.lft):
+            parent.load_bulk_el(bulk_el, after=after)
+
     def commit(self):
-        # TODO: verify against cref
         doc = self.doc
+        root = doc.get_root().has_text_in()
         pb = doc.has_text_in()
         if pb is not None:
             texts = doc.get_texts().exclude(pk=pb.pk) # this include pb
             texts.delete()
-        ancestors = list(pb.get_ancestors())
-        root = etree.XML(self.text)
-        pb.load_el(root, ancestors=ancestors)
+        else:
+            sibling = get_first(
+                root.get_descendants().filter(doc__lft__gte=doc.lft))
+            if sibling is None:
+                # TODO
+                try:
+                    body = root.get_children().get(tag='body')
+                except Text.DoesNotExist, e:
+                    body = root.add_child(tag='body')
+                    body = Text.objects.get(pk=body.pk)
+                pb = body.add_child(tag='pb', doc=doc)
+            else:
+                pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
+        root_el = etree.XML(self.text)
+        # TODO: verify root_el against cref
+        self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
+        # TODO: rebind all doc/entity
         doc.cur_rev = self
         doc.save()
-        self.commit_date = datetime.datetime.now()
+        self.commit_date = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.save()
         return {'success': 'success'}
 
