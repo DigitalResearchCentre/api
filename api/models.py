@@ -319,14 +319,6 @@ class Doc(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
-    def upload_xml(self, xml):
-        root_el = etree.XML(xml)
-        text = self.has_text_in()
-        if text is None:
-            text = Text.add_root(tag='text', doc=self)
-            text = Text.objects.get(pk=text.pk)
-            text.load_bulk_el(root_el.getchildren())
-
 def _to_xml(qs, exclude=None):
     root_el = prev_el = parent_el = etree.Element('TEI')
     qs = qs.prefetch_related('attr_set')
@@ -508,6 +500,13 @@ class Text(Node):
             })
         return bulk_data
 
+    @classmethod
+    def load_xml(self, xml):
+        root_el = etree.XML(xml)
+        text = Text.add_root(tag='text', doc=self)
+        text = Text.objects.get(pk=text.pk)
+        text.load_bulk_el(root_el.getchildren())
+        return text
 
 class Attr(models.Model):
     text = models.ForeignKey(Text)

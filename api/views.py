@@ -162,13 +162,7 @@ class APIView(CreateModelMixin, RelationView):
 
     def _post_upload_xml(self, request, *args, **kwargs):
         f = request.FILES['xml']
-        doc = self.get_object()
-        text = doc.has_text_in()
-        if text is not None:
-            return self.get_response({'error': 'text already exists'})
-        else:
-            doc.upload_xml(f.read())
-            return self.get_response(doc.has_text_in())
+        return self.get_response(Text.upload_xml(f.read()))
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
