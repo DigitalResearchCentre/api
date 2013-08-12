@@ -167,7 +167,7 @@ class UploadXML(generics.ListCreateAPIView):
 
     def post(self, request, *args, **kwargs):
         f = request.FILES['xml']
-        serializer = self.get_serializer(Text.load_xml(f.read()))
+        serializer = self.get_serializer(Text.load_tei(f.read()))
         return Response(serializer.data)
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
