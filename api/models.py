@@ -410,25 +410,6 @@ class Text(Node):
         el.tail = self.tail or None
         return el
 
-    def to_element(self, open=False, text=True, extra_attrs=None):
-        attrs = [self.tag] + [
-            '%s="%s"' % (attr.name, attr.value) 
-            for attr in self.attr_set.all()
-        ]
-        if extra_attrs:
-            for name, value in extra_attrs.items():
-                attrs.append('%s="%s"' % (name, value))
-        xml = '<%s' % ' '.join(attrs)
-        if open:
-            xml += '>%s' % (self.text if text else '')
-        else:
-            if self.text:
-                xml += '>%s</%s>' % (self.text, self.tag)
-            else:
-                xml += '/>'
-            xml += self.tail
-        return xml
-
     def xml(self):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:
@@ -493,7 +474,7 @@ class Text(Node):
         for el in bulk_el:
             bulk_data.append({
                 'data': {
-                    'tag': el.tag, 'text': el.text or '', 
+                    'tag': el.xpath('local-name'), 'text': el.text or '', 
                     'tail': el.tail or '',
                 }, 
                 'children': cls._el_to_bulk_data(el.getchildren())
