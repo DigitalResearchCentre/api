@@ -503,7 +503,7 @@ class Text(Node):
     @classmethod
     def load_xml(self, xml):
         root_el = etree.XML(xml)
-        text = Text.add_root(tag='text', doc=self)
+        text = Text.add_root(tag='TEI', doc=self)
         text = Text.objects.get(pk=text.pk)
         text.load_bulk_el(root_el.getchildren())
         return text
