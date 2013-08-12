@@ -8,7 +8,10 @@ class QueryLogMiddleware(object):
             for query in connection.queries:
                 query_time = query.get('time')
                 total_time += float(query_time)
-                print query_time, query.get('sql')
+                try:
+                    print query_time, query.get('sql')
+                except Exception, e:
+                    print e
 
             print total_time
         return response
