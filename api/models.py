@@ -432,6 +432,12 @@ class Text(Node):
         el.tail = self.tail or None
         return el
 
+    def get_attr_value(self, name):
+        try:
+            return self.attr_set.get(name=name).value
+        except Attr.DoesNotExist:
+            return None
+
     def to_el_str(self, parent=None, extra_attrs={}):
         el = self.to_el(parent=parent, extra_attrs=extra_attrs)
         return etree.tostring(el)
@@ -559,8 +565,33 @@ class Text(Node):
             elif re.findall(r'^(?:\w+:)+entity', mp):
                 entity_xpath[mp] = xpath
 
-        tag_tree, tag_set = _prepare_doc_refsdecl(doc_xpath)
-        print doc_xpath, tag_tree, tag_set
+        doc_map = {
+            'pb': 'Folio',
+            'cb': 'Column',
+            'lb': 'Line',
+        }
+        tag_list = ['pb', 'cb', 'lb']
+        urns = []
+        prev = None
+        q = []
+        urn_part = ''
+        # TODO: should parse cref to get this
+        i = 1
+        for cur in text.get_descendants().filter(tag__in=tag_list):
+            index = tag_list.index(cur.tag)
+            if prev:
+                if tag_list.index(prev.tag) < index:
+                    i = 1
+                    q.append({
+                        'urn': urn, 'i': i, 'node': prev,
+                    })
+            while q and tag_list.index(q[-1]['node'].tag) > index:
+                tag_list.pop()
+            urn = q[-1]['urn'] + ':' if q else ''
+            urn += '%s=%s' % (cur.tag, cur.get_attr_value('n') or str(i))
+            i += 1
+            prev = cur
+            urns.append(urn) 
 
         return text
 
