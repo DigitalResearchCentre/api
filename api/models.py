@@ -528,6 +528,7 @@ class Text(Node):
         text = Text.add_root(tag='text')
         text = Text.objects.get(pk=text.pk)
         text.load_bulk_el(text_el.getchildren())
+        text = Text.objects.get(pk=text.pk)
         Header.objects.create(xml=etree.tostring(header_el), text=text)
         doc_name = header_el.xpath('//tei:sourceDesc/*/@det:document',
                                    namespaces=nsmap)[0]
@@ -565,34 +566,32 @@ class Text(Node):
             elif re.findall(r'^(?:\w+:)+entity', mp):
                 entity_xpath[mp] = xpath
 
+        # TODO: should parse cref to get this
         doc_map = {
+            'text': 'document',
             'pb': 'Folio',
             'cb': 'Column',
             'lb': 'Line',
         }
-        tag_list = ['pb', 'cb', 'lb']
-        urns = []
-        prev = None
+        tag_list = ['text', 'pb', 'cb', 'lb']
         q = []
-        urn_part = ''
-        # TODO: should parse cref to get this
         i = 1
+        text.doc = Doc.add_root(name=doc_name, label='document')
+        prev = text
         for cur in text.get_descendants().filter(tag__in=tag_list):
             index = tag_list.index(cur.tag)
-            if prev:
-                if tag_list.index(prev.tag) < index:
-                    i = 1
-                    q.append({
-                        'urn': urn, 'i': i, 'node': prev,
-                    })
-            while q and tag_list.index(q[-1]['node'].tag) > index:
-                tag_list.pop()
-            urn = q[-1]['urn'] + ':' if q else ''
-            urn += '%s=%s' % (cur.tag, cur.get_attr_value('n') or str(i))
-            i += 1
-            prev = cur
-            urns.append(urn) 
-
+            if tag_list.index(prev.tag) < index:
+                i = 1
+                q.append(prev)
+            while q and tag_list.index(q[-1]['text'].tag) >= index:
+                q.pop()
+            name = cur.get_attr_value('n') or str(i)
+            label = doc_map[cur.tag]
+            urn += '%s=%s' % (label, name)
+            i += 1 
+            prev = {
+                'urn': urn, 'text': cur, 'doc': Doc(name=name, label=label)
+            }
         return text
 
 class Attr(models.Model):
