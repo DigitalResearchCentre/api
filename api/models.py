@@ -248,7 +248,7 @@ class Entity(DETNode):
     @classmethod
     def get_or_create_by_urn(cls, urn):
         community_urn = re.findall(r'(^(?:(?:^|:)\w+)+):', urn)[0]
-        community = Community.objects.get(abbr=community_urn.split(':')[-1])
+        community = Community.objects.get(pk=1)#abbr=community_urn.split(':')[-1])
 
         value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', urn)
         label, name = value_pairs[0]
@@ -514,7 +514,7 @@ class Text(Node):
             tag = el.xpath('local-name()')
             data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '',}
             if tag in ('pb', 'cb', 'lb') and docs:
-                data['doc'] = docs.pop()
+                data['doc'] = docs.pop(0)
             try:
                 entity_urn = el.attrib.pop('{%s}entity' % el.nsmap.get('det'))
                 data['entity'] = Entity.get_or_create_by_urn(entity_urn)
@@ -635,6 +635,7 @@ class Text(Node):
                 print mp % path
 
         docs = list(doc.get_descendants())
+        print docs
         text.load_bulk_el(text_el.getchildren(), docs=docs)
         text = Text.objects.get(pk=text.pk)
         Header.objects.create(xml=etree.tostring(header_el), text=text)

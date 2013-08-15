@@ -57,11 +57,20 @@ class OldRefsDecl(models.Model):
         }
 
 
-for o in OldRefsDecl.objects.all():
+for o in RefsDecl.objects.all():
     try:
-        r = RefsDecl.objects.get(pk=o.pk)
+        r = Refs.objects.get(pk=o.pk)
     except:
+        print o, o.pk
         continue
+    r.xml = o.xml()
+    r.save()
+
+    print o.xml()
+    print '-------------------'
+    r.xml = o.xml()
+    r.save()
+    print o.xml()
     r.xml = o.xml() or ''
     try:
         t = o.template
