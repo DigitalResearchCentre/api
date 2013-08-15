@@ -245,6 +245,25 @@ class Entity(DETNode):
             result = result | qs
         return result
 
+    @classmethod
+    def get_or_create_by_urn(cls, urn):
+        community_urn = re.findall(r'(^(?:(?:^|:)\w+)+):', urn)[0]
+        community = Community.objects.get(abbr=community_urn.split(':')[-1])
+
+        value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', urn)
+        label, name = value_pairs[0]
+        try:
+            entity = community.entities.get(name=name, label=label)
+        except Entity.DoesNotExist:
+            entity = Entity.add_root(name=name, label=label)
+            community.entities.add(entity)
+        for label, name in value_pairs[1:]:
+            try:
+                entity = entity.get_children().get(label=type, name=name)
+            except Entity.DoesNotExist, e:
+                entity = entity.add_child(label=label, name=name)
+        return entity
+
 class Doc(DETNode):
 
     cur_rev = models.OneToOneField(
@@ -390,27 +409,6 @@ def _to_xml(qs, exclude=None):
             prev_el = node.to_el(parent=parent_el)
     return etree.tostring(root_el)[len('<TEI>'):- len('</TEI>')]
 
-def _prepare_doc_refsdecl(doc_xpath):
-    def add_tag_lst(node, tag_lst, mp=None):
-        if tag_lst:
-            children = node['children']
-            tag = tag_lst[0]
-            if not children.has_key(tag):
-                children[tag] = {'mp': None, 'children': {}}
-            add_tag_lst(children[tag], tag_lst[1:], mp=mp)
-        else:
-            node['mp'] = mp
-
-    tag_tree = {'children': {}}
-    tag_set = set()
-    for mp, xpath in doc_xpath.items():
-        # //pb[@n]/following::cb[@n]/following::lb[@n]
-        # -> [pb, cb, lb]
-        tag_lst = re.findall('(?:following::)?(\w+)\[@n\]', xpath)
-        tag_set = tag_set.union(set(tag_lst))
-        add_tag_lst(tag_tree, tag_lst, mp=mp)
-    return tag_tree, tag_set
-
 class Text(Node):
     tag = models.CharField(max_length=15)
     text = models.TextField(blank=True)
@@ -481,9 +479,9 @@ class Text(Node):
     def get_refsdecls(self):
         return self.get_root().refsdecl_set.all()
 
-    def load_bulk_el(self, bulk_el, after=None):
-        bulk_data = self.__class__._el_to_bulk_data(bulk_el)
-
+    def load_bulk_el(self, bulk_el, after=None, docs=[]):
+        bulk_data = self.__class__._el_to_bulk_data(bulk_el, docs=docs)
+        
         roots = Text.load_bulk(bulk_data)
         attrs = []
         for el, root in zip(bulk_el, roots):
@@ -510,16 +508,18 @@ class Text(Node):
             sibling = Text.objects.get(pk=root.pk)
 
     @classmethod
-    def _el_to_bulk_data(cls, bulk_el):
+    def _el_to_bulk_data(cls, bulk_el, docs=[]):
         bulk_data = []
-        for el in bulk_el:
-            bulk_data.append({
-                'data': {
-                    'tag': el.xpath('local-name()'), 'text': el.text or '', 
-                    'tail': el.tail or '',
-                }, 
-                'children': cls._el_to_bulk_data(el.getchildren())
-            })
+        for el in bulk_el: 
+            tag = el.xpath('local-name()')
+            data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '',}
+            if tag in ('pb', 'cb', 'lb') and docs:
+                data['doc'] = docs.pop()
+            entity_urn = el.get('{%s}entity' % el.nsmap.get('det'))
+            if entity_urn:
+                data['entity'] = Entity.get_or_create_by_urn(entity_urn)
+            children = cls._el_to_bulk_data(el.getchildren(), docs=docs)
+            bulk_data.append({'data': data, 'children': children})
         return bulk_data
 
     @classmethod
@@ -538,43 +538,48 @@ class Text(Node):
         text = Text.objects.get(pk=text.pk)
         doc_name = header_el.xpath('//tei:sourceDesc/*/@det:document',
                                    namespaces=nsmap)[0]
-        doc = community.docs.get_or_create_doc(doc_name)
         # TODO: should parse cref to get this
+        tag_list = ['text', 'pb', 'cb', 'lb']
         doc_map = {
             'text': 'document',
             'pb': 'Folio',
             'cb': 'Column',
             'lb': 'Line',
         }
-        tag_list = ['text', 'pb', 'cb', 'lb']
         q = []
         i = 1
-        text.doc = Doc.add_root(name=doc_name, label='document')
-        prev = text
-        for cur in text_el.xpath('//'):
-            index = tag_list.index(cur.tag)
-            if tag_list.index(prev.tag) < index:
+        doc_root = prev = {
+            'data': {'name': doc_name, 'label': 'document', },
+            'tag': 'text', 'children': []
+        }
+        for el in text_el.xpath('//*[%s]' % (
+            ' or '.join(['self::tei:%s' % tag for tag in tag_list[1:]])
+        ), namespaces=nsmap):
+            tag = el.xpath('local-name()')
+            index = tag_list.index(tag)
+            if tag_list.index(prev['tag']) < index:
                 i = 1
                 q.append(prev)
-            while q and tag_list.index(q[-1]['text'].tag) >= index:
+            p = q[-1]
+            while q and tag_list.index(q[-1]['tag']) >= index:
                 q.pop()
-            name = cur.get_attr_value('n') or str(i)
-            label = doc_map[cur.tag]
-            urn += '%s=%s' % (label, name)
-            i += 1 
             prev = {
-                'urn': urn, 'text': cur, 'doc': Doc(name=name, label=label)
+                'data': {'name': el.get('n') or str(i), 'label': doc_map[tag]},
+                'tag': tag, 'children': []
             }
+            q[-1]['children'].append(prev)
+            i += 1 
+        doc = Doc.load_bulk([doc_root])[0]
+        doc = Doc.objects.get(pk=doc.pk)
+        text.doc = doc
+        text.save()
+        community.docs.add(doc)
 
-        text.load_bulk_el(text_el.getchildren())
-        text = Text.objects.get(pk=text.pk)
-        Header.objects.create(xml=etree.tostring(header_el), text=text)
         refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
         doc_refsdecl = community.refsdecls.get(
             name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
         entity_refsdecl = community.refsdecls.get(
             name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
-        
         text_refsdecl_el = etree.Element('refsDecl')
         for refs in (doc_refsdecl, entity_refsdecl):
             tmpl = Template(refs.xml)
@@ -603,6 +608,22 @@ class Text(Node):
             elif re.findall(r'^(?:\w+:)+entity', mp):
                 entity_xpath[mp] = xpath
 
+        for mp, xpath in entity_xpath.items():
+            xpath = re.sub('(?<=/)(?=\w)', 'tei:', xpath)
+            for el in text_el.xpath(xpath, namespaces=nsmap):
+                path = (el.get('n'),)
+                for ancestor in el.iterancestors():
+                    n = ancestor.get('n')
+                    if n:
+                        path = (n,) + path
+                el.set('{%s}entity' % el.nsmap.get('det'), mp % path)
+                print mp % path
+
+        docs = list(doc.get_descendants())
+        text.load_bulk_el(text_el.getchildren(), docs=docs)
+        text = Text.objects.get(pk=text.pk)
+        Header.objects.create(xml=etree.tostring(header_el), text=text)
+        
         return text
 
 class Attr(models.Model):
