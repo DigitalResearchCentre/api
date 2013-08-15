@@ -576,15 +576,28 @@ class Text(Node):
         community.docs.add(doc)
 
         refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
-        doc_refsdecl = community.refsdecls.get(
-            name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
-        entity_refsdecl = community.refsdecls.get(
-            name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
+        root_com = Community.objects.get(pk=1)
+        try:
+            doc_refsdecl = community.refsdecls.get(
+                name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
+        except RefsDecl.DoesNotExist, e:
+            doc_refsdecl = root_com.refsdecls.get(
+                name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
+        try:
+            entity_refsdecl = community.refsdecls.get(
+                name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
+        except RefsDecl.DoesNotExist, e:
+            entity_refsdecl = root_com.refsdecls.get(
+                name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
+
         text_refsdecl_el = etree.Element('refsDecl')
         for refs in (doc_refsdecl, entity_refsdecl):
             tmpl = Template(refs.xml)
             el = etree.XML(
-                tmpl.render(Context({'document_identifier': doc_name, }))
+                tmpl.render(Context({
+                    'community_identifier': community.abbr,
+                    'document_identifier': doc_name, 
+                }))
             )
             for crefpattern in el.getchildren():
                 text_refsdecl_el.append(el)
