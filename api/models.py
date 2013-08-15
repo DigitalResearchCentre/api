@@ -259,7 +259,7 @@ class Entity(DETNode):
             community.entities.add(entity)
         for label, name in value_pairs[1:]:
             try:
-                entity = entity.get_children().get(label=type, name=name)
+                entity = entity.get_children().get(label=label, name=name)
             except Entity.DoesNotExist, e:
                 entity = entity.add_child(label=label, name=name)
         return entity

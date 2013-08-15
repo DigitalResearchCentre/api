@@ -17,7 +17,6 @@ class OldRefsDecl(models.Model):
         Element, null=True, blank=True,
         related_name='template_refs_decl', editable=False,
     )
-
     class Meta:
         db_table = 'det_refsdecl'
 
