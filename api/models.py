@@ -515,9 +515,11 @@ class Text(Node):
             data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '',}
             if tag in ('pb', 'cb', 'lb') and docs:
                 data['doc'] = docs.pop()
-            entity_urn = el.get('{%s}entity' % el.nsmap.get('det'))
-            if entity_urn:
+            try:
+                entity_urn = el.attrib.pop('{%s}entity' % el.nsmap.get('det'))
                 data['entity'] = Entity.get_or_create_by_urn(entity_urn)
+            except KeyError, e:
+                pass
             children = cls._el_to_bulk_data(el.getchildren(), docs=docs)
             bulk_data.append({'data': data, 'children': children})
         return bulk_data
@@ -695,11 +697,13 @@ class Revision(models.Model):
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
         root_el = etree.XML(self.text)
+
         # TODO: verify root_el against cref
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         # TODO: rebind all doc/entity
         doc.cur_rev = self
         doc.save()
+
         self.commit_date = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.save()
         return {'success': 'success'}

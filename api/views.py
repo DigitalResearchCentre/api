@@ -164,6 +164,31 @@ class APIView(CreateModelMixin, RelationView):
         f = request.FILES['xml']
         return self.get_response(Text.load_tei(f.read(), self.get_object()))
 
+    def _post_upload_zip(self, request, *args, **kwargs):
+        doc = self.get_object()
+        zip_file = request.FILES['zip']
+        tmp_zip_path = os.path.join(
+            settings.MEDIA_ROOT, str(random.getrandbits(64)))
+        os.makedirs(tmp_zip_path, 0755)
+        try:
+            zip_file = zipfile.ZipFile(file) 
+            zip_file.extractall(tmp_zip_path)
+            file_lst = [f for f in os.listdir(tmp_zip_path) 
+                       if f[0] not in ('.', '_')]
+            content_folder = tmp_zip_path
+            if len(file_lst) == 1:
+                only_file = os.path.join(tmp_zip_path, file_lst[0])
+                if os.path.isdir(only_file):
+                    content_folder = only_file
+            for root, dirs, files in os.walk(content_folder):
+                for f in files:
+                    src = os.path.join(root, f)
+                    dst = os.path.join(root, f.lower())
+                    os.rename(src, dst)
+            return doc.bind_file(content_folder)
+        finally:
+            shutil.rmtree(tmp_zip_path)
+
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
     serializer_class = CommunitySerializer
@@ -208,6 +233,11 @@ class TextList(generics.ListCreateAPIView):
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     model = User
     serializer_class = UserSerializer
+
+class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
+    model = RefsDecl
+    serializer_class = RefsDeclSerializer
+    permission_classes = (permissions.AllowAny,)
 
 class UserList(generics.ListCreateAPIView):
     model = User

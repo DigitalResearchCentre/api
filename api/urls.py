@@ -42,6 +42,8 @@ urlpatterns = patterns(
          'func_args': '(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/'},
         {'methods': ['post'],
          'func': 'transcribe', 'serializer_class': RevisionSerializer},
+        {'methods': ['post'],
+         'func': 'upload_zip', 'serializer_class': TilerImageSerializer},
         {'methods': ['put'], 'func': 'publish'},
     ], extra={'model': Doc, 'serializer_class': DocSerializer}))),
     url(r'^entities/$', EntityList.as_view(), name='entity-list'),
@@ -80,6 +82,7 @@ urlpatterns = patterns(
     ], extra={'model': Revision, 'serializer_class': RevisionSerializer}))),
     url(r'^js/(?P<pk>\d+)/', generics.RetrieveUpdateDestroyAPIView.as_view(
         model=JS, serializer_class=JSSerializer, permission_classes=(permissions.AllowAny,))),
+    url(r'^refsdecl/(?P<pk>\d+)/', RefsDeclDetail.as_view()),
     url(r'^test/$', TranscribeView.as_view()),
 )
 
