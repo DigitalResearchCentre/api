@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.utils.timezone import utc
 from django.template import Template, Context
+from django.core import files
 from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
 from lxml import etree
@@ -347,6 +348,60 @@ class Doc(DETNode):
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
+    def bind_files(self, folder):
+        for pb in self.get_descendants().filter(
+            text__tag='pb', text__attr__name__in=('file', 'facs')
+        ).prefetch_related('text__attr_set'):
+            file_name = ''
+            rend = None
+            for attr in pb.text.attr_set.all():
+                if attr.name in ('file', 'facs',):
+                    file_name = attr.value.lower()
+                if attr.name == 'rend':
+                    rend = attr.value
+            if file_name:
+                path = os.path.join(folder, file_name)
+                if not os.path.isfile(path):
+                    continue
+                with open(path, 'r') as f:
+                    with self.ImageFile(f, rend=rend) as img:
+                        try:
+                            pb.tilerimage.delete()
+                        except TilerImage.DoesNotExist, e:
+                            pass
+                        tiler_image = TilerImage(doc=pb)
+                        tiler_image.image.save(file_name, img)
+
+    class ImageFile(files.File):
+        def __init__(self, file, rend=None, **kwargs):
+            if rend and len(rend) == 4:
+                img = Image.open(file)
+                rend_img = img.crop((
+                    img.size[0]*int(rend[0])/100,
+                    img.size[1]*int(rend[1])/100,
+                    img.size[0]*int(rend[2])/100,
+                    img.size[1]*int(rend[3])/100,
+                ))
+                
+                rend_path = os.path.join(
+                    os.path.dirname(file.name), 
+                    '%s_%s.jpg' % (
+                        os.path.basename(urlsplit(file.name)[2]).split('.')[0],
+                        ','.join(rend)
+                    )
+                )
+                with open(rend_path, 'wb') as rend_file:
+                    rend_img.save(rend_file, 'JPEG')
+                    self._orig_file = file
+                    file = open(rend_file.name, 'r')
+            super(Doc.ImageFile, self).__init__(file, **kwargs)
+
+        def close(self):
+            if hasattr(self, '_orig_file'):
+                self._orig_file.close()
+            super(Doc.ImageFile, self).close()
+
+
 def _to_xml(qs, exclude=None):
     root_el = prev_el = parent_el = etree.Element('TEI')
     qs = qs.prefetch_related('attr_set')
@@ -635,7 +690,6 @@ class Text(Node):
                 print mp % path
 
         docs = list(doc.get_descendants())
-        print docs
         text.load_bulk_el(text_el.getchildren(), docs=docs)
         text = Text.objects.get(pk=text.pk)
         Header.objects.create(xml=etree.tostring(header_el), text=text)

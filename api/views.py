@@ -1,3 +1,4 @@
+import random, shutil, zipfile
 from django.db.models import Q, query
 from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, Http404, HttpResponse
@@ -171,7 +172,7 @@ class APIView(CreateModelMixin, RelationView):
             settings.MEDIA_ROOT, str(random.getrandbits(64)))
         os.makedirs(tmp_zip_path, 0755)
         try:
-            zip_file = zipfile.ZipFile(file) 
+            zip_file = zipfile.ZipFile(zip_file) 
             zip_file.extractall(tmp_zip_path)
             file_lst = [f for f in os.listdir(tmp_zip_path) 
                        if f[0] not in ('.', '_')]
@@ -185,7 +186,8 @@ class APIView(CreateModelMixin, RelationView):
                     src = os.path.join(root, f)
                     dst = os.path.join(root, f.lower())
                     os.rename(src, dst)
-            return doc.bind_file(content_folder)
+            doc.bind_files(content_folder)
+            return self.get_response(doc)
         finally:
             shutil.rmtree(tmp_zip_path)
 
