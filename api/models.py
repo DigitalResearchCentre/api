@@ -60,6 +60,14 @@ class Community(models.Model):
             'num_page_committed': num_committed,
         }
 
+    def get_or_create_doc(self, name):
+        try:
+            return self.docs.get(name=name)
+        except Doc.DoesNotExist, e:
+            doc = Doc.objects.create(name=name, label='document')
+            self.docs.add(doc)
+            return doc
+
 def get_first(qs):
     lst = list(qs[:1])
     return lst[0] if lst else None
@@ -475,6 +483,7 @@ class Text(Node):
 
     def load_bulk_el(self, bulk_el, after=None):
         bulk_data = self.__class__._el_to_bulk_data(bulk_el)
+
         roots = Text.load_bulk(bulk_data)
         attrs = []
         for el, root in zip(bulk_el, roots):
@@ -527,11 +536,39 @@ class Text(Node):
 
         text = Text.add_root(tag='text')
         text = Text.objects.get(pk=text.pk)
+        doc_name = header_el.xpath('//tei:sourceDesc/*/@det:document',
+                                   namespaces=nsmap)[0]
+        doc = community.docs.get_or_create_doc(doc_name)
+        # TODO: should parse cref to get this
+        doc_map = {
+            'text': 'document',
+            'pb': 'Folio',
+            'cb': 'Column',
+            'lb': 'Line',
+        }
+        tag_list = ['text', 'pb', 'cb', 'lb']
+        q = []
+        i = 1
+        text.doc = Doc.add_root(name=doc_name, label='document')
+        prev = text
+        for cur in text_el.xpath('//'):
+            index = tag_list.index(cur.tag)
+            if tag_list.index(prev.tag) < index:
+                i = 1
+                q.append(prev)
+            while q and tag_list.index(q[-1]['text'].tag) >= index:
+                q.pop()
+            name = cur.get_attr_value('n') or str(i)
+            label = doc_map[cur.tag]
+            urn += '%s=%s' % (label, name)
+            i += 1 
+            prev = {
+                'urn': urn, 'text': cur, 'doc': Doc(name=name, label=label)
+            }
+
         text.load_bulk_el(text_el.getchildren())
         text = Text.objects.get(pk=text.pk)
         Header.objects.create(xml=etree.tostring(header_el), text=text)
-        doc_name = header_el.xpath('//tei:sourceDesc/*/@det:document',
-                                   namespaces=nsmap)[0]
         refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
         doc_refsdecl = community.refsdecls.get(
             name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
@@ -566,32 +603,6 @@ class Text(Node):
             elif re.findall(r'^(?:\w+:)+entity', mp):
                 entity_xpath[mp] = xpath
 
-        # TODO: should parse cref to get this
-        doc_map = {
-            'text': 'document',
-            'pb': 'Folio',
-            'cb': 'Column',
-            'lb': 'Line',
-        }
-        tag_list = ['text', 'pb', 'cb', 'lb']
-        q = []
-        i = 1
-        text.doc = Doc.add_root(name=doc_name, label='document')
-        prev = text
-        for cur in text.get_descendants().filter(tag__in=tag_list):
-            index = tag_list.index(cur.tag)
-            if tag_list.index(prev.tag) < index:
-                i = 1
-                q.append(prev)
-            while q and tag_list.index(q[-1]['text'].tag) >= index:
-                q.pop()
-            name = cur.get_attr_value('n') or str(i)
-            label = doc_map[cur.tag]
-            urn += '%s=%s' % (label, name)
-            i += 1 
-            prev = {
-                'urn': urn, 'text': cur, 'doc': Doc(name=name, label=label)
-            }
         return text
 
 class Attr(models.Model):
