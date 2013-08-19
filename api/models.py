@@ -687,7 +687,6 @@ class Text(Node):
                     if n:
                         path = (n,) + path
                 el.set('{%s}entity' % el.nsmap.get('det'), mp % path)
-                print mp % path
 
         docs = list(doc.get_descendants())
         text.load_bulk_el(text_el.getchildren(), docs=docs)
@@ -751,13 +750,55 @@ class Revision(models.Model):
                 pb = body.add_child(tag='pb', doc=doc)
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
+        doc.get_descendants().delete()
         root_el = etree.XML(self.text)
-
         # TODO: verify root_el against cref
+
+
+        entity_xpath = {}
+        for refsdecl in pb.get_root().refsdecl_set.all():
+            refsdecl_el = refsetree.XML(refsdecl.xml)
+            for cref in refsdecl_el.xpath('//cRefPattern'):
+                match = cref.get('matchPattern')
+                replace = cref.get('replacementPattern')
+                # #xpath(//body/div[@n='$1']) -> //body/div[@n]
+                xpath = re.match(r'#xpath\((.+)\)', replace).group(1)
+                xpath = re.sub(r'=[\'"]\$\d+[\'"]', '', xpath)
+                mp = re.sub(r'\([^\)]+\)', '%s', match)
+                if re.findall(r'^(?:\w+:)+entity', mp):
+                    entity_xpath[mp] = xpath
+
+        for mp, xpath in entity_xpath.items():
+            xpath = re.sub('(?<=/)(?=\w)', 'tei:', xpath)
+            for el in root_el.xpath(xpath, namespaces=nsmap):
+                path = (el.get('n'),)
+                for ancestor in el.iterancestors():
+                    n = ancestor.get('n')
+                    if n:
+                        path = (n,) + path
+                el.set('{%s}entity' % el.nsmap.get('det'), mp % path)
+
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         # TODO: rebind all doc/entity
         doc.cur_rev = self
         doc.save()
+
+        tag_list = ['cb', 'lb']
+        doc_map = {
+            'text': 'document',
+            'pb': 'Folio',
+            'cb': 'Column',
+            'lb': 'Line',
+        }
+        parent = pb
+        index = 1
+        for text in doc.get_texts().filter(tag__in=tag_list):
+            name = text.get_attr_value('n') or str(index)
+            if text.tag == 'cb':
+                parent = Doc.objects.get(pk=pb.pk)
+            child = parent.add_child(name=name, label=doc_map[text.tag])
+            if text.tag == 'cb':
+                parent = Doc.objects.get(pk=child.pk)
 
         self.commit_date = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.save()
