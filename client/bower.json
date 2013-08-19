@@ -1,0 +1,27 @@
+{
+  "name": "client",
+  "version": "0.0.0",
+  "homepage": "https://github.com/DigitalResearchCentre/api",
+  "authors": [
+    "Xiaohan Zhang <boy198512@gmail.com>"
+  ],
+  "description": "client lib for textual community javascript api",
+  "main": "js/main.js",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "requirejs-plugins": "~1.0.2",
+    "uri.js": "~1.11.2",
+    "requirejs-text": "~2.0.10",
+    "jquery-ui": "~1.10.3",
+    "underscore": "~1.5.1",
+    "requirejs": "~2.1.8",
+    "backbone": "~1.0.0"
+  }
+}

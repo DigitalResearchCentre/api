@@ -4,31 +4,20 @@
   <title>Example</title>
 </head>
 <body>
-  <ul class="community-list">
-    Communities:
-  </ul>
-  <form action="http://textualcommunities.usask.ca/api/communities/1/js/" method="post" enctype="multipart/form-data">
-    <input type="file" name="js"/>
-    <input type="submit" value="submit"/>
-  </form>
+  <div id="app"></div>
 
-  <form action="http://localhost:8000/communities/1/upload_tei/" method="post" enctype="multipart/form-data">
-    <input type="file" name="xml"/>
-    <input type="submit" value="submit"/>
-  </form>
-
-  <form action="http://localhost:8000/docs/3817/upload_zip/" method="post" enctype="multipart/form-data">
-    <input type="file" name="zip"/>
-    <input type="submit" value="submit"/>
-  </form>
-
-  <div class="map" style="width: 1024px; height: 1024px;"></div>
-
-  <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
-  <script type="text/javascript"
-    src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOf5NdCQ0GxTBjCX1kVtavpMo-G9u_2BU&sensor=false">
+  <script data-main="js/main" src="bower_components/requirejs/require.js">
   </script>
-  <script src="map.js"></script>
-  <script src="tc.js"></script>
+
+  <script type="text/template" id="community-tmpl">
+    <div><%- name %></div>
+    <div>
+      <% if (abbr) { %><%- abbr %><% }%>
+      <% if (abbr && long_name) { %>-<% }%>
+      <% if (long_name) { %><%- long_name %><% }%>
+    </div>
+    <div><%- font %></div>
+    <div><%- description %></div>
+  </script>
 </body>
 </html>

@@ -2,8 +2,11 @@
 *.pot
 *.pyc
 *.swp
+.DS_Store
 api/env.py
 local_settings.py
 venv
 client/lib
 db.sqlite3
+client/node_modules
+client/bower_components
