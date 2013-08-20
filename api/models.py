@@ -795,12 +795,12 @@ class Revision(models.Model):
             'cb': 'Column',
             'lb': 'Line',
         }
-        parent = pb
+        parent = doc
         index = 1
         for text in doc.get_texts().filter(tag__in=tag_list):
             name = text.get_attr_value('n') or str(index)
             if text.tag == 'cb':
-                parent = Doc.objects.get(pk=pb.pk)
+                parent = Doc.objects.get(pk=doc.pk)
             child = parent.add_child(name=name, label=doc_map[text.tag])
             if text.tag == 'cb':
                 parent = Doc.objects.get(pk=child.pk)
