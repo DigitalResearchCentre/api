@@ -768,15 +768,20 @@ class Revision(models.Model):
                 if re.findall(r'^(?:\w+:)+entity', mp):
                     entity_xpath[mp] = xpath
 
+        nsmap = {
+            'tei': 'http://www.tei-c.org/ns/1.0',
+            # TODO: need update to something like:
+            # 'det': 'http://textualcommunities.usask.ca/ns/1.0'
+            'det': 'http://textualcommunities.usask.ca/',
+        }
         for mp, xpath in entity_xpath.items():
-            xpath = re.sub('(?<=/)(?=\w)', 'tei:', xpath)
-            for el in root_el.xpath(xpath, namespaces=root_el.nsmap):
+            for el in root_el.xpath(xpath):
                 path = (el.get('n'),)
                 for ancestor in el.iterancestors():
                     n = ancestor.get('n')
                     if n:
                         path = (n,) + path
-                el.set('{%s}entity' % el.nsmap.get('det'), mp % path)
+                el.set('{%s}entity' % el.nsmap.get('det', nsmap['det']), mp % path)
 
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         # TODO: rebind all doc/entity
