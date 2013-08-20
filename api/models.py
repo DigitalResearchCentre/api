@@ -770,7 +770,7 @@ class Revision(models.Model):
 
         for mp, xpath in entity_xpath.items():
             xpath = re.sub('(?<=/)(?=\w)', 'tei:', xpath)
-            for el in root_el.xpath(xpath, namespaces=nsmap):
+            for el in root_el.xpath(xpath, namespaces=root_el.nsmap):
                 path = (el.get('n'),)
                 for ancestor in el.iterancestors():
                     n = ancestor.get('n')
