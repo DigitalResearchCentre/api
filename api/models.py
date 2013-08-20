@@ -757,7 +757,7 @@ class Revision(models.Model):
 
         entity_xpath = {}
         for refsdecl in pb.get_root().refsdecl_set.all():
-            refsdecl_el = refsetree.XML(refsdecl.xml)
+            refsdecl_el = etree.XML(refsdecl.xml)
             for cref in refsdecl_el.xpath('//cRefPattern'):
                 match = cref.get('matchPattern')
                 replace = cref.get('replacementPattern')
