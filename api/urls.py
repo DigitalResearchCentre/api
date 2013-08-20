@@ -76,6 +76,7 @@ urlpatterns = patterns(
     url(r'^users/$', UserList.as_view(), name='user-list'),
     url(r'^users/(?P<pk>\d+)/$', UserDetail.as_view(), name='user-detail'),
     url(r'^revision/(?P<pk>\d+)/', include(APIView.urlpatterns([
+        {},
         {'methods': ['post', 'put'], 
          'func': 'commit', 'serializer_class': RevisionSerializer, },
     ], extra={'model': Revision, 'serializer_class': RevisionSerializer}))),
