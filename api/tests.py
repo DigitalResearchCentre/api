@@ -1,11 +1,13 @@
 import re
 from django.test import TestCase
+from django.test.client import Client
 from django.contrib.auth.models import User
 from api.models import Revision, Doc, Text, Community, RefsDecl
 
 TEST_XML = '''
 <text>
 <body>
+    <pb n="2r"/>
     <lb/>
     <div n="Header_W1a-4338-212r-1">
         <head>:W:1a:</head>
@@ -15,6 +17,7 @@ TEST_XML = '''
     <div n="False_Conception-4338-212r-2">
         <head>Dr Willis for one that had a False Conception</head>
         <note resp="LWS">False Conception: </note> 
+        <pb n="2v"/>
         <lb/>
         <p> 
             Anoynt her Belly well &amp; rub it in with a warme hand &amp; lay a
@@ -116,7 +119,22 @@ class RevisionTestCase(TestCase):
             re.sub('\s+', '', self.rev.doc.xml()[0]).strip())
 
     def test_load_tei(self):
-        Text.load_tei(TEST_TEI, self.com)
+        text = Text.load_tei(TEST_TEI, self.com)
+        doc = text.doc
+        pbs = doc.get_children()
+        r = pbs[0]
+        v = pbs[1]
+        client = Client()
+        resp = client.post('/docs/%s/transcribe/' % r.pk,
+                           {'user': 1, 'text': r.xml()})
+        rev = r.has_revisions()[0]
+        rev.commit()
+        print rev.text
+        rev.commit()
+        rev.commit()
+
+        print r.cur_revision().text
+        print text.xml()
 
 
 

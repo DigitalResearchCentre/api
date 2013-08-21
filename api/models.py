@@ -750,7 +750,13 @@ class Revision(models.Model):
                 pb = body.add_child(tag='pb', doc=doc)
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
+        doc = Doc.objects.get(pk=doc.pk)
+        print '------------', doc.pk, doc.lft, doc.rgt, doc.depth
+        for d in doc.get_descendants():
+            print d, d.pk, d.lft, d.rgt, d.depth
+        print '`````````````'
         doc.get_descendants().delete()
+        doc = Doc.objects.get(pk=doc.pk)
         root_el = etree.XML(self.text)
         # TODO: verify root_el against cref
 
@@ -796,14 +802,18 @@ class Revision(models.Model):
             'lb': 'Line',
         }
         parent = doc
+        print parent, parent.pk
         index = 1
         for text in doc.get_texts().filter(tag__in=tag_list):
             name = text.get_attr_value('n') or str(index)
             if text.tag == 'cb':
                 parent = Doc.objects.get(pk=doc.pk)
+                print parent, parent.pk
+            print parent, parent.pk
             child = parent.add_child(name=name, label=doc_map[text.tag])
             if text.tag == 'cb':
                 parent = Doc.objects.get(pk=child.pk)
+                print parent, parent.pk
 
         self.commit_date = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.save()
