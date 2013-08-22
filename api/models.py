@@ -734,7 +734,8 @@ class Revision(models.Model):
         root = doc.get_root().has_text_in()
         pb = doc.has_text_in()
         if pb is not None:
-            texts = doc.get_texts().exclude(pk=pb.pk) # this include pb
+            bound = doc._get_texts_bound()
+            texts = doc.get_texts().filter(rgt__lt=bound.lft).exclude(pk=pb.pk)
             texts.delete()
         else:
             sibling = get_first(
