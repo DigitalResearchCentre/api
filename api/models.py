@@ -691,8 +691,7 @@ class Text(Node):
         docs = list(doc.get_descendants())
         text.load_bulk_el(text_el.getchildren(), docs=docs)
         text = Text.objects.get(pk=text.pk)
-        Header.objects.create(xml=etree.tostring(header_el), text=text)
-        
+        Header.objects.create(xml=etree.tostring(header_el), text=text)       
         return text
 
 class Attr(models.Model):
@@ -731,7 +730,7 @@ class Revision(models.Model):
             parent.load_bulk_el(bulk_el, after=after)
 
     def commit(self):
-        doc = self.doc
+        doc = Doc.objects.get(pk=self.doc.pk)
         root = doc.get_root().has_text_in()
         pb = doc.has_text_in()
         if pb is not None:
@@ -750,13 +749,6 @@ class Revision(models.Model):
                 pb = body.add_child(tag='pb', doc=doc)
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
-        doc = Doc.objects.get(pk=doc.pk)
-        print '------------', doc.pk, doc.lft, doc.rgt, doc.depth
-        for d in doc.get_descendants():
-            print d, d.pk, d.lft, d.rgt, d.depth
-        print '`````````````'
-        doc.get_descendants().delete()
-        doc = Doc.objects.get(pk=doc.pk)
         root_el = etree.XML(self.text)
         # TODO: verify root_el against cref
 
@@ -789,6 +781,8 @@ class Revision(models.Model):
                         path = (n,) + path
                 el.set('{%s}entity' % el.nsmap.get('det', nsmap['det']), mp % path)
 
+        doc.get_descendants().delete()
+        doc = Doc.objects.get(pk=doc.pk)
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         # TODO: rebind all doc/entity
         doc.cur_rev = self
@@ -801,19 +795,16 @@ class Revision(models.Model):
             'cb': 'Column',
             'lb': 'Line',
         }
-        parent = doc
-        print parent, parent.pk
+        parent = Doc.objects.get(pk=doc.pk)
         index = 1
         for text in doc.get_texts().filter(tag__in=tag_list):
             name = text.get_attr_value('n') or str(index)
             if text.tag == 'cb':
-                parent = Doc.objects.get(pk=doc.pk)
-                print parent, parent.pk
-            print parent, parent.pk
+                parent = doc
+            parent = Doc.objects.get(pk=parent.pk)
             child = parent.add_child(name=name, label=doc_map[text.tag])
             if text.tag == 'cb':
-                parent = Doc.objects.get(pk=child.pk)
-                print parent, parent.pk
+                parent = child
 
         self.commit_date = datetime.datetime.utcnow().replace(tzinfo=utc)
         self.save()

@@ -127,14 +127,12 @@ class RevisionTestCase(TestCase):
         client = Client()
         resp = client.post('/docs/%s/transcribe/' % r.pk,
                            {'user': 1, 'text': r.xml()})
+
         rev = r.has_revisions()[0]
         rev.commit()
-        print rev.text
         rev.commit()
         rev.commit()
 
-        print r.cur_revision().text
-        print text.xml()
 
 
 
