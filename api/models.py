@@ -122,7 +122,7 @@ class Node(NS_Node):
     def get_child_before(self, before):
         qs = self.get_children()
         if before is not None:
-            qs.filter(lft__lte=before.lft)
+            qs = qs.filter(lft__lte=before.lft)
         return get_last(qs)
 
     @classmethod
@@ -552,7 +552,7 @@ class Text(Node):
             Attr.objects.bulk_create(attrs)
 
         sibling = self.get_child_before(after)
-                      
+
         if sibling is None and roots:
             sibling = roots.pop(0)
             sibling.move(self, pos='first-child')
@@ -734,9 +734,12 @@ class Revision(models.Model):
         root = doc.get_root().has_text_in()
         pb = doc.has_text_in()
         if pb is not None:
+            texts = doc.get_texts().exclude(pk=pb.pk)
             bound = doc._get_texts_bound()
-            texts = doc.get_texts().filter(rgt__lt=bound.lft).exclude(pk=pb.pk)
+            if bound is not None:
+                texts = texts.filter(rgt__lt=bound.lft)
             texts.delete()
+            pb = Text.objects.get(pk=pb.pk)
         else:
             sibling = get_first(
                 root.get_descendants().filter(doc__lft__gte=doc.lft))
@@ -750,6 +753,7 @@ class Revision(models.Model):
                 pb = body.add_child(tag='pb', doc=doc)
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
+            pb = Text.objects.get(pk=pb.pk)
         root_el = etree.XML(self.text)
         # TODO: verify root_el against cref
 
@@ -784,6 +788,7 @@ class Revision(models.Model):
 
         doc.get_descendants().delete()
         doc = Doc.objects.get(pk=doc.pk)
+        pb = Text.objects.get(pk=pb.pk)
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         # TODO: rebind all doc/entity
         doc.cur_rev = self
