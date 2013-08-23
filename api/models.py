@@ -249,7 +249,7 @@ class Entity(DETNode):
     @classmethod
     def get_or_create_by_urn(cls, urn):
         community_urn = re.findall(r'(^(?:(?:^|:)\w+)+):', urn)[0]
-        community = Community.objects.get(abbr=community_urn.split(':')[-1]))
+        community = Community.objects.get(abbr=community_urn.split(':')[-1])
 
         value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', urn)
         label, name = value_pairs[0]
