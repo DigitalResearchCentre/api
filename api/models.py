@@ -757,7 +757,6 @@ class Revision(models.Model):
         root_el = etree.XML(self.text)
         # TODO: verify root_el against cref
 
-
         entity_xpath = {}
         for refsdecl in pb.get_root().refsdecl_set.all():
             refsdecl_el = etree.XML(refsdecl.xml)

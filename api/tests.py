@@ -147,7 +147,7 @@ class RevisionTestCase(TestCase):
     def setUp(self):
         user = User.objects.create_user('test', 'test@test.com', 'password')
         doc = Doc.add_root(name='Hg', label='document')
-        self.com = com = Community.objects.create()
+        self.com = com = Community.objects.create(abbr='CT2')
         com.docs.add(doc)
         pb = doc.add_child(name='1r', label='pb')
         text = Text.add_root(tag='text', doc=doc)
@@ -175,24 +175,27 @@ class RevisionTestCase(TestCase):
 
     def test_load_tei(self):
         text = Text.load_tei(NEW_TEST, self.com)
-        doc = text.doc
-        pbs = doc.get_children()
-        r = pbs[0]
-        v = pbs[1]
-        client = Client()
-        resp = client.post('/docs/%s/transcribe/' % r.pk,
-                           {'user': 1, 'text': r.xml()})
-
-        rev = r.has_revisions()[0]
-        rev.commit()
-        doc = Doc.objects.get(pk=doc.pk)
-        for p in doc.get_children():
-            print p.name
-            print p.xml()
-        print text.xml()
-        rev.commit()
-        rev.commit()
-
-
-
+        self.assertEqual(
+            re.sub('\s+', '', text.xml()).strip(),
+            re.sub('\s+', '', '''<body>
+		<pb facs="FF130R.JPG" n="130r"/>
+			<lb/><div n="Book of the Duchess">
+	<note rend="tm">130<note resp="PR">Pencil foliation</note></note>
+<head n="1">The booke of the Duchesse<note rend="marg-right">made by Geffrey
+Chawcyer at ye request of ye duke of lancastar: pitiously 
+complaynynge the deathe of ye sayd duchesse/ blanche/</note></head>
+<lb/><l n="1">I Haue grete wonder/ be this lyghte</l>
+<lb/><l n="2">How that I lyve/ for day ne nyghte</l>
+<pb facs="FF130V.JPG" n="130v"/>            
+<lb/><l n="3">I may nat slepe/ wel nygh noght</l>
+<lb/><l n="4">I have so many/ an ydel thoght</l>
+<lb/><l n="5">Purely/ for defaulte of slepe</l>
+<lb/><l n="6">That trewly I which made this booke<note rend="br">[Catchword:]Had such</note></l>
+<pb facs="FF131R.JPG" n="131r"/> 
+<pb facs="FF131V.JPG" n="131v"/> 
+<pb facs="FF131V.JPG" n="132r"/> 
+<pb facs="FF131V.JPG" n="132v"/> 
+<pb facs="FF131V.JPG" n="133r"/> 
+</div>
+</body>''').strip())
 
