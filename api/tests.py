@@ -76,13 +76,16 @@ TEST_REFS_M = '''
 
 TEST_REFS_E = '''
 <refsDecl>
-  <cRefPattern matchPattern="urn:det:TCUSask:CT2:entity=Tales:Group=(.+)" replacementPattern="#xpath(//body/div[@n='$1'])">
+  <cRefPattern matchPattern="urn:det:TCUSask:CT2:entity=(.+)" replacementPattern="#xpath(//body/div[@n='$1'])">
     <p>This pointer pattern extracts and references each tale group, as  a top-level div,  as an entity</p>
   </cRefPattern>
-  <cRefPattern matchPattern="urn:det:TCUSask:CT2:entity=Tales:Group=(.+):Line=(.+)" replacementPattern="#xpath(//body/div[@n='$1']/l[@n='$2'])">
+  <cRefPattern matchPattern="urn:det:TCUSask:CT2:entity=(.+):Line=(.+)" replacementPattern="#xpath(//body/div[@n='$1']/l[@n='$2'])">
     <p>For poetry: this pointer pattern extracts and references each line element contained in a group as an entity</p>
   </cRefPattern>
-  <cRefPattern matchPattern="urn:det:TCUSask:CT2:entity=Tales:Group=(.+):Segment=(.+)" replacementPattern="#xpath(//body/div[@n='$1']/ab[@n='$2'])">
+  <cRefPattern matchPattern="urn:det:TCUSask:CT2:entity=(.+):Head=(.+)" replacementPattern="#xpath(//body/div[@n='$1']/head[@n='$2'])">
+    <p>For poetry: this pointer pattern extracts and references each line element contained in a group as an entity</p>
+  </cRefPattern>
+  <cRefPattern matchPattern="urn:det:TCUSask:CT2:entity=(.+):Segment=(.+)" replacementPattern="#xpath(//body/div[@n='$1']/ab[@n='$2'])">
     <p>For prose: this pointer pattern extracts and references each ab element contained in a div as an entity</p>
   </cRefPattern>
 </refsDecl>
@@ -145,8 +148,12 @@ complaynynge the deathe of ye sayd duchesse/ blanche/</note></head>
 
 class RevisionTestCase(TestCase):
     def setUp(self):
-        user = User.objects.create_user('test', 'test@test.com', 'password')
+        self.user = user = User.objects.create_user(
+            'test', 'test@test.com', 'password'
+        )
         doc = Doc.add_root(name='Hg', label='document')
+        root_com = Community.objects.create(abbr='TC',
+                                            name='Textual Community')
         self.com = com = Community.objects.create(abbr='CT2')
         com.docs.add(doc)
         pb = doc.add_child(name='1r', label='pb')
@@ -198,4 +205,25 @@ complaynynge the deathe of ye sayd duchesse/ blanche/</note></head>
 <pb facs="FF131V.JPG" n="133r"/> 
 </div>
 </body>''').strip())
+
+        for e in self.com.entities.all():
+            print e.name
+            for child in e.get_children():
+                print '\t', child.name
+        pb = text.doc.get_children()[2]
+        print pb.xml()
+        rev = Revision.objects.create(
+            doc=pb, user=self.user, 
+            text='<text><body><div n="Book of the Duchess" prev="urn:det:TCUSask:CT2:document=FF5:Folio=130v:Line=4:entity=Book of the Duchess"><lb/><l n="new-after-6">test new page</l>\n</div>\n</body>\n</text>'
+        )
+        rev.commit()
+
+        for e in self.com.entities.all():
+            print e.name
+            for child in e.get_children():
+                print '\t', child.name
+        print text.xml()
+
+
+
 

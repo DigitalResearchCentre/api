@@ -69,6 +69,10 @@ class Community(models.Model):
             self.docs.add(doc)
             return doc
 
+    @classmethod
+    def get_root_community(cls):
+        return cls.objects.get(abbr='TC')
+
 def get_first(qs):
     lst = list(qs[:1])
     return lst[0] if lst else None
@@ -633,7 +637,7 @@ class Text(Node):
         community.docs.add(doc)
 
         refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
-        root_com = Community.objects.get(pk=1)
+        root_com = Community.get_root_community()
         try:
             doc_refsdecl = community.refsdecls.get(
                 name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
@@ -754,7 +758,13 @@ class Revision(models.Model):
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
             pb = Text.objects.get(pk=pb.pk)
+
         root_el = etree.XML(self.text)
+        if not root_el.nsmap.has_key('det'):
+            tmp = etree.XML(
+                '<xml xmlns:det="http://textualcommunities.usask.ca/"/>'
+            )
+            tmp.append(root_el)
         # TODO: verify root_el against cref
 
         entity_xpath = {}
@@ -770,12 +780,6 @@ class Revision(models.Model):
                 if re.findall(r'^(?:\w+:)+entity', mp):
                     entity_xpath[mp] = xpath
 
-        nsmap = {
-            'tei': 'http://www.tei-c.org/ns/1.0',
-            # TODO: need update to something like:
-            # 'det': 'http://textualcommunities.usask.ca/ns/1.0'
-            'det': 'http://textualcommunities.usask.ca/',
-        }
         for mp, xpath in entity_xpath.items():
             for el in root_el.xpath(xpath):
                 path = (el.get('n'),)
@@ -783,7 +787,7 @@ class Revision(models.Model):
                     n = ancestor.get('n')
                     if n:
                         path = (n,) + path
-                el.set('{%s}entity' % el.nsmap.get('det', nsmap['det']), mp % path)
+                el.set('{%s}entity' % el.nsmap.get('det'), mp % path)
 
         doc.get_descendants().delete()
         doc = Doc.objects.get(pk=doc.pk)
