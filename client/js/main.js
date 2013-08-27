@@ -21,49 +21,27 @@ require.config({
 });
 
 require([
-  'jquery', 'underscore', 'backbone', 'uri'
-], function($, _, Backbone, URI) {
+  'jquery', 'underscore', 'backbone', 'models'
+], function($, _, Backbone, models) {
+  var Community = models.Community;
 
-  var Model = Backbone.Model.extend({
-    urlRoot: function() {
-      var rest = _.result(this, 'rest');
-      if (!_.isUndefined(rest)) {
-        return URI.get(rest);
-      } 
-    }
-  });
+  /*
+  var data = {
+    name: 'test community', abbr: 't1', long_name: '',
+    font: '', description: ''
+  }
+  var community = new Community(data);
+  community.save();
+  community.destroy();
+  */
 
-  var Collection = Backbone.Collection.extend({
-    url: function() {
-      console.log(URI.get(_.result(this, 'rest')))
-      var uri = new URI(URI.get(_.result(this, 'rest')));
-      return uri.addSearch('page_size', '0').toString();
-    }
-  });
+  var community = new Community({id: 1})
+  var refsdecls = community.getRefsdecls();
+  console.log(refsdecls)
+  refsdecls.fetch();
+  console.log(refsdecls);
 
-  var Community = Model.extend({
-    rest: 'community',
-    getDocs: function() {
-      if (!this._docs) {
-        this._docs = new DocList([], {rest: ['community:docs', this.id]});
-      }
-      return this._docs;
-    }
-  });
-
-  var CommunityList = Collection.extend({
-    model: Community,
-    rest: 'community'
-  });
-
-  var Doc = Model.extend({
-    rest: 'doc'
-  })
-
-  var DocList = Collection.extend({
-    rest: 'doc'
-  });
-
+  /*
   var DocView = Backbone.View.extend({
     tagName: 'div',
     template: _.template($('#doc-tmpl').html()),
@@ -112,6 +90,7 @@ require([
   var communityList = new CommunityList;
   var appView = new AppView({collection: communityList})
   communityList.fetch();
+  */
 });
 
 

@@ -25,6 +25,12 @@ class Community(models.Model):
     font = models.CharField(max_length=255, blank=True)
     refsdecls = models.ManyToManyField('RefsDecl', blank=True)
 
+    def delete(self, *args, **kwargs):
+        self.get_docs().delete()
+        self.get_entities().delete()
+        self.get_refsdecls().delete()
+        return super(Community, self).delete(*args, **kwargs)
+
     def get_docs(self):
         return self.docs.all()
 
