@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "homepage": "https://github.com/DigitalResearchCentre/api",
   "authors": [
-    "Xiaohan Zhang <boy198512@gmail.com>"
+    "Xiaohan Zhang <xiaohan.zhang@arts.usask.com>"
   ],
   "description": "client lib for textual community javascript api",
   "main": "js/main.js",
@@ -11,17 +11,19 @@
   "ignore": [
     "**/.*",
     "node_modules",
-    "bower_components",
+    "lib",
     "test",
     "tests"
   ],
   "dependencies": {
-    "requirejs-plugins": "~1.0.2",
-    "uri.js": "~1.11.2",
-    "requirejs-text": "~2.0.10",
-    "jquery-ui": "~1.10.3",
-    "underscore": "~1.5.1",
-    "requirejs": "~2.1.8",
-    "backbone": "~1.0.0"
+    "requirejs": "latest",
+    "jquery": "latest",
+    "jquery-ui-amd": "latest",
+    "backbone-amd": "latest",
+    "underscore-amd": "latest",
+    "requirejs-plugins": "latest",
+    "requirejs-text": "latest",
+    "uri.js": "latest",
+    "codemirror": "~3.16.0"
   }
 }

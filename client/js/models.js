@@ -12,22 +12,21 @@ define(['backbone', 'urls'], function(Backbone, urls) {
     }
   });
 
-
   var Community = Model.extend({
     rest: 'community',
     getDocs: function() {
       if (!this._docs) {
-        this._docs = new Collection([], {
-          rest: ['community:docs', this.id], model: Doc
-        });
+        this._docs = new (Collection.extend({
+          rest: ['community:docs', {pk: this.id}], model: Doc
+        }));
       }
       return this._docs;
     },
     getRefsdecls: function() {
       if (!this._refsdecls) {
-        this._refsdecls = new Collection([], {
-          rest: ['community:refsdecls'], model: RefsDecl
-        });
+        this._refsdecls = new (Collection.extend({
+          rest: ['community:refsdecls', {pk: this.id}], model: RefsDecl
+        }));
       }
       return this._refsdecls;
     }

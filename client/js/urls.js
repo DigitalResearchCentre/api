@@ -3,20 +3,20 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
     , patterns = {
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',
-    'community:refsdecl': '/communities/{pk}/get_refsdecls/',
+    'community:refsdecls': '/communities/{pk}/get_refsdecls/',
     'doc': '/docs/',
     'refsdecl': '/refsdecl/'
   };
 
   URI.get = function(name, search) {
-    var uri = new URI()
+    var uri = new URI(restBase)
       , kwargs = {}
       , path
     ;
     search || (search = {});
     if (_.isArray(name)) {
-      name = name[0];
       kwargs = name[1];
+      name = name[0];
     }
     if (!patterns[name]) {
       throw Error('undefined url pattern: ' + name);
