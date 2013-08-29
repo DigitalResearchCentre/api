@@ -1,5 +1,5 @@
 define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
-  var restBase = 'http://localhost:8000'
+  var restBase = 'http://textualcommunities.usask.ca/api'
     , patterns = {
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',

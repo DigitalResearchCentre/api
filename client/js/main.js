@@ -145,8 +145,16 @@ require([
   });
 
 
-
-
+  var communityList = (new models.Collection.extend({
+    model: Community,
+    rest: 'community'
+  }));
+  communityList.fetch({
+    success: function(collection) {
+      var appView = new AppView(collection: collection);
+      appView.render();
+    }
+  });
 
   /*
   var DocView = Backbone.View.extend({
@@ -162,8 +170,6 @@ require([
 
   var communityList = new CommunityList;
   */
-  var appView = new AppView();
-  appView.render();
   
 });
 
