@@ -949,7 +949,7 @@ class JS(models.Model):
 class RefsDecl(models.Model):
     DOC_TYPE, ENTITY_TYPE, TEXT_TYPE = range(3)
     name = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     type = models.IntegerField(choices=(
         (DOC_TYPE, 'document'),
         (ENTITY_TYPE, 'entity'),
@@ -957,7 +957,7 @@ class RefsDecl(models.Model):
     ), default=TEXT_TYPE)
     text = models.ForeignKey(Text, null=True, blank=True)
     xml = models.TextField()
-    template = models.TextField()
+    template = models.TextField(blank=True)
 
     def __unicode__(self):
         display_name = self.name

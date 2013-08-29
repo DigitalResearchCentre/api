@@ -8,7 +8,7 @@ urlpatterns = patterns(
     '',
     url(r'^$', api_root),
     url(r'^communities/$', CommunityList.as_view(), name='community-list'),
-    url(r'^communities/(?P<pk>\d+)/', CommunityDetail.as_view()), 
+    url(r'^communities/(?P<pk>\d+)/$', CommunityDetail.as_view()), 
     url(r'^communities/(?P<pk>\d+)/', include(APIView.urlpatterns([
         {'func': 'docs', 'serializer_class': DocSerializer}, 
         {'func': 'entities', 'serializer_class': EntitySerializer}, 
@@ -82,7 +82,7 @@ urlpatterns = patterns(
     ], extra={'model': Revision, 'serializer_class': RevisionSerializer}))),
     url(r'^js/(?P<pk>\d+)/', generics.RetrieveUpdateDestroyAPIView.as_view(
         model=JS, serializer_class=JSSerializer, permission_classes=(permissions.AllowAny,))),
-    url(r'^refsdecl/(?P<pk>\d+)/', RefsDeclDetail.as_view()),
+    url(r'^refsdecl/(?P<pk>\d+)/$', RefsDeclDetail.as_view()),
     url(r'^test/$', TranscribeView.as_view()),
 )
 
