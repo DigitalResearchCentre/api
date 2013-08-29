@@ -8,8 +8,8 @@ urlpatterns = patterns(
     '',
     url(r'^$', api_root),
     url(r'^communities/$', CommunityList.as_view(), name='community-list'),
+    url(r'^communities/(?P<pk>\d+)/', CommunityDetail.as_view()), 
     url(r'^communities/(?P<pk>\d+)/', include(APIView.urlpatterns([
-        {'serializer_class': CommunitySerializer},
         {'func': 'docs', 'serializer_class': DocSerializer}, 
         {'func': 'entities', 'serializer_class': EntitySerializer}, 
         {'func': 'css', 'serializer_class': CSSSerializer}, 

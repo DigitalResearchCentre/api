@@ -24,6 +24,7 @@
     "requirejs-plugins": "latest",
     "requirejs-text": "latest",
     "uri.js": "latest",
-    "codemirror": "~3.16.0"
+    "codemirror": "~3.16.0",
+    "bootstrap": "~3.0.0"
   }
 }

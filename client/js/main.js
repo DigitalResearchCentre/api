@@ -28,11 +28,12 @@ require([
     tagName: 'div',
     template: _.template($('#community-form-tmpl').html()),
     events: {
-      'button.delete': 'onDelete',
-      'button.save': 'onSave'
+      'click .buttons .delete': 'onDelete',
+      'click .buttons .update': 'onUpdate'
     },
     render: function() {
       this.$el.html(this.template(this.model.toJSON()));
+      this.delegateEvents();
       return this;
     },
     onDelete: function() {
@@ -40,7 +41,12 @@ require([
       this.remove();
       return dfd;
     },
-    onSave: function() {
+    onUpdate: function() {
+      var model = this.model;
+      _.each(['name', 'abbr', 'long_name', 'font'], function(name) {
+        model.set(name, this.$('input[name="'+name+'"]').val());
+      });
+      model.set('description', this.$('textarea[name="description"]').val());
       return this.model.save();
     }
   });

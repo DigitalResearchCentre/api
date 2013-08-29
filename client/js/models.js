@@ -1,6 +1,10 @@
 define(['backbone', 'urls'], function(Backbone, urls) {
 
   var Model = Backbone.Model.extend({
+    url: function() {
+      var url = Backbone.Model.prototype.url.apply(this, arguments);
+      return url + (url.charAt(url.length - 1 ) == '/' ? '' : '/' );
+    },
     urlRoot: function() {
       return urls.get(_.result(this, 'rest'));
     }

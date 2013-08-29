@@ -11,41 +11,48 @@
     <script src="lib/bootstrap/assets/js/html5shiv.js"></script>
     <script src="lib/bootstrap/assets/js/respond.min.js"></script>
   <![endif]-->
+  <style type="text/css" media="screen">
+    .community-form>.description {
+      position: relative;
+      top: 0;
+      bottom: 0;
+    }
+  </style>
 </head>
 <body>
   <div id="app" class="container">
+    <nav class="navbar navbar-default" role="navigation">
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="#">Info</a></li>
+        <li><a href="#">Link</a></li>
+      </ul>
+    </nav>
   </div>
   <script data-main="js/main" src="lib/requirejs/require.js"></script>
 
   <script type="text/template" id="community-form-tmpl">
-    <div class="row">
-      <div class="col-md-7">
-        <div class="row">
-          <label class="col-md-3">Name: </label>
-          <input class="field col-md-4" type="text" value="<%- name %>"/>
-        </div>
-        <div class="row">
-          <label class="col-md-3">Abbreviation: </label>
-          <input class="col-md-4" type="text" value="<%- abbr %>"/>
-        </div>
-        <div class="row">
-          <label class="col-md-3">Long Name: </label>
-          <input class="col-md-4" type="text" value="<%- long_name %>"/>
-        </div>
-        <div class="row">
-          <label class="col-md-3">Font: </label>
-          <input class="col-md-4" type="text" value="<%- font %>"/>
-        </div>
-      </div>
-
-      <textarea class="col-md-5" placeholder="Description"><%- description %></textarea>
+    <div class="col-md-5">
+      <label>Name: </label>
+      <input type="text" name="name" class="form-control" placeholder="Name" 
+        value="<%- name %>"/>
+      <label>Abbreviation: </label>
+      <input type="text" name="abbr" class="form-control" 
+        placeholder="Abbreviation" value="<%- abbr %>"/>
+      <label>Long Name: </label>
+      <input type="text" name="long_name" class="form-control" 
+        placeholder="Long Name" value="<%- long_name %>"/>
+      <label>Font: </label>
+      <input type="text" name="font" class="form-control" 
+        placeholder="Font" value="<%- font %>"/>
     </div>
-
-    <div class="row">
-      <div class="col-md-2 col-md-offset-8">
-        <input type="button" class="save" value="update"/>
-        <input type="button" class="delete" value="delete"/>
-      </div>
+    <div class="col-md-7">
+      <label>Description: </label>
+      <textarea class="form-control" rows="10" name="description"
+        placeholder="Description"><%- description %></textarea>
+    </div>
+    <div class="row col-md-offset-9 buttons">
+      <button class="btn btn-default update">Update</button>
+      <button class="btn btn-default delete">Delete</button>
     </div>
   </script>
 

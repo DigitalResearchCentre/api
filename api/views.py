@@ -194,6 +194,7 @@ class APIView(CreateModelMixin, RelationView):
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
     serializer_class = CommunitySerializer
+    permission_classes = (permissions.AllowAny,)
 
 class CommunityList(generics.ListCreateAPIView):
     model = Community
