@@ -355,6 +355,9 @@ class Doc(DETNode):
         qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
         return qs.distinct().order_by('text__lft')
 
+    def move(self, urn=''):
+        pass
+
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), doc=self)
 
@@ -703,6 +706,37 @@ class Text(Node):
         text = Text.objects.get(pk=text.pk)
         Header.objects.create(xml=etree.tostring(header_el), text=text)       
         return text
+
+    @classmethod
+    def get_by_urn(cls, urn):
+        return
+#        community_urn = re.findall(r'(^(?:(?:^|:)\w+)+):', urn)[0]
+#        community = Community.objects.get(abbr=community_urn.split(':')[-1])
+#
+#        value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', urn)
+#        
+#        parent = None
+#        for label, name in value_pairs:
+#            if label == 'document':
+#                doc = community.docs.get(name=name)
+#            elif label == 'entity':
+#                entity = community.entities.get(name=name)
+#            elif parent is not None:
+#                parent = parent.get_children().get(label=label, name=name)
+#
+#        label, name = value_pairs[0]
+#        try:
+#            entity = community.entities.get(name=name, label=label)
+#        except Entity.DoesNotExist:
+#            entity = Entity.add_root(name=name, label=label)
+#            community.entities.add(entity)
+#
+#            try:
+#                entity = entity.get_children().get(label=label, name=name)
+#            except Entity.DoesNotExist, e:
+#                entity = entity.add_child(label=label, name=name)
+#        return entity
+
 
 class Attr(models.Model):
     text = models.ForeignKey(Text)

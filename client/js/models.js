@@ -42,7 +42,11 @@ define(['backbone', 'urls'], function(Backbone, urls) {
 
   var RefsDecl = Model.extend({
     rest: 'refsdecl'
-  })
+  });
+
+  var User = Model.extend({
+    rest: 'users'
+  });
 
   return {
     Model: Model,

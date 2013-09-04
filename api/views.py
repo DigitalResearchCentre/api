@@ -237,6 +237,14 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     model = User
     serializer_class = UserSerializer
 
+class UserInfo(generics.RetrieveUpdateDestroyAPIView):
+    model = User
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_object(self):
+        return self.request.user
+
 class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer

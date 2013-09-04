@@ -145,32 +145,18 @@ require([
   });
 
 
-  var communityList = (new models.Collection.extend({
+  var communityList = new (models.Collection.extend({
     model: Community,
     rest: 'community'
   }));
   communityList.fetch({
     success: function(collection) {
-      var appView = new AppView(collection: collection);
+      var appView = new AppView({collection: collection});
       appView.render();
     }
   });
 
-  /*
-  var DocView = Backbone.View.extend({
-    tagName: 'div',
-    template: _.template($('#doc-tmpl').html()),
-    render: function() {
-      console.log(this.model)
-      this.$el.html(this.template(this.model.toJSON()));
-      return this;
-    }
-  });
-
-
-  var communityList = new CommunityList;
-  */
-  
+ 
 });
 
 
