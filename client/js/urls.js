@@ -1,5 +1,5 @@
 define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
-  var restBase = 'http://localhost:8000'
+  var restBase = 'http://textualcommunities.usask.ca/api'
     , patterns = {
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',
@@ -23,7 +23,7 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
         throw Error('undefined url pattern: ' + name);
       }
       path = URI.expand(patterns[name], kwargs);
-      return uri.path(path).addSearch(search).toString();
+      return uri.segment(path).addSearch(search).normalize().toString();
     },
     URI: URI
   };
