@@ -24,9 +24,10 @@ require.config({
 });
 
 require([
-  'jquery', 'underscore', 'backbone', 'models', 'codemirror', 
+  'jquery', 'underscore', 'backbone', 'codemirror', 
+  'models', 'urls',
   'bootstrap', 'codemirror-xml'
-], function($, _, Backbone, models, CodeMirror) {
+], function($, _, Backbone, CodeMirror, models, urls) {
   var Community = models.Community;
 
   var CommunityView = Backbone.View.extend({
@@ -122,7 +123,9 @@ require([
   var AppView = Backbone.View.extend({
     el: '#app',
     render: function() {
-      var community = new Community({id: 1})
+      var curURL = new urls.URI()
+        , id = curURL.query(true).community || 1
+        , community = new Community({id: id})
         , $el = this.$el
         , refsdecls = community.getRefsdecls()
       ;
@@ -154,9 +157,7 @@ require([
       var appView = new AppView({collection: collection});
       appView.render();
     }
-  });
-
- 
+  }); 
 });
 
 
