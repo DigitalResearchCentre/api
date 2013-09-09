@@ -49,7 +49,22 @@ define(['backbone', 'urls'], function(Backbone, urls) {
   });
 
   var AuthUser = User.extend({
-    rest: 'auth'
+    rest: 'auth',
+    initialize: function() {
+      this.on('change:id', this.trigger('login', this));
+    },
+    url: function() {
+      return _.result(this, 'urlRoot');
+    },
+    isLogin: function() {
+      return !!this.id;
+    },
+    login: function(args) {
+      return this.fetch(args);
+    },
+    getCommunities: function() {
+      
+    }
   });
 
   return {

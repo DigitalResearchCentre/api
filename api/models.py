@@ -24,6 +24,7 @@ class Community(models.Model):
     entities = models.ManyToManyField('Entity', limit_choices_to={'depth':0})
     font = models.CharField(max_length=255, blank=True)
     refsdecls = models.ManyToManyField('RefsDecl', blank=True)
+    members = models.ManyToManyField(User, through='Membership')
 
     def delete(self, *args, **kwargs):
         self.get_docs().delete()
@@ -78,6 +79,31 @@ class Community(models.Model):
     @classmethod
     def get_root_community(cls):
         return cls.objects.get(abbr='TC')
+
+
+class Membership(models.Model):
+    LEADER, CO_LEADER, TRANSCRIBER, MEMBER = range(1, 5)
+    ROLE_CHOICES = (
+        (LEADER, 'Leader'),
+        (CO_LEADER, 'Co Leader'),
+        (TRANSCRIBER, 'transcriber'),
+        (MEMBER, 'member'),
+    )
+    # invited member will has user=null until they active
+    user = models.ForeignKey(User, null=True)  
+    community = models.ForeignKey(Community)
+    role = models.IntegerField(choices=ROLE_CHOICES, default=MEMBER)
+
+    class Meta:
+        unique_together = ('user', 'community', 'role')
+        db_table = 'community_membership'
+
+    def __unicode__(self):
+        return unicode('%s %s %s' % (
+            unicode(self.community), 
+            self.get_role_display(), 
+            unicode(self.user),
+        ))
 
 def get_first(qs):
     lst = list(qs[:1])
@@ -999,4 +1025,10 @@ class RefsDecl(models.Model):
             display_name += ' - ' + self.description
         return display_name
 
+class APIUser(User):
+    class Meta:
+        proxy = True
+
+    def communities(self):
+        return self.community_set.distinct()
 

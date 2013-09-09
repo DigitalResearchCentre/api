@@ -1,8 +1,10 @@
+from django.conf import settings
 from django.conf.urls import patterns, url, include
 from rest_framework import generics, permissions
 from api.views import *
 from api.models import *
 from api.serializers import *
+from django.conf.urls.static import static
 
 urlpatterns = patterns(
     '',
@@ -75,6 +77,9 @@ urlpatterns = patterns(
     ], extra={'model': Text, 'serializer_class': TextSerializer}))),
     url(r'^users/$', UserList.as_view(), name='user-list'),
     url(r'^users/(?P<pk>\d+)/$', UserDetail.as_view(), name='user-detail'),
+    url(r'^users/(?P<pk>\d+)/', include(APIView.urlpatterns([
+        {'func': 'communities', 'serializer_class': CommunitySerializer}, 
+    ], extra={'model': APIUser, 'serializer_class': APIUserSerializer}))),
     url(r'^revision/(?P<pk>\d+)/', include(APIView.urlpatterns([
         {},
         {'methods': ['post', 'put'], 
@@ -87,5 +92,7 @@ urlpatterns = patterns(
     url(r'^auth/', include('rest_framework.urls', namespace='rest_framework')),
 )
 
-
+if settings.DEBUG:
+    urlpatterns += static(
+        '/client', document_root='/Users/xiz921/project/api/client/')
 

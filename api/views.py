@@ -1,6 +1,5 @@
 import random, shutil, zipfile
 from django.db.models import Q, query
-from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.conf.urls import patterns, url
 from django.views.generic.detail import DetailView
@@ -234,12 +233,12 @@ class TextList(generics.ListCreateAPIView):
     serializer_class = TextSerializer
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
-    model = User
-    serializer_class = UserSerializer
+    model = APIUser
+    serializer_class = APIUserSerializer
 
 class UserInfo(generics.RetrieveUpdateDestroyAPIView):
-    model = User
-    serializer_class = UserSerializer
+    model = APIUser
+    serializer_class = APIUserSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):
@@ -251,8 +250,8 @@ class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.AllowAny,)
 
 class UserList(generics.ListCreateAPIView):
-    model = User
-    serializer_class = UserSerializer
+    model = APIUser
+    serializer_class = APIUserSerializer
 
 class TranscribeView(generics.CreateAPIView):
     model = Revision

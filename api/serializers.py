@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from rest_framework import serializers
 from api.models import *
 
@@ -8,10 +7,10 @@ class CommunitySerializer(serializers.ModelSerializer):
         model = Community
         fields = ('id', 'name', 'abbr', 'long_name', 'font', 'description',)
 
-class UserSerializer(serializers.ModelSerializer):
+class APIUserSerializer(serializers.ModelSerializer):
     
     class Meta:
-        model = User
+        model = APIUser
         fields = ('id', 'username', 'first_name', 'last_name', 'email')
         read_only_fields = ('username',)
 
