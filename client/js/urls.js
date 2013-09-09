@@ -1,6 +1,7 @@
 define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
   var restBase = 'http://textualcommunities.usask.ca/api'
     , patterns = {
+    'auth': '/auth/',
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',
     'community:refsdecls': '/communities/{pk}/get_refsdecls/',

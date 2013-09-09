@@ -48,11 +48,16 @@ define(['backbone', 'urls'], function(Backbone, urls) {
     rest: 'users'
   });
 
+  var AuthUser = User.extend({
+    rest: 'auth'
+  });
+
   return {
     Model: Model,
     Collection: Collection,
     Community: Community,
     Doc: Doc,
+    AuthUser: AuthUser,
     RefsDecl: RefsDecl
   };
 });

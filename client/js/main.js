@@ -158,6 +158,8 @@ require([
       appView.render();
     }
   }); 
+
+  window.AuthUser = models.AuthUser
 });
 
 
