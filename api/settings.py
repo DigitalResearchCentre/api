@@ -175,6 +175,8 @@ LOGGING = {
     }
 }
 
+FROM_EMAIL = 'noreply@textualcommunities.usask.ca'
+
 try:
     from env import *
 except ImportError, e:

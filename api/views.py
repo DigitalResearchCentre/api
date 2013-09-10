@@ -236,9 +236,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     model = APIUser
     serializer_class = APIUserSerializer
 
-class UserInfo(generics.RetrieveUpdateDestroyAPIView):
-    model = APIUser
-    serializer_class = APIUserSerializer
+class UserInfo(UserDetail):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):

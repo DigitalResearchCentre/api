@@ -25,9 +25,11 @@ require.config({
 
 require([
   'jquery', 'underscore', 'backbone', 'codemirror', 
-  'models', 'urls',
+  'models', 'views/communitylist', 'urls', 'authuser',
   'bootstrap', 'codemirror-xml'
-], function($, _, Backbone, CodeMirror, models, urls) {
+], function(
+  $, _, Backbone, CodeMirror, models, CommunityListView, urls, authuser
+) {
   var Community = models.Community
     , Collection = models.Collection
 
@@ -121,21 +123,23 @@ require([
     }
   });
 
+
   var AppView = Backbone.View.extend({
     el: '#app',
     initialize: function() {
-      var auth = new models.AuthUser()
-        , communities = new (Collection.extend({
+      var communities = new (Collection.extend({
           model: Community, rest: 'community'
         }))
       ;
-      this.listenTo(auth, 'login', this.onLogin);
+      this.listenTo(authuser, 'login', this.onLogin);
       this.listenTo(communities, 'add', this.onCommunityAdd);
-      auth.login();
+      authuser.login();
       communities.fetch(); 
     },
     render: function() {
-      return this
+      var clView = new CommunityListView({el: this.$('.community-list')}); 
+      this.$el.append(clView.render().$el);
+      return this;
       var curURL = new urls.URI()
         , id = curURL.query(true).community || 1
         , community = new Community({id: id})
