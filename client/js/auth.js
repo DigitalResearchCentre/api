@@ -1,4 +1,6 @@
-define(['underscore', 'models'], function(_, models){
+define([
+  'underscore', 'jquery', 'models', 'jquery.cookie'
+], function(_, $, models){
   var User = models.User;
   
   var AuthUser = User.extend({
@@ -17,12 +19,26 @@ define(['underscore', 'models'], function(_, models){
       return !!this.id;
     },
     login: function(args) {
-      return this.fetch(args);
+      return this.fetch(args).done(function() {
+        var csrftoken = $.cookie('csrftoken');
+        $.ajaxSetup({
+          crossDomain: false,
+          beforeSend: function(xhr, settings) {
+            // these HTTP methods do not require CSRF protection
+            if (!(/^(GET|HEAD|OPTIONS|TRACE)$/.test(settings.type))) {
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+          },
+          dataType: 'json'
+        });
+      });
     },
     getUser: function() {
       return this._user;
     }
   });
+
+
 
   return (new AuthUser);
 });

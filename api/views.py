@@ -242,6 +242,10 @@ class UserInfo(UserDetail):
     def get_object(self):
         return self.request.user
 
+    @method_decorator(ensure_csrf_cookie)
+    def dispatch(self, request, *args, **kwargs):
+        return super(UserInfo, self).dispatch(request, *args, **kwargs)
+
 class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer

@@ -27,7 +27,7 @@
   <div id="app" class="container">
        
   </div>
-  <div class="modal fade" id="create-community" role="dialog"
+  <div class="modal fade" id="create-community-modal" role="dialog"
     aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -37,28 +37,10 @@
           <h4 class="modal-title">Create Community</h4>
         </div>
         <div class="modal-body">
-          <form role="form" class="form-horizontal">
-            <div class="form-group">
-              <label for="com-name" class="col-md-2 control-label"
-                >Name</label>
-              <div class="col-md-10">
-                <input class="form-control" id="community-name" 
-                  type="text" placeholder="Name"/> 
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="com-abbr" class="col-md-2 control-label"
-                >Abbreviation</label>
-              <div class="col-md-10">
-                <input class="form-control" id="com-abbr" 
-                  type="text" placeholder="Abbreviation"/> 
-              </div>
-            </div>
-          </form>
         </div>
         <div class="modal-footer">
           <button class="btn btn-default" data-dismiss="modal">Close</button>
-          <button class="btn btn-primary">Create</button>
+          <button class="btn btn-primary continue">Continue</button>
         </div>
       </div>
     </div>
@@ -66,12 +48,73 @@
 
   <script data-main="js/profile" src="lib/requirejs/require.js"></script>
 
+  <script type="text/template" id="community-form-tmpl">
+    <form role="form" class="form-horizontal">
+      <h4>Your Community Settings: name and information</h4>
+      <span class="help-block">
+        Provide a name and basic information for your community
+      </span>
+      <div class="form-group">
+        <label for="form-field-name" class="col-md-2 control-label">Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-name" 
+          type="text" placeholder="Name"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-abbr" class="col-md-2 control-label"
+          >Abbreviation</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-abbr" 
+            type="text" placeholder="Abbreviation"/> 
+        </div>
+      </div>
+    </form>
+  </script>
+
+  <script type="text/template" id="refsdecl-form-tmpl">
+    <form role="form" class="form-horizontal">
+      <h4>Your document referencing system</h4>
+      <span class="help-block">
+        We use the Text Encoding Initiative 'refDecls' element to map 
+        document sections (pages, columns) to encodings (<pb/>, <cb/>, etc.).
+      </span>
+      <div class="form-group">
+        <label for="form-field-name" class="col-md-2 control-label">Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-name" 
+            type="text" placeholder="Name"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-description" class="col-md-2 control-label"
+          >Description</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-description" 
+            type="text" placeholder="Description"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-xml" class="col-md-2 control-label">XML</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-xml"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-template" class="col-md-2 control-label"
+          >Template</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-template"/> 
+        </div>
+      </div>
+    </form>
+  </script>
   <script type="text/template" id="user-info-tmpl">
     <div class="panel panel-default">
       <div class="panel-heading">
         Welcome, <%- first_name %> <%- last_name %>
         <button class="btn btn-default pull-right" 
-          data-toggle="modal" data-target="#create-community">
+          data-toggle="modal" data-target="#create-community-modal">
           Create Community <span class="glyphicon glyphicon-plus"></span>
         </button>
         <div class="clearfix"></div>
