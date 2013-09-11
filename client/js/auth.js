@@ -1,9 +1,12 @@
 define(['underscore', 'models'], function(_, models){
+  var User = models.User;
   
-  var AuthUser = models.User.extend({
+  var AuthUser = User.extend({
     rest: 'auth',
     initialize: function() {
+      var user = this._user = new User();
       this.on('change:id', _.bind(function() {
+        user.set(this.toJSON());
         this.trigger('login', this);
       }, this));
     },
@@ -15,6 +18,9 @@ define(['underscore', 'models'], function(_, models){
     },
     login: function(args) {
       return this.fetch(args);
+    },
+    getUser: function() {
+      return this._user;
     }
   });
 

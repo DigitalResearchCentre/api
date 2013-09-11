@@ -6,6 +6,9 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',
     'community:refsdecls': '/communities/{pk}/get_refsdecls/',
+    'user': '/users/',
+    'user:communities': '/users/{pk}/communities/',
+    'user:memberships': '/users/{pk}/memberships/',
     'doc': '/docs/',
     'refsdecl': '/refsdecl/'
   };

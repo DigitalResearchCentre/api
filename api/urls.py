@@ -1,14 +1,18 @@
 from django.conf import settings
 from django.conf.urls import patterns, url, include
+from django.contrib import admin
 from rest_framework import generics, permissions
 from api.views import *
 from api.models import *
 from api.serializers import *
 from django.conf.urls.static import static
 
+admin.autodiscover()
+
 urlpatterns = patterns(
     '',
     url(r'^$', api_root),
+    url(r'^admin/', include(admin.site.urls)), 
     url(r'^communities/$', CommunityList.as_view(), name='community-list'),
     url(r'^communities/(?P<pk>\d+)/$', CommunityDetail.as_view()), 
     url(r'^communities/(?P<pk>\d+)/', include(APIView.urlpatterns([
@@ -55,7 +59,7 @@ urlpatterns = patterns(
         {'func': 'parent'}, 
         {'func': 'has_parts'}, 
         {'func': 'xml'}, 
-        {'func': 'xml', 'func_args': '(?P<doc_pk>\d+)'}, 
+        {'func': 'xml', 'func_args': '(?P<doc_pk>\d+)/'}, 
         {'func': 'has_text_of', 'serializer_class': TextSerializer}, 
         {'func': 'has_text_of', 'serializer_class': TextSerializer,
          'func_args': '(?P<doc_pk>\d+)/'}, 
@@ -79,6 +83,10 @@ urlpatterns = patterns(
     url(r'^users/(?P<pk>\d+)/$', UserDetail.as_view(), name='user-detail'),
     url(r'^users/(?P<pk>\d+)/', include(APIView.urlpatterns([
         {'func': 'communities', 'serializer_class': CommunitySerializer}, 
+        {'func': 'tasks_in', 'serializer_class': TaskSerializer}, 
+        {'func': 'memberships', 'serializer_class': MembershipSerializer}, 
+        {'func': 'memberships', 'serializer_class': MembershipSerializer,
+         'func_args': '(?P<community_pk>\d+)/'}, 
     ], extra={'model': APIUser, 'serializer_class': APIUserSerializer}))),
     url(r'^revision/(?P<pk>\d+)/', include(APIView.urlpatterns([
         {},
@@ -93,6 +101,5 @@ urlpatterns = patterns(
 )
 
 if settings.DEBUG:
-    urlpatterns += static(
-        '/client', document_root='/Users/xiz921/project/api/client/')
+    urlpatterns += static('/client', document_root=settings.CLIENT_ROOT)
 

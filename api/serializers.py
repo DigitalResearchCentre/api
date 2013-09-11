@@ -63,6 +63,26 @@ class RefsDeclSerializer(serializers.ModelSerializer):
     class Meta:
         model = RefsDecl
 
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+
+class TaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+
+class MembershipSerializer(serializers.ModelSerializer):
+    community = CommunitySerializer()
+    role = GroupSerializer()
+    tasks = serializers.SerializerMethodField('get_tasks')
+    
+    class Meta:
+        model = Membership
+
+    def get_tasks(self, obj):
+        qs = obj.user.task_set.filter(community=obj.community)
+        return TaskSerializer(qs).data
+
 class JSSerializer(serializers.ModelSerializer):
 
     class Meta:

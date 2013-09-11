@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models import Q
 from django.conf import settings
 from django.http import HttpResponse
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.utils.timezone import utc
 from django.template import Template, Context
 from django.core import files
@@ -82,28 +82,18 @@ class Community(models.Model):
 
 
 class Membership(models.Model):
-    LEADER, CO_LEADER, TRANSCRIBER, MEMBER = range(1, 5)
-    ROLE_CHOICES = (
-        (LEADER, 'Leader'),
-        (CO_LEADER, 'Co Leader'),
-        (TRANSCRIBER, 'transcriber'),
-        (MEMBER, 'member'),
-    )
     # invited member will has user=null until they active
-    user = models.ForeignKey(User, null=True)  
+    user = models.ForeignKey(User, null=True)
     community = models.ForeignKey(Community)
-    role = models.IntegerField(choices=ROLE_CHOICES, default=MEMBER)
+    role = models.ForeignKey(Group)
+    create_date = models.DateField(auto_now=True, editable=False)
 
     class Meta:
         unique_together = ('user', 'community', 'role')
-        db_table = 'community_membership'
 
     def __unicode__(self):
         return unicode('%s %s %s' % (
-            unicode(self.community), 
-            self.get_role_display(), 
-            unicode(self.user),
-        ))
+            unicode(self.community), unicode(self.role), unicode(self.user),))
 
 def get_first(qs):
     lst = list(qs[:1])
@@ -1031,4 +1021,26 @@ class APIUser(User):
 
     def communities(self):
         return self.community_set.distinct()
+
+    def memberships(self):
+        return self.membership_set.all()
+
+    def tasks(self):
+        return self.task_set.all()
+
+class Task(models.Model):
+    ASSIGNED, IN_PROGRESS, SUBMITTED, COMPLETED = range(4)
+    STATUS_CHOICES = (
+        (ASSIGNED, 'assigned'),
+        (IN_PROGRESS, 'in_progress'),
+        (SUBMITTED, 'submitted'),
+        (COMPLETED, 'completed'),
+    )
+    doc = models.ForeignKey(Doc)
+    user = models.ForeignKey(User)
+    community = models.ForeignKey(Community) # TODO: not nessary
+    status = models.IntegerField(choices=STATUS_CHOICES, default=ASSIGNED)
+
+    class Meta:
+        unique_together = ('doc', 'user', )
 

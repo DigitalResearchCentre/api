@@ -25,10 +25,10 @@ require.config({
 
 require([
   'jquery', 'underscore', 'backbone', 'codemirror', 
-  'models', 'views/communitylist', 'urls', 'authuser',
+  'models', 'views/communitylist', 'urls', 'auth',
   'bootstrap', 'codemirror-xml'
 ], function(
-  $, _, Backbone, CodeMirror, models, CommunityListView, urls, authuser
+  $, _, Backbone, CodeMirror, models, CommunityListView, urls, auth
 ) {
   var Community = models.Community
     , Collection = models.Collection
@@ -131,9 +131,9 @@ require([
           model: Community, rest: 'community'
         }))
       ;
-      this.listenTo(authuser, 'login', this.onLogin);
+      this.listenTo(auth, 'login', this.onLogin);
       this.listenTo(communities, 'add', this.onCommunityAdd);
-      authuser.login();
+      auth.login();
       communities.fetch(); 
     },
     render: function() {

@@ -1,19 +1,23 @@
 define([
-  'backbone', 'models', 'authuser', 'text!tmpl/communitylist.html'
-], function(Backbone, models, authuser, tmpl) {
+  'backbone', 'models', 'auth', 'text!tmpl/communitylist.html'
+], function(Backbone, models, auth, tmpl) {
   var Community = models.Community;
 
   var CommunityListView = Backbone.View.extend({
     template: _.template(tmpl),
     initialize: function() {
       var communities = Community.objects;
-      this.listenTo(authuser, 'login', this.onLogin);
-      this.listenTo(authuser, 'logout', this.onLogout);
+      this.listenTo(auth, 'login', this.onLogin);
+      this.listenTo(auth, 'logout', this.onLogout);
       this.listenTo(communities, 'add', this.onPublicCommunityAdd);
       if (!communities.isFetched()) communities.fetch();
     },
     onLogin: function() {
-      this.listenTo(authuser.getCommunities(), 'add', this.onMyCommunityAdd);
+      var myCommunities = this.myCommunities = auth.getUser().getCommunities();
+      this.listenTo(this.myCommunities, 'add', this.onMyCommunityAdd);
+      if (!myCommunities.isFetched()) {
+        myCommunities.fetch();
+      }
       this.renderMy();
       this.$('.login-required').show();
       this.$('.nav-tabs li:visible:first a').tab('show');
@@ -37,11 +41,11 @@ define([
     },
     renderMy: function() {
       this.$('#my-communities').empty();
-      authuser.getCommunities().each(this.onMyCommunityAdd, this);
+      _.each(this.myCommunities, this.onMyCommunityAdd, this);
     },
     render: function() {
       this.$el.html(this.template());
-      if (authuser.isLogin()) {
+      if (auth.isLogin()) {
         this.onLogin();
       }else{
         this.onLogout();

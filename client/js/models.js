@@ -55,8 +55,29 @@ define(['backbone', 'urls'], function(Backbone, urls) {
     rest: 'refsdecl'
   });
 
+  var Membership = Model.extend({
+    rest: 'membership'
+  });
+
   var User = Model.extend({
-    rest: 'users'
+    rest: 'users',
+    getCommunities: function() {
+      if (!this._communities) {
+        this._communities = new (Collection.extend({
+          rest: ['user:communities', {pk: this.id}], model: Community
+        }));
+      }
+      return this._communities;
+    },
+    getMemberships: function() {
+      if (!this._memberships) {
+        this._memberships = new (Collection.extend({
+          rest: ['user:memberships', {pk: this.id}], model: Membership
+        }));
+      }
+      return this._memberships;
+    }
+
   });
 
   return {
