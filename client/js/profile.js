@@ -224,7 +224,7 @@ require([
   });
 
   auth.isLogin() || auth.login().fail(function() {
-    window.location = 'http://textualcommunities.usask.ca/api/auth/login/?next=http://textualcommunities.usask.ca/api/client/profile.html';
+    window.location = 'http://textualcommunities.usask.ca/drc/auth/login/?next=http://textualcommunities.usask.ca/api/client/profile.html';
   });
   auth.on('login', function() {
     var app = new ProfileView({model: auth.getUser()});
