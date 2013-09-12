@@ -1,7 +1,7 @@
 import urllib, urllib2, json
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
-from auth.models import UserMapping, Invitation
+from auth.models import UserMapping
 
 class SSOBackend(ModelBackend):
 
@@ -22,12 +22,13 @@ class SSOBackend(ModelBackend):
             try:
                 user = User.objects.get(username=email)
             except User.DoesNotExist, e:
-                user = User.objects.create_user(email, email=data['email'])
-                try:
-                    invitation = Invitation.objects.get(email=email)
-                    invitation.activate()
-                except Invitation.DoesNotExist, e:
-                    pass
+                raise e
+                #user = User.objects.create_user(email, email=data['email'])
+                #try:
+                #    invitation = Invitation.objects.get(email=email)
+                #    invitation.activate()
+                #except Invitation.DoesNotExist, e:
+                #    pass
             UserMapping.objects.create(
                 partner=partner, user=user, mapping_id=data['user_id']
             )
