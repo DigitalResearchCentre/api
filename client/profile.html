@@ -27,8 +27,7 @@
   <div id="app" class="container">
        
   </div>
-  <div class="modal fade" id="create-community-modal" role="dialog"
-    aria-hidden="true">
+  <div class="modal fade" id="modal" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -54,6 +53,7 @@
       <span class="help-block">
         Provide a name and basic information for your community
       </span>
+      <div class="error alert alert-block alert-warning hide"></div>
       <div class="form-group">
         <label for="form-field-name" class="col-md-2 control-label">Name</label>
         <div class="col-md-10">
@@ -71,6 +71,33 @@
       </div>
     </form>
   </script>
+
+  <script type="text/template" id="community-edit-tmpl">
+    <nav class="navbar navbar-default" role="navigation">
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="#">Link</a></li>
+      </ul>
+    </nav>
+    <form role="form" class="form-horizontal">
+      <div class="form-group">
+        <label for="form-field-name" class="col-md-2 control-label">Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-name" 
+          type="text" placeholder="Name" value="<%- name %>"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-abbr" class="col-md-2 control-label"
+          >Abbreviation</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-abbr" 
+            type="text" placeholder="Abbreviation" value="<%- abbr %>"/> 
+        </div>
+      </div>
+    </form>
+  </script>
+
+
 
   <script type="text/template" id="refsdecl-form-tmpl">
     <form role="form" class="form-horizontal">
@@ -113,8 +140,8 @@
     <div class="panel panel-default">
       <div class="panel-heading">
         Welcome, <%- first_name %> <%- last_name %>
-        <button class="btn btn-default pull-right" 
-          data-toggle="modal" data-target="#create-community-modal">
+        <button class="btn btn-default pull-right create-community-btn" 
+          data-toggle="modal" data-target="#modal">
           Create Community <span class="glyphicon glyphicon-plus"></span>
         </button>
         <div class="clearfix"></div>
@@ -174,7 +201,9 @@
     </td>
     <td>
       <% if (role.name == 'Leader' || role.name == 'Co Leader') { 
-        %>  <% 
+        %> <button class="btn btn-primary admin" 
+          data-toggle="modal" data-target="#modal">Admin</button> 
+        <% 
       } %>
     </td>
   </script>

@@ -198,6 +198,15 @@ class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
 class CommunityList(generics.ListCreateAPIView):
     model = Community
     serializer_class = CommunitySerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        response = self.create(request, *args, **kwargs)
+        if hasattr(self, 'object') and self.object:
+            Membership.objects.create(
+                user=request.user, community=self.object,
+                role=Group.objects.get(name='Leader'))
+        return response
 
 class DocDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Doc

@@ -32,33 +32,7 @@ require([
 ], function(
   $, _, Backbone, CodeMirror, models, CommunityListView, urls, auth
 ) {
-
-  var MembershipRowView = Backbone.View.extend({
-    tagName: 'tr',
-    template: _.template($('#membership-row-tmpl').html()),
-    render: function() {
-      this.$el.html(this.template(this.model.toJSON()));
-      return this;
-    }
-  });
-
-  var CommunityForm = Backbone.View.extend({
-    template: _.template($('#community-form-tmpl').html()),
-    render: function() {
-      this.$el.html(this.template());
-      return this;
-    },
-    getData: function() {
-      var data = {};
-      _.each(['name', 'abbr'], function(name) {
-        data[name] = this.$('#form-field-'+name).val();
-      }, this);
-      return data;
-    },
-    onContinue: function() {
-      return this.model.save(this.getData());
-    }
-  });
+  var Community = models.Community;
 
   var DocRefForm = Backbone.View.extend({
     template: _.template($('#refsdecl-form-tmpl').html()),
@@ -97,49 +71,82 @@ require([
   });
 
   var ModalView = Backbone.View.extend({
-    el: $('#create-community-modal'),
-    events: {
-      'click .continue': 'onContinue'
-    },
-    renderForm: function() {
-      _.each(this.forms, function(form) {
-        form.$el.hide();
-      });
-      this.forms[this.cur].$el.show();
-    },
+    el: $('#modal'),
     render: function() {
-      this.cur = 0;
-      this.forms = [
-        new DocRefForm({model: new models.RefsDecl()}),
-        new CommunityForm({model: new models.Community()})
-        //new EntityRefForm({model: new models.RefsDecl()})
-      ];
-      this.$('.modal-body').empty();
-      _.each(this.forms, function(form){
-        this.$('.modal-body').append(form.render().$el);
+      var $footer = this.$('.modal-footer').empty();
+      this.$('.modal-body').html(this.bodyTemplate());
+      _.each(this.buttons, function(btn) {
+        $footer.append($('<button/>').addClass('btn '+btn.cls)
+                       .text(btn.text).click(_.bind(this[btn.event], this)));
       }, this);
-      this.renderForm();
+      return this;
     },
-    getCurForm: function() {
-      return this.forms[this.cur];
-    },
-    onContinue: function() {
-      var cur = this.getCurForm();
-      cur.onContinue && cur.onContinue().done(_.bind(function() {
-        this.cur += 1;
-        if (this.cur == this.forms.length) {
-          _.each(this.forms, function(form) {form.remove()});
-          this.$el.modal('hide');
-          this.render();
-        }else{
-          this.renderForm();
-        }
+    onClose: function() {
+      this.$el.modal('hide');
+    } 
+  });
+
+  var CreateCommunityView = ModalView.extend({
+    bodyTemplate: _.template($('#community-form-tmpl').html()),
+    buttons: [
+      {cls: "btn-default", text: 'Close', event: 'onClose'},
+      {cls: "btn-primary", text: 'Create', event: 'onCreate'},
+    ],
+    onCreate: function() {
+      var data = {};
+      _.each(['name', 'abbr'], function(name) {
+        data[name] = this.$('#form-field-'+name).val();
+      }, this);
+      return this.model.save(data).done(_.bind(function() {
+        this.$('.error').addClass('hide');
+        auth.getUser().getMemberships().fetch();
+        (new EditCommunityView({model: this.model})).render();
+      }, this)).fail(_.bind(function(resp) {
+        this.$('.error').removeClass('hide').html(resp.responseText);
       }, this));
     }
   });
 
+  var EditCommunityView = ModalView.extend({
+    bodyTemplate: function() {
+      return _.template($('#community-edit-tmpl').html())(this.model.toJSON());
+    },
+    buttons: [
+      {cls: "btn-default", text: 'Close', event: 'onClose'},
+      {cls: "btn-primary", text: 'Update', event: 'onUpdate'},
+    ],
+    onUpdate: function() {
+      var data = {};
+      _.each(['name', 'abbr'], function(name) {
+        data[name] = this.$('#form-field-'+name).val();
+      }, this);
+      return this.model.save(data);
+    }
+  });
+
+  var MembershipRowView = Backbone.View.extend({
+    tagName: 'tr',
+    events: {
+      'click .admin': 'onAdminClick'
+    },
+    template: _.template($('#membership-row-tmpl').html()),
+    onAdminClick: function() {
+      var community = new Community(this.model.get('community'));
+      console.log(community);
+      (new EditCommunityView({model: community})).render();
+    },
+    render: function() {
+      this.$el.html(this.template(this.model.toJSON()));
+      return this;
+    }
+  });
+
+
   var ProfileView = Backbone.View.extend({
     el: '#app',
+    events: {
+      'click .create-community-btn': 'onCreateCommunity'
+    },
     template: _.template($('#user-info-tmpl').html()),
     initialize: function() {
       var memberships = this.memberships = this.model.getMemberships();
@@ -153,10 +160,12 @@ require([
         $memberships.append(rowView.render().$el);
       }
     },
+    onCreateCommunity: function() {
+      (new CreateCommunityView({model: new Community()})).render();
+    },
     render: function() {
       this.$el.html(this.template(this.model.toJSON()));
       this.memberships.each(this.onMembershipAdd, this);
-      new ModalView().render();
       return this;
     }
   });
@@ -166,7 +175,6 @@ require([
     var app = new ProfileView({model: auth.getUser()});
     app.render();
   })
-        $('#create-community').modal()
 });
 
 
