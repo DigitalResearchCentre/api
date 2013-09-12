@@ -3,6 +3,14 @@ from django.template import Context, loader
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 
+class PartnerMapping(models.Model):
+    partner = models.ForeignKey(Partner)
+    mapping_id = models.IntegerField(null=False, blank=False)
+
+    class Meta:
+        abstract = True
+        unique_together = ('partner', 'mapping_id')
+
 class UserMapping(PartnerMapping):
     user = models.OneToOneField(User)
 
