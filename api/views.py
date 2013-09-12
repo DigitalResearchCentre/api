@@ -255,10 +255,13 @@ class UserInfo(UserDetail):
     def dispatch(self, request, *args, **kwargs):
         return super(UserInfo, self).dispatch(request, *args, **kwargs)
 
+class RefsDeclList(generics.ListCreateAPIView):
+    model = RefsDecl
+    serializer_class = RefsDeclSerializer
+
 class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer
-    permission_classes = (permissions.AllowAny,)
 
 class UserList(generics.ListCreateAPIView):
     model = APIUser

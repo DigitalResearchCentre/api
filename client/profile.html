@@ -69,13 +69,68 @@
             type="text" placeholder="Abbreviation"/> 
         </div>
       </div>
+      <div class="form-group">
+        <label for="form-field-long_name" class="col-md-2 control-label"
+          >Long Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-long_name" 
+            type="text" placeholder="Long Name"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-font" class="col-md-2 control-label"
+          >Font</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-font" 
+            type="text" placeholder="Font"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-description" class="col-md-2 control-label"
+          >Description</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-description" 
+            placeholder="Description"/> 
+        </div>
+      </div>
     </form>
   </script>
 
   <script type="text/template" id="community-edit-tmpl">
     <nav class="navbar navbar-default" role="navigation">
       <ul class="nav navbar-nav">
-        <li class="active"><a href="#">Link</a></li>
+        <li><a data-target="#" role="button" class="btn edit-refsdecl">
+          Edit RefsDecl</a></li>
+        <li class="dropdown">
+          <a id="invite" class="dropdown-toggle" role="button" 
+            data-toggle="dropdown" data-target="#">
+            Invite<span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu" role="menu" aria-labelledby="invite">
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Invite Transcribers</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Invite Co-leaders</a></li>
+          </ul>
+        </li>
+        <li class="dropdown">
+          <a id="upload-files" class="dropdown-toggle" role="button" 
+            data-toggle="dropdown" data-target="#">
+            Upload Files <span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu" role="menu" aria-labelledby="upload-files">
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add Text File</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add Image Zip</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add DTD</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add CSS</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add JS</a></li>
+          </ul>
+        </li>
       </ul>
     </nav>
     <form role="form" class="form-horizontal">
@@ -94,6 +149,31 @@
             type="text" placeholder="Abbreviation" value="<%- abbr %>"/> 
         </div>
       </div>
+      <div class="form-group">
+        <label for="form-field-long_name" class="col-md-2 control-label"
+          >Long Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-long_name" 
+            type="text" placeholder="Long Name" value="<%- long_name %>"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-font" class="col-md-2 control-label"
+          >Font</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-font" 
+            type="text" placeholder="Font" value="<%- description %>"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-description" class="col-md-2 control-label"
+          >Description</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-description" 
+            placeholder="Description" value="<%- description %>"/> 
+        </div>
+      </div>
+
     </form>
   </script>
 
@@ -101,11 +181,31 @@
 
   <script type="text/template" id="refsdecl-form-tmpl">
     <form role="form" class="form-horizontal">
-      <h4>Your document referencing system</h4>
+      <h4>Your referencing system</h4>
       <span class="help-block">
         We use the Text Encoding Initiative 'refDecls' element to map 
-        document sections (pages, columns) to encodings (<pb/>, <cb/>, etc.).
+        document sections (pages, columns) to encodings 
+        (&lt;pb/&gt;, &lt;cb/&gt;, etc.),
+        map textual entity sections (chapters, paragraphs; poems, stanzas, lines)
+        to encodings (&lt;div/&gt;, &lt;p/&gt;, &lt;lg/&gt;, &lt;l/&gt;, etc.).
       </span>
+      <div class="error alert alert-block alert-warning hide"></div>
+      <div class="form-group">
+        <label class="col-md-2 control-label">Choose RefsDecl</label>
+        <div class="col-md-10">
+          <select class="form-control refsdecl-dropdown"> 
+            <option>---- New RefsDecl ----</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-md-2 control-label">Base RefsDecl</label>
+        <div class="col-md-10">
+          <select class="form-control base-refsdecl-dropdown">
+            <option>--- Blank RefsDecl ---</option>
+          </select>
+        </div>
+      </div>
       <div class="form-group">
         <label for="form-field-name" class="col-md-2 control-label">Name</label>
         <div class="col-md-10">

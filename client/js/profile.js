@@ -32,43 +32,9 @@ require([
 ], function(
   $, _, Backbone, CodeMirror, models, CommunityListView, urls, auth
 ) {
-  var Community = models.Community;
-
-  var DocRefForm = Backbone.View.extend({
-    template: _.template($('#refsdecl-form-tmpl').html()),
-    render: function() {
-      this.$el.html(this.template());
-      return this;
-    },
-    getData: function() {
-      var data = {type: 0};
-      _.each(['name', 'description', 'xml'], function(name) {
-        data[name] = this.$('#form-field-'+name).val();
-      }, this);
-      return data;
-    },
-    onContinue: function() {
-      return this.model.save(this.getData());
-    }
-  });
-
-  var EntityRefForm = Backbone.View.extend({
-    template: _.template($('#refsdecl-form-tmpl').html()),
-    render: function() {
-      this.$el.html(this.template());
-      return this;
-    },
-    getData: function() {
-      var data = {type: 1};
-      _.each(['name', 'description', 'xml', 'template'], function(name) {
-        data[name] = this.$('#form-field-'+name).val();
-      }, this);
-      return data;
-    },
-    onContinue: function() {
-      return this.model.save(this.getData());
-    }
-  });
+  var Community = models.Community
+    , RefsDecl = models.RefsDecl
+  ;
 
   var ModalView = Backbone.View.extend({
     el: $('#modal'),
@@ -94,7 +60,9 @@ require([
     ],
     onCreate: function() {
       var data = {};
-      _.each(['name', 'abbr'], function(name) {
+      _.each([
+        'name', 'abbr', 'long_name', 'font', 'description'
+      ], function(name) {
         data[name] = this.$('#form-field-'+name).val();
       }, this);
       return this.model.save(data).done(_.bind(function() {
@@ -107,9 +75,85 @@ require([
     }
   });
 
+  var baseRefsDecls = new (models.Collection.extend({
+    rest: ['community:refsdecls', {pk: 1}]
+  }));
+
+  var EditRefsDeclView = ModalView.extend({
+    bodyTemplate: _.template($('#refsdecl-form-tmpl').html()),
+    events: {
+      'change .base-refsdecl-dropdown': 'onBaseRefsDeclChange',
+      'change .refsdecl-dropdown': 'onRefsDeclChange'
+    },
+    buttons: [
+      {cls: "btn-default", text: 'Back', event: 'onBack'},
+      {cls: "btn-default", text: 'Close', event: 'onClose'},
+      {cls: "btn-primary", text: 'Save', event: 'onSave'},
+    ],
+    initialize: function() {
+      this.refsdecls = this.options.community.getRefsdecls();
+      this.listenTo(baseRefsDecls, 'add', this.onBaseRefsDeclAdd);
+      this.listenTo(this.refsdecls, 'add', this.onRefsDeclAdd);
+      this.model = new RefsDecl();
+      if (!baseRefsDecls.isFetched()) baseRefsDecls.fetch();
+      if (!this.refsdecls.isFetched()) this.refsdecls.fetch();
+    },
+    onRefsDeclAdd: function(refsdecl) {
+      this.$('.refsdecl-dropdown').append(
+        $('<option value="'+refsdecl.id+'"/>')
+          .text(refsdecl.get('name') + ' ' + refsdecl.get('description'))
+      );
+    },
+    onBaseRefsDeclAdd: function(refsdecl) {
+      this.$('.base-refsdecl-dropdown').append(
+        $('<option value="'+refsdecl.id+'"/>')
+          .text(refsdecl.get('name') + ' ' + refsdecl.get('description'))
+      );
+    },
+    onRefsDeclChange: function() {
+      var refsdecl = this.refsdecls.get(this.$('.refsdecl-dropdown').val());
+      if (refsdecl) {
+        this.model = refsdecl;
+      }else{
+        refsdecl = this.model = new RefsDecl();
+      }
+      this.$('#form-field-name').val(refsdecl.get('name'));
+      this.$('#form-field-description').val(refsdecl.get('description'));
+      this.$('#form-field-xml').val(refsdecl.get('xml'));
+      this.$('#form-field-template').val(refsdecl.get('template'));
+    },
+    onBaseRefsDeclChange: function() {
+      var refsdecl = baseRefsDecls.get(this.$('.base-refsdecl-dropdown').val());
+      if (refsdecl) {
+        this.$('#form-field-xml').val(refsdecl.get('xml'));
+        this.$('#form-field-template').val(refsdecl.get('template'));
+      }
+    },
+    render: function() {
+      ModalView.prototype.render.apply(this, arguments);
+      baseRefsDecls.each(this.onBaseRefsDeclAdd, this);
+      this.refsdecls.each(this.onRefsDeclAdd, this);
+      this.$('.base-refsdecl-dropdown').prop('selectedIndex', -1);
+      return this;
+    },
+    onBack: function() {
+      (new EditCommunityView({model: this.options.community})).render();
+    },
+    onSave: function() {
+      var data = {type: 0};
+      _.each(['name', 'description', 'xml', 'template'], function(name) {
+        data[name] = this.$('#form-field-'+name).val();
+      }, this);
+      return this.model.save(data);
+    }
+  });
+
   var EditCommunityView = ModalView.extend({
     bodyTemplate: function() {
       return _.template($('#community-edit-tmpl').html())(this.model.toJSON());
+    },
+    events: {
+      'click .edit-refsdecl': 'onEditRefsDeclClick'
     },
     buttons: [
       {cls: "btn-default", text: 'Close', event: 'onClose'},
@@ -117,10 +161,19 @@ require([
     ],
     onUpdate: function() {
       var data = {};
-      _.each(['name', 'abbr'], function(name) {
+      _.each([
+        'name', 'abbr', 'long_name', 'font', 'description'
+      ], function(name) {
         data[name] = this.$('#form-field-'+name).val();
       }, this);
-      return this.model.save(data);
+      return this.model.save(data).done(_.bind(function() {
+        this.$('.error').addClass('hide');
+      }, this)).fail(_.bind(function(resp) {
+        this.$('.error').removeClass('hide').html(resp.responseText);
+      }, this));
+    },
+    onEditRefsDeclClick: function(){
+      (new EditRefsDeclView({community: this.model})).render();
     }
   });
 
