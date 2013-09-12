@@ -3,6 +3,19 @@ from django.template import Context, loader
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 
+class Partner(models.Model):
+    name = models.CharField(max_length=80, unique=True, db_index=True)
+    sso_url = models.URLField()
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+    def get_community(self, mapping_id):
+        return self.communitymapping_set.get(mapping_id=mapping_id).community
+
+    def get_user(self, mapping_id):
+        return self.usermapping_set.get(mapping_id=mapping_id).user
+
 class PartnerMapping(models.Model):
     partner = models.ForeignKey(Partner)
     mapping_id = models.IntegerField(null=False, blank=False)
