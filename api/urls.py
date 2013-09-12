@@ -98,6 +98,7 @@ urlpatterns = patterns(
     url(r'^refsdecl/$', RefsDeclList.as_view()),
     url(r'^refsdecl/(?P<pk>\d+)/$', RefsDeclDetail.as_view()),
     url(r'^auth/$', UserInfo.as_view()),
+    url(r'^auth/', include('auth.urls', namespace='auth')),
 )
 
 if settings.DEBUG:
