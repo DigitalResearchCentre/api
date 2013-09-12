@@ -13,6 +13,13 @@ define(['backbone', 'urls'], function(Backbone, urls) {
   var Collection = Backbone.Collection.extend({
     url: function() {
       return urls.get(_.result(this, 'rest'), {page_size: 0, format: 'json'})
+    },
+    fetch: function(opts) {
+      var dfd = Backbone.Collection.prototype.fetch.apply(this, arguments);
+      return dfd.done(_.bind(function() {this._fetched = true;}, this)); 
+    },
+    isFetched: function() {
+      return !!this._fetched;
     }
   });
 
@@ -36,6 +43,10 @@ define(['backbone', 'urls'], function(Backbone, urls) {
     }
   });
 
+  Community.objects = new (Collection.extend({
+    rest: ['community'], model: Community
+  }));
+
   var Doc = Model.extend({
     rest: 'doc'
   });
@@ -44,8 +55,29 @@ define(['backbone', 'urls'], function(Backbone, urls) {
     rest: 'refsdecl'
   });
 
+  var Membership = Model.extend({
+    rest: 'membership'
+  });
+
   var User = Model.extend({
-    rest: 'users'
+    rest: 'users',
+    getCommunities: function() {
+      if (!this._communities) {
+        this._communities = new (Collection.extend({
+          rest: ['user:communities', {pk: this.id}], model: Community
+        }));
+      }
+      return this._communities;
+    },
+    getMemberships: function() {
+      if (!this._memberships) {
+        this._memberships = new (Collection.extend({
+          rest: ['user:memberships', {pk: this.id}], model: Membership
+        }));
+      }
+      return this._memberships;
+    }
+
   });
 
   return {
@@ -53,6 +85,7 @@ define(['backbone', 'urls'], function(Backbone, urls) {
     Collection: Collection,
     Community: Community,
     Doc: Doc,
+    User: User,
     RefsDecl: RefsDecl
   };
 });

@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-  <title>Example</title>
+  <title>Textual Communities</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="lib/codemirror/lib/codemirror.css">
@@ -21,10 +21,24 @@
         height: auto;
         overflow: visible;
     }
+
+    .community-list .tab-content {
+      border-top: none;
+    }
+
+    .community-list .tab-pane {
+      max-height: 480px;
+      overflow: auto;
+    }
+
   </style>
 </head>
 <body>
   <div id="app" class="container">
+    <div class="community-list col-md-4">
+    </div>
+    <div class="col-md-4">
+    </div>
   </div>
   <script data-main="js/main" src="lib/requirejs/require.js"></script>
 

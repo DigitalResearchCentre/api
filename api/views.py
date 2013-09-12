@@ -1,6 +1,5 @@
 import random, shutil, zipfile
 from django.db.models import Q, query
-from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.conf.urls import patterns, url
 from django.views.generic.detail import DetailView
@@ -199,6 +198,15 @@ class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
 class CommunityList(generics.ListCreateAPIView):
     model = Community
     serializer_class = CommunitySerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        response = self.create(request, *args, **kwargs)
+        if hasattr(self, 'object') and self.object:
+            Membership.objects.create(
+                user=request.user, community=self.object,
+                role=Group.objects.get(name='Leader'))
+        return response
 
 class DocDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Doc
@@ -234,25 +242,30 @@ class TextList(generics.ListCreateAPIView):
     serializer_class = TextSerializer
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
-    model = User
-    serializer_class = UserSerializer
+    model = APIUser
+    serializer_class = APIUserSerializer
 
-class UserInfo(generics.RetrieveUpdateDestroyAPIView):
-    model = User
-    serializer_class = UserSerializer
+class UserInfo(UserDetail):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
 
+    @method_decorator(ensure_csrf_cookie)
+    def dispatch(self, request, *args, **kwargs):
+        return super(UserInfo, self).dispatch(request, *args, **kwargs)
+
+class RefsDeclList(generics.ListCreateAPIView):
+    model = RefsDecl
+    serializer_class = RefsDeclSerializer
+
 class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer
-    permission_classes = (permissions.AllowAny,)
 
 class UserList(generics.ListCreateAPIView):
-    model = User
-    serializer_class = UserSerializer
+    model = APIUser
+    serializer_class = APIUserSerializer
 
 class TranscribeView(generics.CreateAPIView):
     model = Revision

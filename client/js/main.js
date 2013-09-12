@@ -25,10 +25,13 @@ require.config({
 
 require([
   'jquery', 'underscore', 'backbone', 'codemirror', 
-  'models', 'urls',
+  'models', 'views/communitylist', 'urls', 'auth',
   'bootstrap', 'codemirror-xml'
-], function($, _, Backbone, CodeMirror, models, urls) {
-  var Community = models.Community;
+], function(
+  $, _, Backbone, CodeMirror, models, CommunityListView, urls, auth
+) {
+  var Community = models.Community
+    , Collection = models.Collection
 
   var CommunityView = Backbone.View.extend({
     tagName: 'div',
@@ -120,9 +123,23 @@ require([
     }
   });
 
+
   var AppView = Backbone.View.extend({
     el: '#app',
+    initialize: function() {
+      var communities = new (Collection.extend({
+          model: Community, rest: 'community'
+        }))
+      ;
+      this.listenTo(auth, 'login', this.onLogin);
+      this.listenTo(communities, 'add', this.onCommunityAdd);
+      auth.login();
+      communities.fetch(); 
+    },
     render: function() {
+      var clView = new CommunityListView({el: this.$('.community-list')}); 
+      this.$el.append(clView.render().$el);
+      return this;
       var curURL = new urls.URI()
         , id = curURL.query(true).community || 1
         , community = new Community({id: id})
@@ -144,20 +161,14 @@ require([
       }, this)});
 
       return this;
+    },
+    onCommunityAdd: function(community) {
+      this.$('.community-category')
     }
   });
 
-
-  var communityList = new (models.Collection.extend({
-    model: Community,
-    rest: 'community'
-  }));
-  communityList.fetch({
-    success: function(collection) {
-      var appView = new AppView({collection: collection});
-      appView.render();
-    }
-  }); 
+  var app = new AppView();
+  app.render();
 });
 
 

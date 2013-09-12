@@ -122,6 +122,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.admin',
     'rest_framework',
     'corsheaders',
     'treebeard',
@@ -175,6 +176,8 @@ LOGGING = {
         },
     }
 }
+
+FROM_EMAIL = 'noreply@textualcommunities.usask.ca'
 
 try:
     from env import *

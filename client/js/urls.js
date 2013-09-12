@@ -1,9 +1,14 @@
 define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
-  var restBase = 'http://textualcommunities.usask.ca/api'
+//  var restBase = 'http://textualcommunities.usask.ca/api'
+  var restBase = 'http://localhost:8000'
     , patterns = {
+    'auth': '/auth/',
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',
     'community:refsdecls': '/communities/{pk}/get_refsdecls/',
+    'user': '/users/',
+    'user:communities': '/users/{pk}/communities/',
+    'user:memberships': '/users/{pk}/memberships/',
     'doc': '/docs/',
     'refsdecl': '/refsdecl/'
   };

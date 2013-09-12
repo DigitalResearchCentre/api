@@ -1,0 +1,311 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <title>Textual Communities</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="lib/codemirror/lib/codemirror.css">
+  <link rel="stylesheet" media="screen"
+    href="lib/bootstrap/dist/css/bootstrap.css" 
+  />
+  <!--[if lt IE 9]>
+    <script src="lib/bootstrap/assets/js/html5shiv.js"></script>
+    <script src="lib/bootstrap/assets/js/respond.min.js"></script>
+  <![endif]-->
+  <style type="text/css" media="screen">
+    .CodeMirror {
+        height: auto;
+    }
+
+    .CodeMirror-scroll {
+        height: auto;
+        overflow: visible;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+       
+  </div>
+  <div class="modal fade" id="modal" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" 
+            aria-hidden="true">&times;</button>
+          <h4 class="modal-title">Create Community</h4>
+        </div>
+        <div class="modal-body">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-default" data-dismiss="modal">Close</button>
+          <button class="btn btn-primary continue">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script data-main="js/profile" src="lib/requirejs/require.js"></script>
+
+  <script type="text/template" id="community-form-tmpl">
+    <form role="form" class="form-horizontal">
+      <h4>Your Community Settings: name and information</h4>
+      <span class="help-block">
+        Provide a name and basic information for your community
+      </span>
+      <div class="error alert alert-block alert-warning hide"></div>
+      <div class="form-group">
+        <label for="form-field-name" class="col-md-2 control-label">Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-name" 
+          type="text" placeholder="Name"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-abbr" class="col-md-2 control-label"
+          >Abbreviation</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-abbr" 
+            type="text" placeholder="Abbreviation"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-long_name" class="col-md-2 control-label"
+          >Long Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-long_name" 
+            type="text" placeholder="Long Name"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-font" class="col-md-2 control-label"
+          >Font</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-font" 
+            type="text" placeholder="Font"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-description" class="col-md-2 control-label"
+          >Description</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-description" 
+            placeholder="Description"/> 
+        </div>
+      </div>
+    </form>
+  </script>
+
+  <script type="text/template" id="community-edit-tmpl">
+    <nav class="navbar navbar-default" role="navigation">
+      <ul class="nav navbar-nav">
+        <li><a data-target="#" role="button" class="btn edit-refsdecl">
+          Edit RefsDecl</a></li>
+        <li class="dropdown">
+          <a id="invite" class="dropdown-toggle" role="button" 
+            data-toggle="dropdown" data-target="#">
+            Invite<span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu" role="menu" aria-labelledby="invite">
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Invite Transcribers</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Invite Co-leaders</a></li>
+          </ul>
+        </li>
+        <li class="dropdown">
+          <a id="upload-files" class="dropdown-toggle" role="button" 
+            data-toggle="dropdown" data-target="#">
+            Upload Files <span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu" role="menu" aria-labelledby="upload-files">
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add Text File</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add Image Zip</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add DTD</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add CSS</a></li>
+            <li role="presentation"><a role="menuitem" data-target="#">
+              Add JS</a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+    <form role="form" class="form-horizontal">
+      <div class="form-group">
+        <label for="form-field-name" class="col-md-2 control-label">Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-name" 
+          type="text" placeholder="Name" value="<%- name %>"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-abbr" class="col-md-2 control-label"
+          >Abbreviation</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-abbr" 
+            type="text" placeholder="Abbreviation" value="<%- abbr %>"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-long_name" class="col-md-2 control-label"
+          >Long Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-long_name" 
+            type="text" placeholder="Long Name" value="<%- long_name %>"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-font" class="col-md-2 control-label"
+          >Font</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-font" 
+            type="text" placeholder="Font" value="<%- description %>"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-description" class="col-md-2 control-label"
+          >Description</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-description" 
+            placeholder="Description" value="<%- description %>"/> 
+        </div>
+      </div>
+
+    </form>
+  </script>
+
+
+
+  <script type="text/template" id="refsdecl-form-tmpl">
+    <form role="form" class="form-horizontal">
+      <h4>Your referencing system</h4>
+      <span class="help-block">
+        We use the Text Encoding Initiative 'refDecls' element to map 
+        document sections (pages, columns) to encodings 
+        (&lt;pb/&gt;, &lt;cb/&gt;, etc.),
+        map textual entity sections (chapters, paragraphs; poems, stanzas, lines)
+        to encodings (&lt;div/&gt;, &lt;p/&gt;, &lt;lg/&gt;, &lt;l/&gt;, etc.).
+      </span>
+      <div class="error alert alert-block alert-warning hide"></div>
+      <div class="form-group">
+        <label class="col-md-2 control-label">Choose RefsDecl</label>
+        <div class="col-md-10">
+          <select class="form-control refsdecl-dropdown"> 
+            <option>---- New RefsDecl ----</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-md-2 control-label">Base RefsDecl</label>
+        <div class="col-md-10">
+          <select class="form-control base-refsdecl-dropdown">
+            <option>--- Blank RefsDecl ---</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-name" class="col-md-2 control-label">Name</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-name" 
+            type="text" placeholder="Name"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-description" class="col-md-2 control-label"
+          >Description</label>
+        <div class="col-md-10">
+          <input class="form-control" id="form-field-description" 
+            type="text" placeholder="Description"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-xml" class="col-md-2 control-label">XML</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-xml"/> 
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="form-field-template" class="col-md-2 control-label"
+          >Template</label>
+        <div class="col-md-10">
+          <textarea class="form-control" id="form-field-template"/> 
+        </div>
+      </div>
+    </form>
+  </script>
+  <script type="text/template" id="user-info-tmpl">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        Welcome, <%- first_name %> <%- last_name %>
+        <button class="btn btn-default pull-right create-community-btn" 
+          data-toggle="modal" data-target="#modal">
+          Create Community <span class="glyphicon glyphicon-plus"></span>
+        </button>
+        <div class="clearfix"></div>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>My Communities</th>
+            <th>Role</th>
+            <th>Assigned</th>
+            <th>In Progress</th>
+            <th>Approval</th>
+            <th>Published</th>
+          </tr>
+        </thead>
+        <tbody class="membership-list">
+        </tbody>
+      </table>
+    </div>
+  </script>
+
+  <script type="text/template" id="membership-row-tmpl">
+    <td><%- community.name %></td>
+    <td>
+      <%- role.name %> 
+      <% if (create_date) { 
+        %> since <%- create_date %><% 
+      } %>
+    </td>
+    <td>
+      <% _.each(tasks, function(task){
+        if (task.status == task.ASSIGNED) { 
+          %> <li> <%- task.doc.name %> </li> <%
+        }
+      }) %>
+    </td>
+    <td>
+      <% _.each(tasks, function(task){
+        if (task.status == task.IN_PROGRESS) { 
+          %> <li> <%- task.doc.name %> </li> <%
+        }
+      }) %>
+    </td>
+    <td>
+      <% _.each(tasks, function(task){
+        if (task.status == task.APPROVAL) { 
+          %> <li> <%- task.doc.name %> </li> <%
+        }
+      }) %>
+    </td>
+    <td>
+      <% _.each(tasks, function(task){
+        if (task.status == task.PUBLISHED) { 
+          %> <li> <%- task.doc.name %> </li> <%
+        }
+      }) %>
+    </td>
+    <td>
+      <% if (role.name == 'Leader' || role.name == 'Co Leader') { 
+        %> <button class="btn btn-primary admin" 
+          data-toggle="modal" data-target="#modal">Admin</button> 
+        <% 
+      } %>
+    </td>
+  </script>
+</body>
+</html>
