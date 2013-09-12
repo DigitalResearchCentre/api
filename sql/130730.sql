@@ -34,3 +34,4 @@ INSERT INTO api_community_refs_decls (id, community_id, refsdecl_id)
     LEFT JOIN api_community cc ON cc.id = cr.community_id
     WHERE cc.id is NOT NULL
 ;
+
