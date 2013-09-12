@@ -10,6 +10,7 @@ class PartnerMapping(models.Model):
     class Meta:
         abstract = True
         unique_together = ('partner', 'mapping_id')
+        db_table = 'community_partnermapping'
 
 class UserMapping(PartnerMapping):
     user = models.OneToOneField(User)
