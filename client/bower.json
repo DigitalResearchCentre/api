@@ -26,6 +26,10 @@
     "uri.js": "latest",
     "codemirror": "~3.16.0",
     "bootstrap": "~3.0.0",
-    "jquery.cookie": "~1.3.1"
+    "jquery.cookie": "~1.3.1",
+    "bootstrap-jasny": "~2.3.1-p6"
+  },
+  "resolutions": {
+    "jquery": "2.0.3"
   }
 }

@@ -11,6 +11,8 @@ require.config({
     json: '../lib/requirejs-plugins/src/json',
     urijs: '../lib/uri.js/src',
     bootstrap: '../lib/bootstrap/dist/js/bootstrap',
+    'bootstrap-fileupload': 
+      '../lib/bootstrap-jasny/docs/assets/js/bootstrap-fileupload',
     codemirror: '../lib/codemirror/lib/codemirror',
     'jquery.cookie': '../lib/jquery.cookie/jquery.cookie',
     'codemirror-xml': '../lib/codemirror/mode/xml/xml',
@@ -18,6 +20,7 @@ require.config({
   },
   shim: {
     bootstrap: ['jquery'],
+    'bootstrap-fileupload': ['bootstrap'],
     'jquery.cookie': ['jquery'],
     codemirror: {exports: 'CodeMirror'},
     'codemirror-xml': ['codemirror']
@@ -28,7 +31,7 @@ require.config({
 require([
   'jquery', 'underscore', 'backbone', 'codemirror', 
   'models', 'views/communitylist', 'urls', 'auth',
-  'bootstrap', 'codemirror-xml', 'jquery.cookie'
+  'bootstrap', 'bootstrap-fileupload', 'codemirror-xml', 'jquery.cookie'
 ], function(
   $, _, Backbone, CodeMirror, models, CommunityListView, urls, auth
 ) {
@@ -148,12 +151,27 @@ require([
     }
   });
 
+  var FileUploadView = ModalView.extend({
+    bodyTemplate: _.template($('#file-upload-tmpl').html()),
+    buttons: [
+      {cls: "btn-default", text: 'Back', event: 'onBack'},
+      {cls: "btn-primary", text: 'Upload', event: 'onUpload'},
+    ],
+    onBack: function() {
+      (new EditCommunityView({model: this.model})).render();
+    },
+    onUpload: function() {
+      this.onBack();
+    }
+  });
+
   var EditCommunityView = ModalView.extend({
     bodyTemplate: function() {
       return _.template($('#community-edit-tmpl').html())(this.model.toJSON());
     },
     events: {
-      'click .edit-refsdecl': 'onEditRefsDeclClick'
+      'click .edit-refsdecl': 'onEditRefsDeclClick',
+      'click .add-text-file': 'onAddTextFileClick'
     },
     buttons: [
       {cls: "btn-default", text: 'Close', event: 'onClose'},
@@ -174,6 +192,9 @@ require([
     },
     onEditRefsDeclClick: function(){
       (new EditRefsDeclView({community: this.model})).render();
+    },
+    onAddTextFileClick: function() {
+      (new FileUploadView({model: this.model})).render();
     }
   });
 
@@ -185,7 +206,6 @@ require([
     template: _.template($('#membership-row-tmpl').html()),
     onAdminClick: function() {
       var community = new Community(this.model.get('community'));
-      console.log(community);
       (new EditCommunityView({model: community})).render();
     },
     render: function() {
@@ -224,7 +244,7 @@ require([
   });
 
   auth.isLogin() || auth.login().fail(function() {
-    window.location = 'http://textualcommunities.usask.ca/drc/auth/login/?next=http://textualcommunities.usask.ca/api/client/profile.html';
+    //window.location = 'http://textualcommunities.usask.ca/drc/auth/login/?next=http://textualcommunities.usask.ca/api/client/profile.html';
   });
   auth.on('login', function() {
     var app = new ProfileView({model: auth.getUser()});
@@ -232,4 +252,12 @@ require([
   })
 });
 
+/*
 
+Documents
+  add documents
+  get text from document
+  delete text of document
+  rename documents
+
+ * */

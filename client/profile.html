@@ -6,20 +6,117 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="lib/codemirror/lib/codemirror.css">
   <link rel="stylesheet" media="screen"
-    href="lib/bootstrap/dist/css/bootstrap.css" 
-  />
+    href="lib/bootstrap/dist/css/bootstrap.css"/>
   <!--[if lt IE 9]>
-    <script src="lib/bootstrap/assets/js/html5shiv.js"></script>
-    <script src="lib/bootstrap/assets/js/respond.min.js"></script>
+  <script src="lib/bootstrap/assets/js/html5shiv.js"></script>
+  <script src="lib/bootstrap/assets/js/respond.min.js"></script>
   <![endif]-->
   <style type="text/css" media="screen">
     .CodeMirror {
-        height: auto;
+      height: auto;
     }
 
     .CodeMirror-scroll {
-        height: auto;
-        overflow: visible;
+      height: auto;
+      overflow: visible;
+    }
+
+
+    .btn-file {
+      overflow: hidden;
+      position: relative;
+      vertical-align: middle;
+    }
+    .btn-file > input {
+      position: absolute;
+      top: 0;
+      right: 0;
+      margin: 0;
+      opacity: 0;
+      filter: alpha(opacity=0);
+      transform: translate(-300px, 0) scale(4);
+      font-size: 23px;
+      direction: ltr;
+      cursor: pointer;
+    }
+    .fileupload {
+      margin-bottom: 9px;
+    }
+    .fileupload .uneditable-input {
+      display: inline-block;
+      margin-bottom: 0px;
+      vertical-align: middle;
+      cursor: text;
+    }
+    .fileupload .thumbnail {
+      overflow: hidden;
+      display: inline-block;
+      margin-bottom: 5px;
+      vertical-align: middle;
+      text-align: center;
+    }
+    .fileupload .thumbnail > img {
+      display: inline-block;
+      vertical-align: middle;
+      max-height: 100%;
+    }
+    .fileupload .btn {
+      vertical-align: middle;
+    }
+    .fileupload-exists .fileupload-new,
+    .fileupload-new .fileupload-exists {
+      display: none;
+    }
+    .fileupload-inline .fileupload-controls {
+      display: inline;
+    }
+    .fileupload-new .input-append .btn-file {
+      -webkit-border-radius: 0 3px 3px 0;
+      -moz-border-radius: 0 3px 3px 0;
+      border-radius: 0 3px 3px 0;
+    }
+    .thumbnail-borderless .thumbnail {
+      border: none;
+      padding: 0;
+      -webkit-border-radius: 0;
+      -moz-border-radius: 0;
+      border-radius: 0;
+      -webkit-box-shadow: none;
+      -moz-box-shadow: none;
+      box-shadow: none;
+    }
+    .fileupload-new.thumbnail-borderless .thumbnail {
+      border: 1px solid #ddd;
+    }
+    .control-group.warning .fileupload .uneditable-input {
+      color: #a47e3c;
+      border-color: #a47e3c;
+    }
+    .control-group.warning .fileupload .fileupload-preview {
+      color: #a47e3c;
+    }
+    .control-group.warning .fileupload .thumbnail {
+      border-color: #a47e3c;
+    }
+    .control-group.error .fileupload .uneditable-input {
+      color: #b94a48;
+      border-color: #b94a48;
+    }
+    .control-group.error .fileupload .fileupload-preview {
+      color: #b94a48;
+    }
+    .control-group.error .fileupload .thumbnail {
+      border-color: #b94a48;
+    }
+    .control-group.success .fileupload .uneditable-input {
+      color: #468847;
+      border-color: #468847;
+    }
+    .control-group.success .fileupload .fileupload-preview {
+      color: #468847;
+    }
+    .control-group.success .fileupload .thumbnail {
+      border-color: #468847;
     }
   </style>
 </head>
@@ -27,6 +124,7 @@
   <div id="app" class="container">
        
   </div>
+
   <div class="modal fade" id="modal" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -44,7 +142,6 @@
       </div>
     </div>
   </div>
-
   <script data-main="js/profile" src="lib/requirejs/require.js"></script>
 
   <script type="text/template" id="community-form-tmpl">
@@ -96,17 +193,43 @@
     </form>
   </script>
 
+  <script type="text/template" id="file-upload-tmpl">
+    <div class="fileupload fileupload-new" data-provides="fileupload">
+      <span class="btn btn-file btn-primary">
+        <span class="fileupload-new">Select file</span>
+        <span class="fileupload-exists">Change</span>
+        <input type="file" />
+      </span>
+      <span class="fileupload-preview"></span>
+      <a href="#" class="close fileupload-exists" data-dismiss="fileupload" 
+        style="float: none">×</a>
+    </div>
+  </script>
+
   <script type="text/template" id="community-edit-tmpl">
     <nav class="navbar navbar-default" role="navigation">
       <ul class="nav navbar-nav">
-        <li><a data-target="#" role="button" class="btn edit-refsdecl">
-          Edit RefsDecl</a></li>
         <li class="dropdown">
-          <a id="invite" class="dropdown-toggle" role="button" 
+          <a id="refsdecl-menu" class="btn dropdown-toggle" role="button" 
+            data-toggle="dropdown" data-target="#">
+            Edit RefsDecl<span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu" role="menu" 
+            aria-labelledby="refsdecl-menu">
+            <li role="presentation"><a class="btn edit-doc-refsdecl" 
+              role="menuitem" data-target="#">Doc RefsDecl</a>
+            </li>
+            <li role="presentation"><a class="btn edit-entity-refsdecl" 
+              role="menuitem" data-target="#">Entity RefsDecl</a>
+            </li>
+          </ul>
+        </li>
+        <li class="dropdown">
+          <a id="invite-menu" class="btn dropdown-toggle" role="button" 
             data-toggle="dropdown" data-target="#">
             Invite<span class="caret"></span>
           </a>
-          <ul class="dropdown-menu" role="menu" aria-labelledby="invite">
+          <ul class="dropdown-menu" role="menu" aria-labelledby="invite-menu">
             <li role="presentation"><a role="menuitem" data-target="#">
               Invite Transcribers</a></li>
             <li role="presentation"><a role="menuitem" data-target="#">
@@ -114,21 +237,26 @@
           </ul>
         </li>
         <li class="dropdown">
-          <a id="upload-files" class="dropdown-toggle" role="button" 
+          <a id="upload-menu" class="btn dropdown-toggle" role="button" 
             data-toggle="dropdown" data-target="#">
             Upload Files <span class="caret"></span>
           </a>
-          <ul class="dropdown-menu" role="menu" aria-labelledby="upload-files">
-            <li role="presentation"><a role="menuitem" data-target="#">
-              Add Text File</a></li>
-            <li role="presentation"><a role="menuitem" data-target="#">
-              Add Image Zip</a></li>
-            <li role="presentation"><a role="menuitem" data-target="#">
-              Add DTD</a></li>
-            <li role="presentation"><a role="menuitem" data-target="#">
-              Add CSS</a></li>
-            <li role="presentation"><a role="menuitem" data-target="#">
-              Add JS</a></li>
+          <ul class="dropdown-menu" role="menu" aria-labelledby="upload-menu">
+            <li role="presentation"><a role="menuitem" data-target="#"
+              class="btn add-text-file">Add Text File</a>
+            </li>
+            <li role="presentation"><a role="menuitem" data-target="#"
+              class="btn add-image-zip">Add Image Zip</a>
+            </li>
+            <li role="presentation"><a role="menuitem" data-target="#"
+              class="btn add-dtd">Add DTD</a>
+            </li>
+            <li role="presentation"><a role="menuitem" data-target="#"
+              class="btn add-css">Add CSS</a>
+            </li>
+            <li role="presentation"><a role="menuitem" data-target="#"
+              class="btn add-js">Add JS</a>
+            </li>
           </ul>
         </li>
       </ul>
