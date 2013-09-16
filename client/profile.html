@@ -21,7 +21,7 @@
       overflow: visible;
     }
 
-
+    /* fileupload css */
     .btn-file {
       overflow: hidden;
       position: relative;
@@ -194,16 +194,24 @@
   </script>
 
   <script type="text/template" id="file-upload-tmpl">
-    <div class="fileupload fileupload-new" data-provides="fileupload">
+    <form method="post" enctype="multipart/form-data"
+      class="fileupload fileupload-new" data-provides="fileupload">
+      <div class="error alert alert-block alert-warning hide"></div>
       <span class="btn btn-file btn-primary">
         <span class="fileupload-new">Select file</span>
         <span class="fileupload-exists">Change</span>
-        <input type="file" />
+        <input type="file" name="<%- name %>"/>
       </span>
       <span class="fileupload-preview"></span>
-      <a href="#" class="close fileupload-exists" data-dismiss="fileupload" 
+      <a href="#" class="close fileupload-exists" data-dismiss="fileupload"
         style="float: none">×</a>
-    </div>
+      <div class="progress progress-striped active">
+        <div class="progress-bar" role="progressbar" style="width: 0%"
+          aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+          <span class="sr-only"></span>
+        </div>
+      </div>
+    </form>
   </script>
 
   <script type="text/template" id="community-edit-tmpl">
@@ -301,7 +309,6 @@
             placeholder="Description" value="<%- description %>"/> 
         </div>
       </div>
-
     </form>
   </script>
 

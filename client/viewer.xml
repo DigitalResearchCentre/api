@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Module>
     <ModulePrefs 
-        title="Profile"
+        title="Viewer"
         author_email="xiaohan.zhang@arts.usask.com"
         author="DRC"
         height="800"
@@ -13,7 +13,9 @@
         <![CDATA[
         <script>gadgets.window.adjustHeight();</script>
         <script type="text/javascript">
-            window.location = 'http://textualcommunities.usask.ca/api/client/profile.html'
+            var Liferay = window.Liferay || parent.Liferay;
+            var groupId = Liferay.ThemeDisplay.getScopeGroupId();
+            window.location = 'http://textualcommunities.usask.ca/interface/indexajax.html?groupId=' + groupId;
         </script>
         ]]>
     </Content>

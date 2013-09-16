@@ -152,16 +152,83 @@ require([
   });
 
   var FileUploadView = ModalView.extend({
-    bodyTemplate: _.template($('#file-upload-tmpl').html()),
+    bodyTemplate: function() {
+      return _.template($('#file-upload-tmpl').html(), this.getTmplData());
+    },
     buttons: [
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-primary", text: 'Upload', event: 'onUpload'},
     ],
+    render: function() {
+      ModalView.prototype.render.apply(this, arguments);
+      this.$('.progress').hide();
+      return this;
+    },
     onBack: function() {
       (new EditCommunityView({model: this.model})).render();
     },
     onUpload: function() {
-      this.onBack();
+      var $progress = this.$('form.fileupload .progress').show()
+        , $srOnly = $('.sr-only', $progress)
+        , $error = this.$('.error')
+        , that = this
+      ;
+      $error.addClass('hide');
+      $.ajax({
+        url: this.getUrl(),
+        type: 'POST',
+        data: this.getFormData(),
+        contentType: false,
+        processData: false,
+        xhr: function() {  // Custom XMLHttpRequest
+          var myXhr = $.ajaxSettings.xhr();
+          console.log(myXhr);
+          if(myXhr.upload){ // Check if upload property exists
+            myXhr.upload.addEventListener('progress', function(e) {
+              if(e.lengthComputable){
+                var percent = (e.loaded*100.0)/e.total + '%';
+                $progress.attr({
+                  'aria-valuenow': e.loaded, 'aria-valuemax': e.total
+                }).width();
+                $srOnly.text(percent);
+              } 
+            }, false); // For handling the progress of the upload
+          }
+          return myXhr;
+        },
+        success: function() {
+          that.onBack();
+        },
+        error: function(resp) {
+          that.$('.error').removeClass('hide').html(resp.responseText);
+        }
+      });
+    }
+  });
+
+  var TEIUploadView = FileUploadView.extend({
+    getTmplData: function() {
+      return {name: 'xml'};
+    },
+    getFormData: function() {
+      var $form = this.$('form.fileupload');
+      return new FormData($form[0]);
+    },
+    getUrl: function() {
+      return urls.get(['community:upload-tei', {community: this.model.id}]);
+    }
+  });
+
+  var JSUploadView = FileUploadView.extend({
+    getTmplData: function() {
+      return {name: 'js'};
+    },
+    getFormData: function() {
+      var $form = this.$('form.fileupload');
+      return new FormData($form[0]);
+    },
+    getUrl: function() {
+      return urls.get(['community:upload-js', {community: this.model.id}]);
     }
   });
 
@@ -171,7 +238,8 @@ require([
     },
     events: {
       'click .edit-refsdecl': 'onEditRefsDeclClick',
-      'click .add-text-file': 'onAddTextFileClick'
+      'click .add-text-file': 'onAddTextFileClick',
+      'click .add-js': 'onAddJSClick',
     },
     buttons: [
       {cls: "btn-default", text: 'Close', event: 'onClose'},
@@ -194,7 +262,19 @@ require([
       (new EditRefsDeclView({community: this.model})).render();
     },
     onAddTextFileClick: function() {
-      (new FileUploadView({model: this.model})).render();
+      (new TEIUploadView({model: this.model})).render();
+    },
+    onAddJSClick: function() {
+      (new JSUploadView({model: this.model})).render();
+    },
+    onAddCSSClick: function() {
+      (new CSSUploadView({model: this.model})).render();
+    },
+    onAddImageZipClick: function() {
+      (new ImageZipUploadView({model: this.model})).render();
+    },
+    onAddDTDClick: function() {
+      (new DTDUploadView({model: this.model})).render();
     }
   });
 

@@ -1,21 +1,21 @@
-import random, shutil, zipfile
-from django.db.models import Q, query
-from django.http import HttpResponseRedirect, Http404, HttpResponse
+import random
+import shutil
+import zipfile
+from django.db.models import query
+from django.http import Http404, HttpResponse
 from django.conf.urls import patterns, url
-from django.views.generic.detail import DetailView
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
-import django_filters
 from rest_framework import status
 from rest_framework import permissions
 from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
-
+from rest_framework.decorators import api_view
 from api.models import *
 from api.serializers import *
+
 
 @api_view(['GET'])
 @ensure_csrf_cookie
@@ -27,6 +27,7 @@ def api_root(request, format=None):
         'texts': reverse('text-list', request=request),
         'users': reverse('user-list', request=request),
     })
+
 
 class RelationView(
     mixins.ListModelMixin, generics.RetrieveAPIView
@@ -59,7 +60,7 @@ class RelationView(
     def api_handler(self, request, *args, **kwargs):
         obj = self.get_object()
         result = getattr(obj, self.func)
-        if callable(result): 
+        if callable(result):
             kwargs = dict(self.kwargs)
             for k in self.reserve_kwargs:
                 kwargs.pop(k, None)
@@ -101,7 +102,7 @@ class RelationView(
         except Exception as exc:
             response = self.handle_exception(exc)
 
-        self.response = self.finalize_response(request, response, 
+        self.response = self.finalize_response(request, response,
                                                *args, **kwargs)
         return self.response
 
@@ -114,6 +115,7 @@ class RelationView(
             u = '%s/%s' % (func, conf.pop('func_args', '')) if func else ''
             args.append(url(r'^%s$' % u, cls.as_view(**conf),))
         return patterns(*args)
+
 
 class CreateModelMixin(object):
     """
@@ -138,6 +140,7 @@ class CreateModelMixin(object):
         except (TypeError, KeyError):
             return {}
 
+
 class APIView(CreateModelMixin, RelationView):
 
     def _post_transcribe(self, request, *args, **kwargs):
@@ -149,7 +152,8 @@ class APIView(CreateModelMixin, RelationView):
         zoom = self.kwargs.get('zoom', None)
         x = self.kwargs.get('x', None)
         y = self.kwargs.get('y', None)
-        return self.get_response(self.get_object().has_image(zoom=zoom, x=x, y=y))
+        return self.get_response(
+            self.get_object().has_image(zoom=zoom, x=x, y=y))
 
     def _post_js(self, request, *args, **kwargs):
         data = request.DATA.copy()
@@ -171,10 +175,10 @@ class APIView(CreateModelMixin, RelationView):
             settings.MEDIA_ROOT, str(random.getrandbits(64)))
         os.makedirs(tmp_zip_path, 0755)
         try:
-            zip_file = zipfile.ZipFile(zip_file) 
+            zip_file = zipfile.ZipFile(zip_file)
             zip_file.extractall(tmp_zip_path)
-            file_lst = [f for f in os.listdir(tmp_zip_path) 
-                       if f[0] not in ('.', '_')]
+            file_lst = [
+                f for f in os.listdir(tmp_zip_path) if f[0] not in ('.', '_')]
             content_folder = tmp_zip_path
             if len(file_lst) == 1:
                 only_file = os.path.join(tmp_zip_path, file_lst[0])
@@ -190,15 +194,16 @@ class APIView(CreateModelMixin, RelationView):
         finally:
             shutil.rmtree(tmp_zip_path)
 
+
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
     serializer_class = CommunitySerializer
     permission_classes = (permissions.AllowAny,)
 
+
 class CommunityList(generics.ListCreateAPIView):
     model = Community
     serializer_class = CommunitySerializer
-    permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
         response = self.create(request, *args, **kwargs)
@@ -208,6 +213,7 @@ class CommunityList(generics.ListCreateAPIView):
                 role=Group.objects.get(name='Leader'))
         return response
 
+
 class DocDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Doc
     serializer_class = DocSerializer
@@ -216,7 +222,7 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
     post_form = None
     put_form = None
 
-    
+
 #    has_image = serializers.URLField(source='has_image')
 #    has_transcript = serializers.HyperlinkedRelatedField(
 #        many=True, read_only=True, view_name='transcript-detail')
@@ -224,26 +230,32 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
 class DocList(generics.ListCreateAPIView):
     model = Doc
     serializer_class = DocSerializer
-    
+
+
 class EntityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Entity
     serializer_class = EntitySerializer
+
 
 class EntityList(generics.ListCreateAPIView):
     model = Entity
     serializer_class = EntitySerializer
 
+
 class TextDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Text
     serializer_class = TextSerializer
+
 
 class TextList(generics.ListCreateAPIView):
     model = Text
     serializer_class = TextSerializer
 
+
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     model = APIUser
     serializer_class = APIUserSerializer
+
 
 class UserInfo(UserDetail):
     permission_classes = (permissions.IsAuthenticated,)
@@ -255,17 +267,21 @@ class UserInfo(UserDetail):
     def dispatch(self, request, *args, **kwargs):
         return super(UserInfo, self).dispatch(request, *args, **kwargs)
 
+
 class RefsDeclList(generics.ListCreateAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer
+
 
 class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer
 
+
 class UserList(generics.ListCreateAPIView):
     model = APIUser
     serializer_class = APIUserSerializer
+
 
 class TranscribeView(generics.CreateAPIView):
     model = Revision

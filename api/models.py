@@ -1,4 +1,8 @@
-import math, os, StringIO, datetime, re
+import math
+import os
+import StringIO
+import datetime
+import re
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -12,6 +16,7 @@ from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
 from lxml import etree
 
+
 class Community(models.Model):
     name = models.CharField(max_length=20, unique=True)
     abbr = models.CharField(
@@ -20,8 +25,9 @@ class Community(models.Model):
     long_name = models.CharField(max_length=80, blank=True)
     description = models.TextField(blank=True)
     # Not a real m2m here, there is a unique community in database level
-    docs = models.ManyToManyField('Doc', limit_choices_to={'depth':0})
-    entities = models.ManyToManyField('Entity', limit_choices_to={'depth':0})
+    docs = models.ManyToManyField('Doc', limit_choices_to={'depth': 0})
+    entities = models.ManyToManyField('Entity',
+                                      limit_choices_to={'depth': 0})
     font = models.CharField(max_length=255, blank=True)
     refsdecls = models.ManyToManyField('RefsDecl', blank=True)
     members = models.ManyToManyField(User, through='Membership')
@@ -51,7 +57,7 @@ class Community(models.Model):
         return self.js_set.all()
 
     def info(self):
-        num_pages = num_entity_parts= num_transcribed = num_committed = 0
+        num_pages = num_entity_parts = num_transcribed = num_committed = 0
         for doc in self.docs.all():
             pages = doc.get_descendants().filter(depth=2)
             num_pages += pages.count()
@@ -71,7 +77,7 @@ class Community(models.Model):
     def get_or_create_doc(self, name):
         try:
             return self.docs.get(name=name)
-        except Doc.DoesNotExist, e:
+        except Doc.DoesNotExist:
             doc = Doc.objects.create(name=name, label='document')
             self.docs.add(doc)
             return doc
@@ -94,6 +100,7 @@ class Membership(models.Model):
     def __unicode__(self):
         return unicode('%s %s %s' % (
             unicode(self.community), unicode(self.role), unicode(self.user),))
+
 
 def get_first(qs):
     lst = list(qs[:1])
@@ -179,7 +186,7 @@ class Node(NS_Node):
             roots.append(root)
         while stack:
             node = stack.pop(0)
-            objs.append(cls(**node['data'])) 
+            objs.append(cls(**node['data']))
             children = node.get('children', [])
             stack.extend(children)
         if objs:
@@ -203,7 +210,7 @@ def get_urn(urn_base, doc=None, entity=None):
     for det in (doc, entity):
         if det is not None:
             parts += [
-                '%s=%s' % (ancestor.label, ancestor.name) 
+                '%s=%s' % (ancestor.label, ancestor.name)
                 for ancestor in det.get_ancestors()
             ] + ['%s=%s' % (det.label, det.name)]
     return ':'.join(parts)
@@ -260,7 +267,7 @@ class Entity(DETNode):
             first_doc = first.is_text_in()
             last_doc = last.is_text_in()
             qs = Doc.objects.filter(
-                tree_id=first_doc.tree_id, 
+                tree_id=first_doc.tree_id,
                 rgt__gt=first_doc.lft, lft__lt=last_doc.lft
             )
             if doc is None:
@@ -318,7 +325,7 @@ class Doc(DETNode):
             tiler_image = self.tilerimage
             try:
                 return HttpResponse(
-                    tiler_image.read_tile(*map(int, (zoom, x, y,))), 
+                    tiler_image.read_tile(*map(int, (zoom, x, y,))),
                     content_type='image/jpeg'
                 )
             except TypeError, e:
@@ -342,11 +349,11 @@ class Doc(DETNode):
 
     def _get_texts_bound(self):
         text = self.has_text_in()
-        # find the first text with a doc 
+        # find the first text with a doc
         # which isnot decensder of current doc
         # TODO: exclude is slow
         return text and get_first(text.get_all_after()
-                                  .exclude(doc__tree_id=self.tree_id, 
+                                  .exclude(doc__tree_id=self.tree_id,
                                            doc__lft__gte=self.lft,
                                            doc__rgt__lte=self.rgt)
                                   .exclude(doc__isnull=True))
@@ -360,7 +367,7 @@ class Doc(DETNode):
         bound = self._get_texts_bound()
         if bound is not None:
             q &= Q(text__lft__lt=bound.lft)
-        
+
         # TODO: <div><pb/><l>line1</l>text mix with entity<l>line2</l></div>
         # in above case "text mix with entity" will lost
         qs = Entity.objects.filter(q)
@@ -411,9 +418,9 @@ class Doc(DETNode):
                     img.size[0]*int(rend[2])/100,
                     img.size[1]*int(rend[3])/100,
                 ))
-                
+
                 rend_path = os.path.join(
-                    os.path.dirname(file.name), 
+                    os.path.dirname(file.name),
                     '%s_%s.jpg' % (
                         os.path.basename(urlsplit(file.name)[2]).split('.')[0],
                         ','.join(rend)
@@ -437,7 +444,7 @@ def _to_xml(qs, exclude=None):
     prev_depth = 0
 
     nodes = list(qs)
-    if nodes: 
+    if nodes:
         q = deque()
         node = nodes[0]
 
@@ -461,7 +468,7 @@ def _to_xml(qs, exclude=None):
                     prev_doc is not None and doc.lft < prev_doc.lft
                 ):
                     doc = prev_doc
-                extra_attrs['prev'] = get_urn(urn_base, doc=doc, 
+                extra_attrs['prev'] = get_urn(urn_base, doc=doc,
                                               entity=ancestor.entity)
             prev_el = parent_el = ancestor.to_el(parent=parent_el,
                                                  extra_attrs=extra_attrs)
@@ -503,7 +510,7 @@ class Text(Node):
     def get_urn(self):
         doc = self.is_text_in()
         return get_urn(
-            doc.get_community().get_urn_base(), 
+            doc.get_community().get_urn_base(),
             doc=doc, entity=self.is_text_of()
         )
 
@@ -565,7 +572,7 @@ class Text(Node):
 
     def load_bulk_el(self, bulk_el, after=None, docs=[]):
         bulk_data = self.__class__._el_to_bulk_data(bulk_el, docs=docs)
-        
+
         roots = Text.load_bulk(bulk_data)
         attrs = []
         for el, root in zip(bulk_el, roots):
@@ -594,7 +601,7 @@ class Text(Node):
     @classmethod
     def _el_to_bulk_data(cls, bulk_el, docs=[]):
         bulk_data = []
-        for el in bulk_el: 
+        for el in bulk_el:
             tag = el.xpath('local-name()')
             data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '',}
             if tag in ('pb', 'cb', 'lb') and docs:
@@ -654,7 +661,7 @@ class Text(Node):
                 'tag': tag, 'children': []
             }
             q[-1]['children'].append(prev)
-            i += 1 
+            i += 1
         doc = Doc.load_bulk([doc_root])[0]
         doc = Doc.objects.get(pk=doc.pk)
         text.doc = doc
@@ -682,7 +689,7 @@ class Text(Node):
             el = etree.XML(
                 tmpl.render(Context({
                     'community_identifier': community.abbr,
-                    'document_identifier': doc_name, 
+                    'document_identifier': doc_name,
                 }))
             )
             for crefpattern in el.getchildren():
@@ -720,7 +727,7 @@ class Text(Node):
         docs = list(doc.get_descendants())
         text.load_bulk_el(text_el.getchildren(), docs=docs)
         text = Text.objects.get(pk=text.pk)
-        Header.objects.create(xml=etree.tostring(header_el), text=text)       
+        Header.objects.create(xml=etree.tostring(header_el), text=text)
         return text
 
     @classmethod
@@ -730,7 +737,7 @@ class Text(Node):
 #        community = Community.objects.get(abbr=community_urn.split(':')[-1])
 #
 #        value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', urn)
-#        
+#
 #        parent = None
 #        for label, name in value_pairs:
 #            if label == 'document':
@@ -890,7 +897,7 @@ class TilerImage(models.Model):
     width = models.IntegerField()
     height = models.IntegerField()
     # the length of dir name, so 2 means for doc.pk == 12345
-    # we will save image at: 12/34/5/image/foo.jpg 
+    # we will save image at: 12/34/5/image/foo.jpg
     PATH = 'tiler_image'
     DIR_LENGTH = 2
     TILE_SIZE = 256
@@ -901,7 +908,7 @@ class TilerImage(models.Model):
     def base_path(self):
         doc_pk = str(self.doc_id)
         return os.path.join(self.PATH, *[
-            doc_pk[i:i+self.DIR_LENGTH] 
+            doc_pk[i:i+self.DIR_LENGTH]
             for i in range(0, len(doc_pk), self.DIR_LENGTH)
         ])
 
@@ -975,12 +982,12 @@ def css_upload_to(instance, filename):
 class CSS(models.Model):
     community = models.ForeignKey(Community)
     css = models.FileField(upload_to=css_upload_to, verbose_name='CSS')
-    
+
     class Meta:
         db_table = 'det_css'
 
     def name(self):
-        return os.path.basename(self.css.name) 
+        return os.path.basename(self.css.name)
 
 def js_upload_to(instance, filename):
     path = os.path.join('js', str(instance.community_id))
@@ -992,9 +999,9 @@ def js_upload_to(instance, filename):
 class JS(models.Model):
     community = models.ForeignKey(Community)
     js = models.FileField(upload_to=js_upload_to, verbose_name='Javascript')
-    
+
     def name(self):
-        return os.path.basename(self.js.name) 
+        return os.path.basename(self.js.name)
 
 class RefsDecl(models.Model):
     DOC_TYPE, ENTITY_TYPE, TEXT_TYPE = range(3)
@@ -1043,4 +1050,67 @@ class Task(models.Model):
 
     class Meta:
         unique_together = ('doc', 'user', )
+
+
+class Partner(models.Model):
+    name = models.CharField(max_length=80, unique=True, db_index=True)
+    sso_url = models.URLField()
+
+    class Meta:
+        db_table = 'community_partner'
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+    def get_community(self, mapping_id=None):
+        return self.communitymapping_set.get(mapping_id=mapping_id).community
+
+    def get_user(self, mapping_id):
+        return self.usermapping_set.get(mapping_id=mapping_id).user
+
+class PartnerMapping(models.Model):
+    partner = models.ForeignKey(Partner)
+    mapping_id = models.IntegerField(null=False, blank=False)
+
+    class Meta:
+        abstract = True
+        unique_together = ('partner', 'mapping_id')
+
+class CommunityMapping(PartnerMapping):
+    community = models.OneToOneField(Community)
+
+    class Meta:
+        db_table = 'community_communitymapping'
+
+    def get_friendly_url(self):
+        url = settings.PARTNER_URL + 'get-group'
+        url = 'http://www.textualcommunities.usask.ca/textual-community-portlet/api/secure/jsonws/myorganization/' + 'get-group'
+        values = {'groupId': self.mapping_id}
+        data = urllib.urlencode(values)
+        req = urllib2.Request(url, data)
+        resp = urllib2.urlopen(req)
+        resp_json = json.loads(resp.read())
+        return settings.PARTNER_BASE + '/web' + resp_json['friendlyURL']
+
+    def rss(self):
+        url = '%s/home/-/activities/rss' % self.get_friendly_url()
+        feed = feedparser.parse(url)
+        dates = {}
+        for entry in feed.entries:
+            date = entry.updated.split('T')[0]
+            if not dates.has_key(date):
+                dates[date] = []
+            dates[date].append(entry)
+        return dates
+
+
+class UserMapping(PartnerMapping):
+    user = models.OneToOneField(User)
+
+    class Meta:
+        db_table = 'community_usermapping'
+
+    def __unicode__(self):
+        return u'%s %s %s'  % (self.user, self.partner, self.mapping_id)
+
 
