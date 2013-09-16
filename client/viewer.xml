@@ -12,10 +12,18 @@
     <Content type="html">
         <![CDATA[
         <script>gadgets.window.adjustHeight();</script>
+        <script src="http://code.jquery.com/jquery-1.10.2.min.js"
+            type="text/javascript"></script>
         <script type="text/javascript">
             var Liferay = window.Liferay || parent.Liferay;
             var groupId = Liferay.ThemeDisplay.getScopeGroupId();
-            window.location = 'http://textualcommunities.usask.ca/interface/indexajax.html?groupId=' + groupId;
+            var base = 'http://textualcommunities.usask.ca';
+            var url = base + '/api/partner/1/get_community/' + 
+                groupId + '/?format=json';
+            $.get(url, function(data){
+                window.location = base +
+                    '/interface/indexajax.html?community=' + data.id;
+            });
         </script>
         ]]>
     </Content>
