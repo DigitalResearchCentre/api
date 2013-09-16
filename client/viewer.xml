@@ -22,7 +22,7 @@
                 groupId + '/?format=json';
             $.get(url, function(data){
                 window.location = base +
-                    '/interface/indexajax.html?community=' + data.id;
+                    '/interface/indexajax.html?community=' + data.abbr;
             });
         </script>
         ]]>
