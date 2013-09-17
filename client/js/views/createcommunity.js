@@ -1,4 +1,6 @@
-define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
+define([
+  'jquery', 'underscore', './modal', 'editcommunity'
+], function($, _, ModalView, EditCommunityView) {
   var CreateCommunityView = ModalView.extend({
     bodyTemplate: _.template($('#community-form-tmpl').html()),
     buttons: [

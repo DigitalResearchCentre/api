@@ -1,4 +1,7 @@
-define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
+define([
+  'jquery', 'underscore',
+  './modal', './editdocrefsdecl', './editentityrefsdecl'
+], function($, _, ModalView, EditDocRefsDeclView, EditEntityRefsDeclView) {
   var EditCommunityView = ModalView.extend({
     bodyTemplate: function() {
       return _.template($('#community-edit-tmpl').html())(this.model.toJSON());
@@ -27,10 +30,16 @@ define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
       }, this));
     },
     onEditDocRefsDeclClick: function(){
-      (new EditDocRefsDeclView({community: this.model})).render();
+      var view = new EditDocRefsDeclView({
+        community: this.model, onBack: this.render
+      });
+      return view.render();
     },
     onEditEntityRefsDeclClick: function(){
-      (new EditEntityRefsDeclView({community: this.model})).render();
+      var view = new EditEntityRefsDeclView({
+        community: this.model, onBack: this.render
+      });
+      return view.render();
     },
     onAddTextFileClick: function() {
       (new TEIUploadView({model: this.model})).render();

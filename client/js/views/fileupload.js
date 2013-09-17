@@ -12,9 +12,6 @@ define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
       this.$('.progress').hide();
       return this;
     },
-    onBack: function() {
-      (new EditCommunityView({model: this.model})).render();
-    },
     onUpload: function() {
       var $progress = this.$('form.fileupload .progress').show()
         , $srOnly = $('.sr-only', $progress)

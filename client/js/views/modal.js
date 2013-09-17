@@ -8,11 +8,16 @@ define(['backbone', 'jquery', 'underscore'], function(Backbone, $, _) {
         $footer.append($('<button/>').addClass('btn '+btn.cls)
                        .text(btn.text).click(_.bind(this[btn.event], this)));
       }, this);
+      this.delegateEvents();
       return this;
     },
     onClose: function() {
       this.$el.modal('hide');
-    } 
+    },
+    onBack: function() {
+      var back = this.options.back;
+      if (back) return back();
+    }
   });
   return ModalView;   
 });
