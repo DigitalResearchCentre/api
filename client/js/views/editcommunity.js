@@ -31,13 +31,13 @@ define([
     },
     onEditDocRefsDeclClick: function(){
       var view = new EditDocRefsDeclView({
-        community: this.model, onBack: this.render
+        community: this.model, onBack: _.bind(this.render, this)
       });
       return view.render();
     },
     onEditEntityRefsDeclClick: function(){
       var view = new EditEntityRefsDeclView({
-        community: this.model, onBack: this.render
+        community: this.model, onBack: _.bind(this.render, this)
       });
       return view.render();
     },

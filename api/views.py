@@ -1,8 +1,10 @@
+import os
 import random
 import shutil
 import zipfile
-from django.db.models import query
-from django.http import Http404, HttpResponse
+from django.db import models
+from django.http import HttpResponse
+from django.conf import settings
 from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
@@ -13,8 +15,12 @@ from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from api.models import *
-from api.serializers import *
+from api.models import (
+    Community, Membership, Entity, Doc, Text, Revision, RefsDecl,
+    APIUser, Group, )
+from api.serializers import (
+    CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
+    TextSerializer, RevisionSerializer, RefsDeclSerializer, )
 
 
 @api_view(['GET'])
@@ -41,7 +47,7 @@ class RelationView(
     def get_response(self, result):
         if self.response_class is not None:
             return self.response_class(result)
-        elif isinstance(result, query.QuerySet):
+        elif isinstance(result, models.query.QuerySet):
             self.queryset = result
             return self.list(self.request)
         elif isinstance(result, models.Manager):
@@ -52,8 +58,6 @@ class RelationView(
             return Response(serializer.data)
         elif isinstance(result, HttpResponse):
             return result
-        elif result is None:
-            raise Http404
         else:
             return Response(result)
 
@@ -194,6 +198,11 @@ class APIView(CreateModelMixin, RelationView):
         finally:
             shutil.rmtree(tmp_zip_path)
 
+    def _post_add_refsdecl(self, request, *args, **kwargs):
+        refsdecl = RefsDecl.objects.get(pk=self.kwargs['refsdecl_pk'])
+        self.get_object().add(refsdecl)
+        return refsdecl
+
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
@@ -271,6 +280,14 @@ class UserInfo(UserDetail):
 class RefsDeclList(generics.ListCreateAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer
+
+    def post(self, request, *args, **kwargs):
+        resp = super(RefsDeclList, self).post(request, *args, **kwargs)
+        community_pk = request.DATA.get('community')
+        if community_pk:
+            community = Community.objects.get(pk=community_pk)
+            community.refsdecls.add(self.object)
+        return resp
 
 
 class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):

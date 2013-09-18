@@ -15,7 +15,7 @@ define(['backbone', 'jquery', 'underscore'], function(Backbone, $, _) {
       this.$el.modal('hide');
     },
     onBack: function() {
-      var back = this.options.back;
+      var back = this.options.onBack;
       if (back) return back();
     }
   });

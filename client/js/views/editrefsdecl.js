@@ -1,4 +1,6 @@
-define(['jquery', 'underscore', 'models'], function($, _, models) {
+define([
+  'jquery', 'underscore', 'models', './modal'
+], function($, _, models, ModalView) {
   var RefsDecl = models.RefsDecl
     , baseRefsDecls = new (models.Collection.extend({
     rest: ['community:refsdecls', {pk: 1}]
@@ -48,7 +50,9 @@ define(['jquery', 'underscore', 'models'], function($, _, models) {
       this.$('#form-field-template').val(refsdecl.get('template'));
     },
     onBaseRefsDeclChange: function() {
-      var refsdecl = baseRefsDecls.get(this.$('.base-refsdecl-dropdown').val());
+      var id = this.$('.base-refsdecl-dropdown').val()
+        , refsdecl = baseRefsDecls.get(id)
+      ;
       if (refsdecl) {
         this.$('#form-field-xml').val(refsdecl.get('xml'));
         this.$('#form-field-template').val(refsdecl.get('template'));
@@ -62,11 +66,22 @@ define(['jquery', 'underscore', 'models'], function($, _, models) {
       return this;
     },
     onSave: function() {
-      var data = {type: 0};
-      _.each(['name', 'description', 'xml', 'template'], function(name) {
-        data[name] = this.$('#form-field-'+name).val();
-      }, this);
-      return this.model.save(data);
+      var refsdecls = this.refsdecls
+        , model = this.model
+        , isNew = model.isNew()
+      ;
+      if (isNew) {
+        model.set('community', this.options.community.id);
+      }
+      return model.save().done(_.bind(function() {
+        var $alert = this.$('.alert-success').removeClass('hide').show();
+        this.$('.error').addClass('hide');
+        _.delay(function() {$alert.hide(1000);}, 2000);
+        if (isNew) refsdecls.fetch();
+      }, this)).fail(_.bind(function(resp) {
+        this.$('.error').removeClass('hide').html(resp.responseText);
+      }, this));
+
     }
   });
 

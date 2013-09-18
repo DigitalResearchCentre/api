@@ -317,14 +317,9 @@
   <script type="text/template" id="refsdecl-form-tmpl">
     <form role="form" class="form-horizontal">
       <h4>Your referencing system</h4>
-      <span class="help-block">
-        We use the Text Encoding Initiative 'refDecls' element to map 
-        document sections (pages, columns) to encodings 
-        (&lt;pb/&gt;, &lt;cb/&gt;, etc.),
-        map textual entity sections (chapters, paragraphs; poems, stanzas, lines)
-        to encodings (&lt;div/&gt;, &lt;p/&gt;, &lt;lg/&gt;, &lt;l/&gt;, etc.).
-      </span>
+      <span class="intro help-block"></span>
       <div class="error alert alert-block alert-warning hide"></div>
+      <div class="alert alert-success fade in hide">Save Success !</div>
       <div class="form-group">
         <label class="col-md-2 control-label">Choose RefsDecl</label>
         <div class="col-md-10">
@@ -362,7 +357,7 @@
           <textarea class="form-control" id="form-field-xml"/> 
         </div>
       </div>
-      <div class="form-group">
+      <div class="form-group refsdecl-template">
         <label for="form-field-template" class="col-md-2 control-label"
           >Template</label>
         <div class="col-md-10">
