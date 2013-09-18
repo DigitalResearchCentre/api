@@ -81,7 +81,6 @@ define([
       }, this)).fail(_.bind(function(resp) {
         this.$('.error').removeClass('hide').html(resp.responseText);
       }, this));
-
     }
   });
 

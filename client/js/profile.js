@@ -25,7 +25,7 @@ require.config({
     codemirror: {exports: 'CodeMirror'},
     'codemirror-xml': ['codemirror']
   }
-  , urlArgs: 'bust=' + (new Date).getTime()
+  , urlArgs: 'bust=' + (new Date()).getTime()
 });
 
 require([
@@ -89,7 +89,9 @@ require([
     initialize: function() {
       var memberships = this.memberships = this.model.getMemberships();
       this.listenTo(memberships, 'add', this.onMembershipAdd);
-      if (!memberships.isFetched()) memberships.fetch();
+      if (!memberships.isFetched()) {
+        memberships.fetch();
+      }
     },
     onMembershipAdd: function(membership) {
       var $memberships = this.$('.membership-list');
@@ -108,13 +110,15 @@ require([
     }
   });
 
-  auth.isLogin() || auth.login().fail(function() {
-    //window.location = 'http://textualcommunities.usask.ca/drc/auth/login/?next=http://textualcommunities.usask.ca/api/client/profile.html';
-  });
+  if (!auth.isLogin()) {
+    auth.login().fail(function() {
+      //window.location = 'http://textualcommunities.usask.ca/drc/auth/login/?next=http://textualcommunities.usask.ca/api/client/profile.html';
+    });
+  } 
   auth.on('login', function() {
     var app = new ProfileView({model: auth.getUser()});
     app.render();
-  })
+  });
 });
 
 /*
