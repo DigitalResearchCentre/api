@@ -925,18 +925,11 @@ class TilerImage(models.Model):
     def read_tile(self, zoom, x, y):
         if zoom > self.max_zoom():
             raise Tile.DoesNotExist('zoom: %s' % zoom)
-        radio = self.width / float(self.height)
-        size = 2**zoom
-        w = self.width / self.TILE_SIZE
-        h = self.height / self.TILE_SIZE
-        if radio > 1:
-            if w > size:
-                w = size
-            h = w/radio
-        else:
-            if h > size:
-                h = size
-            w = h * radio
+        w = float(self.width) / self.TILE_SIZE
+        h = float(self.height) / self.TILE_SIZE
+        while w > zoom or h > zoom:
+            w /= 2.0
+            h /= 2.0
 
         if x > w or y > h:
             return ''
