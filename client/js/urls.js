@@ -12,6 +12,7 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
     'user:communities': '/users/{pk}/communities/',
     'user:memberships': '/users/{pk}/memberships/',
     'doc': '/docs/',
+    'doc:xml': '/docs/{pk}/xml/',
     'refsdecl': '/refsdecl/',
   };
 
@@ -21,7 +22,9 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
         , kwargs = {}
         , path
       ;
-      search || (search = {});
+      if (!search) {
+        search = {};
+      }
       if (_.isArray(name)) {
         kwargs = name[1];
         name = name[0];
