@@ -114,17 +114,18 @@ define([
           }
           return myXhr;
         },
-        success: function() {
-          //that.onBack();
-        },
         error: function(resp) {
           that.$('.error').removeClass('hide').html(resp.responseText);
         }
-      });
+      }).done(_.bind(function() {
+        var $alert = this.$('.alert-success').removeClass('hide').show();
+        this.$('.error').addClass('hide');
+        _.delay(function() {$alert.hide(1000);}, 2000);
+      }, this)).fail(_.bind(function(resp) {
+        this.$('.error').removeClass('hide').html(resp.responseText);
+      }, this));
     }
-
   });
-
 
   var GetDocXMLView = EditDocView.extend({
     buttons: [
@@ -274,7 +275,9 @@ define([
       })).render();
     },
     onAddImageZipClick: function() {
-      (new ImageZipUploadView({model: this.model})).render();
+      (new ImageZipUploadView({
+        model: this.model, onBack:  _.bind(this.render, this)
+      })).render();
     },
     onGetDocXMLClick: function() {
       (new GetDocXMLView({
