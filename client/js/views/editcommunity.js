@@ -1,12 +1,17 @@
 define([
   'jquery', 'underscore',
-  './modal', './editdocrefsdecl', './editentityrefsdecl'
-], function($, _, ModalView, EditDocRefsDeclView, EditEntityRefsDeclView) {
+  './modal', './editdocrefsdecl', './editentityrefsdecl', './editdoc',
+  'text!tmpl/communityedit.html'
+], function(
+  $, _, 
+  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, EditDocView, tmpl
+) {
   var EditCommunityView = ModalView.extend({
     bodyTemplate: function() {
-      return _.template($('#community-edit-tmpl').html())(this.model.toJSON());
+      return _.template(tmpl)(this.model.toJSON());
     },
     events: {
+      'click .doc-menu': 'onDocMenuClick',
       'click .edit-doc-refsdecl': 'onEditDocRefsDeclClick',
       'click .edit-entity-refsdecl': 'onEditEntityRefsDeclClick',
       'click .add-text-file': 'onAddTextFileClick',
@@ -55,6 +60,11 @@ define([
     },
     onAddDTDClick: function() {
       (new DTDUploadView({model: this.model})).render();
+    },
+    onDocMenuClick: function() {
+      (new EditDocView({
+        model: this.model, onBack: _.bind(this.render, this)
+      })).render();
     }
   });
   return EditCommunityView;

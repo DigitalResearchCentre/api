@@ -15,7 +15,7 @@ define([
     buttons: [
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-default", text: 'Close', event: 'onClose'},
-      {cls: "btn-primary", text: 'Save', event: 'onSave'},
+      {cls: "btn-primary", text: 'Save', event: 'onSave'}
     ],
     initialize: function() {
       this.refsdecls = this.options.community.getRefsdecls();
