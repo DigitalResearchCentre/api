@@ -1,5 +1,5 @@
 define([
-  'jquery', 'underscore', './modal', 'editcommunity'
+  'jquery', 'underscore', './modal', './editcommunity'
 ], function($, _, ModalView, EditCommunityView) {
   var CreateCommunityView = ModalView.extend({
     bodyTemplate: _.template($('#community-form-tmpl').html()),
@@ -21,7 +21,12 @@ define([
       }, this)).fail(_.bind(function(resp) {
         this.$('.error').removeClass('hide').html(resp.responseText);
       }, this));
-    }
+    },
+    render: function() {
+      ModalView.prototype.render.apply(this, arguments);
+      this.$('.modal-title').text('Create Community');
+      return this;
+    },
   });
   return CreateCommunityView;   
 });

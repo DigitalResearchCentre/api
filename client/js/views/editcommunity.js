@@ -244,6 +244,11 @@ define([
       {cls: "btn-default", text: 'Close', event: 'onClose'},
       {cls: "btn-primary", text: 'Update', event: 'onUpdate'},
     ],
+    render: function() {
+      ModalView.prototype.render.apply(this, arguments);
+      this.$('.modal-title').text(this.model.get('name'));
+      return this;
+    },
     onUpdate: function() {
       var data = {};
       _.each([

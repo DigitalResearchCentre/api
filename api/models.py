@@ -106,9 +106,11 @@ def get_first(qs):
     lst = list(qs[:1])
     return lst[0] if lst else None
 
+
 def get_last(qs):
     lst = list(qs.reverse()[:1])
     return lst[0] if lst else None
+
 
 class Node(NS_Node):
     class Meta:
@@ -129,14 +131,14 @@ class Node(NS_Node):
     # deep first prev (include ancestor)
     def get_df_prev(self):
         return get_first(self.__class__.objects
-                .filter(lft__lt=self.lft, tree_id=self.tree_id)
-                .order_by('-lft'))
+                         .filter(lft__lt=self.lft, tree_id=self.tree_id)
+                         .order_by('-lft'))
 
     # deep first prev (include ancestor)
     def get_df_next(self):
         return get_first(self.__class__.objects
-                .filter(lft__gt=self.lft, tree_id=self.tree_id)
-                .order_by('lft'))
+                         .filter(lft__gt=self.lft, tree_id=self.tree_id)
+                         .order_by('lft'))
 
     def get_all_after(self):
         return (self.__class__.objects
@@ -297,6 +299,7 @@ class Entity(DETNode):
             except Entity.DoesNotExist, e:
                 entity = entity.add_child(label=label, name=name)
         return entity
+
 
 class Doc(DETNode):
 
@@ -662,6 +665,7 @@ class Text(Node):
             }
             q[-1]['children'].append(prev)
             i += 1
+        print 'prepare load_bulk'
         doc = Doc.load_bulk([doc_root])[0]
         doc = Doc.objects.get(pk=doc.pk)
         text.doc = doc

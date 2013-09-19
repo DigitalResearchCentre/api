@@ -30,10 +30,10 @@ require.config({
 
 require([
   'jquery', 'underscore', 'backbone', 
-  'models', 'views/editcommunity', 'urls', 'auth',
+  'models', 'views/createcommunity', 'views/editcommunity', 'urls', 'auth',
   'bootstrap', 'bootstrap-fileupload', 'codemirror-xml', 'jquery.cookie'
 ], function(
-  $, _, Backbone, models, EditCommunityView, urls, auth
+  $, _, Backbone, models, CreateCommunityView, EditCommunityView, urls, auth
 ) {
   var Community = models.Community;
 
