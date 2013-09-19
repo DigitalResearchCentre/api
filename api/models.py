@@ -3,6 +3,7 @@ import os
 import StringIO
 import datetime
 import re
+import base64
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -952,29 +953,42 @@ class TilerImage(models.Model):
     def save_tile(self, tile, zoom, x, y):
         blob = StringIO.StringIO()
         tile.save(blob, 'JPEG')
-        tile, _ = Tile.objects.get_or_create(
-            image=self, zoom=zoom, x=x, y=y
-        )
-        tile.blob = blob.getvalue()
-        tile.save()
+        Tile.objects.get_or_create(
+            image=self, zoom=zoom, x=x, y=y, blob=blob.getvalue())
         blob.close()
         return tile
 
 
-class BlobField(models.Field):
+class Base64Field(models.Field):
+
     def db_type(self, connection):
         return 'blob'
+
+    def contribute_to_class(self, cls, name):
+        if self.db_column is None:
+            self.db_column = name
+        self.field_name = name + '_base64'
+        super(Base64Field, self).contribute_to_class(cls, self.field_name)
+        setattr(cls, name, property(self.get_data, self.set_data))
+
+    def get_data(self, obj):
+        return base64.decodestring(getattr(obj, self.field_name))
+
+    def set_data(self, obj, data):
+        setattr(obj, self.field_name, base64.encodestring(data))
+
 
 class Tile(models.Model):
     image = models.ForeignKey(TilerImage)
     zoom = models.IntegerField()
     x = models.IntegerField()
     y = models.IntegerField()
-    blob = BlobField()
+    blob = Base64Field()
 
     class Meta:
         unique_together = (('image', 'zoom', 'x', 'y'), )
         db_table = 'det_tile'
+
 
 def css_upload_to(instance, filename):
     path = os.path.join('css', str(instance.community_id))
