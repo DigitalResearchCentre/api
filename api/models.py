@@ -954,7 +954,8 @@ class TilerImage(models.Model):
         blob = StringIO.StringIO()
         tile.save(blob, 'JPEG')
         Tile.objects.get_or_create(
-            image=self, zoom=zoom, x=x, y=y, blob=blob.getvalue())
+            image=self, zoom=zoom, x=x, y=y,
+            blob_base64=base64.encodestring(blob.getvalue()))
         blob.close()
         return tile
 
