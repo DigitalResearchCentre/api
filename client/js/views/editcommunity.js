@@ -1,20 +1,55 @@
 define([
   'jquery', 'underscore',
-  './modal', './editdocrefsdecl', './editentityrefsdecl', './editdoc',
+  './modal', './editdocrefsdecl', './editentityrefsdecl',
   'text!tmpl/communityedit.html'
 ], function(
   $, _, 
-  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, EditDocView, tmpl
+  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, tmpl
 ) {
+  var EditDocView = ModalView.extend({
+    bodyTemplate: function() {
+      return _.template($('#edit-doc-tmpl').html());
+    },
+    buttons: [
+      {cls: "btn-default", text: 'Back', event: 'onBack'},
+      {cls: "btn-default", text: 'Close', event: 'onClose'},
+    ],
+    initialize: function(options) {
+      var buttons = this.buttons
+        , docs = this.docs = this.model.getDocs()
+      ;
+      _.each(options.buttons, function(btn) {
+        buttons.push(btn);
+      });
+      this.listenTo(docs, 'add', this.onDocAdd);
+      if (!docs.isFetched()) {
+        this.docs.fetch();
+      }
+    },
+    onDocAdd: function(doc) {
+      this.$('.doc-dropdown').append(
+        $('<option/>').val(doc.id).text(doc.get('name')));
+    },
+    render: function() {
+      ModalView.prototype.render.apply(this, arguments);
+      this.docs.each(this.onDocAdd, this);
+      return this;
+    }
+  });
+
   var EditCommunityView = ModalView.extend({
     bodyTemplate: function() {
       return _.template(tmpl)(this.model.toJSON());
     },
     events: {
-      'click .doc-menu': 'onDocMenuClick',
+      'click .add-text-file': 'onAddTextFileClick',
+      'click .add-image-zip': 'onAddImageZipClick',
+      'click .get-doc-xml': 'onGetDocXMLClick',
+      'click .rename-doc': 'onRenameDocClick',
+      'click .delete-doc': 'onDeleteDocClick',
+      'click .delete-doc-text': 'onDeleteDocTextClick',
       'click .edit-doc-refsdecl': 'onEditDocRefsDeclClick',
       'click .edit-entity-refsdecl': 'onEditEntityRefsDeclClick',
-      'click .add-text-file': 'onAddTextFileClick',
       'click .add-js': 'onAddJSClick',
     },
     buttons: [
@@ -49,14 +84,26 @@ define([
     onAddTextFileClick: function() {
       (new TEIUploadView({model: this.model})).render();
     },
+    onAddImageZipClick: function() {
+      (new ImageZipUploadView({model: this.model})).render();
+    },
+    onGetDocXMLClick: function() {
+      (new EditDocView({model: this.model})).render();
+    },
+    onRenameDocClick: function() {
+      (new TEIUploadView({model: this.model})).render();
+    },
+    onDeleteDocClick: function() {
+      (new TEIUploadView({model: this.model})).render();
+    },
+    onDeleteDocTextClick: function() {
+      (new TEIUploadView({model: this.model})).render();
+    },
     onAddJSClick: function() {
       (new JSUploadView({model: this.model})).render();
     },
     onAddCSSClick: function() {
       (new CSSUploadView({model: this.model})).render();
-    },
-    onAddImageZipClick: function() {
-      (new ImageZipUploadView({model: this.model})).render();
     },
     onAddDTDClick: function() {
       (new DTDUploadView({model: this.model})).render();

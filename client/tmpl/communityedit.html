@@ -1,6 +1,32 @@
 <nav class="navbar navbar-default" role="navigation">
   <ul class="nav navbar-nav">
-    <li><a class="btn" role="button" data-target="#">Documents</a></li>
+    <li class="dropdown">
+      <a id="doc-menu" class="btn dropdown-toggle" role="button" 
+        data-toggle="dropdown" data-target="#"
+        >Documents<span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu" role="menu" 
+        aria-labelledby="refsdecl-menu">
+        <li role="presentation"><a class="btn add-text-file" 
+          role="menuitem" data-target="#">Add Text File</a>
+        </li>
+        <li role="presentation"><a class="btn add-image-zip" 
+          role="menuitem" data-target="#">Add Image Zip</a>
+        </li>
+        <li role="presentation"><a class="btn get-doc-xml" 
+          role="menuitem" data-target="#">Get Document XML</a>
+        </li>
+        <li role="presentation"><a class="btn rename-doc" 
+          role="menuitem" data-target="#">Rename Document</a>
+        </li>
+        <li role="presentation"><a class="btn delete-doc" 
+          role="menuitem" data-target="#">Delete Document</a>
+        </li>
+        <li role="presentation"><a class="btn delete-doc-text" 
+          role="menuitem" data-target="#">Delete Document Text</a>
+        </li>
+      </ul>
+    </li>
     <li class="dropdown">
       <a id="refsdecl-menu" class="btn dropdown-toggle" role="button" 
         data-toggle="dropdown" data-target="#">

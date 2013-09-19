@@ -2,7 +2,7 @@ define([
   'jquery', 'underscore', './modal'
 ], function($, _, ModalView) {
   'use strict';
-  var DocListView = ModalView.extend({
+  var EditDocView = ModalView.extend({
     buttons: [
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-default", text: 'Close', event: 'onClose'}
@@ -14,21 +14,8 @@ define([
       }
     },
     onDocAdd: function(doc) {
-      _.each([{
-        text: 'Add Image Zip', click: ''
-      }, {
-        text: 'Get XML', click: ''
-      }, {
-        text: 'Rename', click: ''
-      }, {
-        text: 'Delete Text', click: ''
-      }, {
-        text: 'Delete', click: ''
-      }], function(data) {
-        $('<button/>').
-          addClass('btn btn-primary').
-          text(data.text).click(data.click);
-      });
+      this.$('.doc-dropdown').append(
+        $('<option/>').val(doc.id).text(doc.get('name')));
     },
     render: function() {
       ModalView.prototype.render.apply(this, arguments);
@@ -37,5 +24,5 @@ define([
     }
   });
 
-  return DocListView;
+  return EditDocView;
 });
