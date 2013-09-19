@@ -928,11 +928,11 @@ class TilerImage(models.Model):
         size = 2 ** zoom
         w = float(self.width) / self.TILE_SIZE
         h = float(self.height) / self.TILE_SIZE
-        while w >= size or h >= size:
+        while w > size or h > size:
             w /= 2.0
             h /= 2.0
 
-        if x > w or y > h:
+        if x >= w or y >= h:
             return ''
 
         try:
