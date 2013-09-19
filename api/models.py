@@ -925,9 +925,10 @@ class TilerImage(models.Model):
     def read_tile(self, zoom, x, y):
         if zoom > self.max_zoom():
             raise Tile.DoesNotExist('zoom: %s' % zoom)
+        size = 2 ** zoom
         w = float(self.width) / self.TILE_SIZE
         h = float(self.height) / self.TILE_SIZE
-        while w > zoom or h > zoom:
+        while w > size or h > size:
             w /= 2.0
             h /= 2.0
 
