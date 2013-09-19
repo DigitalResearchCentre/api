@@ -13,6 +13,9 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
     'user:memberships': '/users/{pk}/memberships/',
     'doc': '/docs/',
     'doc:xml': '/docs/{pk}/xml/',
+    'doc:text': '/docs/{pk}/has_text_in/',
+    'doc:upload-image-zip': '/docs/{pk}/upload_zip/',
+    'text': '/texts/',
     'refsdecl': '/refsdecl/',
   };
 

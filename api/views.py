@@ -3,7 +3,7 @@ import random
 import shutil
 import zipfile
 from django.db import models
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.conf import settings
 from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -45,6 +45,8 @@ class RelationView(
     permission_classes = [permissions.AllowAny]
 
     def get_response(self, result):
+        if result is None:
+            raise Http404
         if self.response_class is not None:
             return self.response_class(result)
         elif isinstance(result, models.query.QuerySet):

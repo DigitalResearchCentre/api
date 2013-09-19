@@ -30,38 +30,12 @@ require.config({
 
 require([
   'jquery', 'underscore', 'backbone', 
-  'models', 'views/fileupload', 'views/editcommunity', 'urls', 'auth',
+  'models', 'views/editcommunity', 'urls', 'auth',
   'bootstrap', 'bootstrap-fileupload', 'codemirror-xml', 'jquery.cookie'
 ], function(
-  $, _, Backbone, models, FileUploadView, EditCommunityView, urls, auth
+  $, _, Backbone, models, EditCommunityView, urls, auth
 ) {
   var Community = models.Community;
-
-  var TEIUploadView = FileUploadView.extend({
-    getTmplData: function() {
-      return {name: 'xml'};
-    },
-    getFormData: function() {
-      var $form = this.$('form.fileupload');
-      return new FormData($form[0]);
-    },
-    getUrl: function() {
-      return urls.get(['community:upload-tei', {community: this.model.id}]);
-    }
-  });
-
-  var JSUploadView = FileUploadView.extend({
-    getTmplData: function() {
-      return {name: 'js'};
-    },
-    getFormData: function() {
-      var $form = this.$('form.fileupload');
-      return new FormData($form[0]);
-    },
-    getUrl: function() {
-      return urls.get(['community:upload-js', {community: this.model.id}]);
-    }
-  });
 
   var MembershipRowView = Backbone.View.extend({
     tagName: 'tr',

@@ -47,11 +47,27 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
     rest: ['community'], model: Community
   }))();
 
+  var Text = Model.extend({
+    rest: 'text'
+  });
+
   var Doc = Model.extend({
     rest: 'doc',
     getXML: function() {
       return $.get(
         urls.get(['doc:xml', {pk: this.id}], {format: 'json', page_size: 0}));
+    },
+    getText: function() {
+      var id = this.id;
+      if (!this._text) {
+        this._text = new (Text.extend({url: function() {
+          if (this.isNew()) {
+            return urls.get(['doc:text', {pk: id}], {format: 'json'});
+          }
+          return Text.prototype.url.apply(this, arguments);
+        }}))();
+      }
+      return this._text;
     }
   });
 
