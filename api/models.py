@@ -4,6 +4,10 @@ import StringIO
 import datetime
 import re
 import base64
+import json
+import urllib
+import urllib2
+import feedparser
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -13,6 +17,8 @@ from django.contrib.auth.models import User, Group
 from django.utils.timezone import utc
 from django.template import Template, Context
 from django.core import files
+from PIL import Image
+from urlparse import urlsplit
 from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
 from lxml import etree
@@ -32,6 +38,9 @@ class Community(models.Model):
     font = models.CharField(max_length=255, blank=True)
     refsdecls = models.ManyToManyField('RefsDecl', blank=True)
     members = models.ManyToManyField(User, through='Membership')
+
+    def __unicode__(self):
+        return unicode(self.name)
 
     def delete(self, *args, **kwargs):
         self.get_docs().delete()
@@ -170,7 +179,7 @@ class Node(NS_Node):
                 data.update({'tree_id': tree_id, 'depth': depth, 'lft': lft})
                 children = node.get('children', [])
                 if children:
-                    _prepare_bulk_data(children, tree_id, depth+1, lft+1)
+                    _prepare_bulk_data(children, tree_id, depth + 1, lft + 1)
                     data['rgt'] = children[-1]['data']['rgt'] + 1
                 else:
                     data['rgt'] = lft + 1
@@ -197,7 +206,6 @@ class Node(NS_Node):
         return roots
 
 
-
 class DETNode(Node):
     name = models.CharField(max_length=63)
     label = models.CharField(max_length=63)
@@ -208,6 +216,7 @@ class DETNode(Node):
     def get_community(self):
         return self.get_root().community_set.get()
 
+
 def get_urn(urn_base, doc=None, entity=None):
     parts = [urn_base]
     for det in (doc, entity):
@@ -217,6 +226,7 @@ def get_urn(urn_base, doc=None, entity=None):
                 for ancestor in det.get_ancestors()
             ] + ['%s=%s' % (det.label, det.name)]
     return ':'.join(parts)
+
 
 class Entity(DETNode):
 
@@ -277,8 +287,8 @@ class Entity(DETNode):
                 qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
             else:
                 qs = qs.filter(tree_id=doc.tree_id,
-                               lft__range=(doc.lft+1, doc.rgt - 1),
-                               depth=doc.get_depth()+1)
+                               lft__range=(doc.lft + 1, doc.rgt - 1),
+                               depth=doc.get_depth() + 1)
             result = result | qs
         return result
 
@@ -297,13 +307,12 @@ class Entity(DETNode):
         for label, name in value_pairs[1:]:
             try:
                 entity = entity.get_children().get(label=label, name=name)
-            except Entity.DoesNotExist, e:
+            except Entity.DoesNotExist:
                 entity = entity.add_child(label=label, name=name)
         return entity
 
 
 class Doc(DETNode):
-
     cur_rev = models.OneToOneField(
         'Revision', related_name='+', null=True, blank=True
     )
@@ -311,7 +320,7 @@ class Doc(DETNode):
     def has_text_in(self):
         try:
             return self.text
-        except Text.DoesNotExist, e:
+        except Text.DoesNotExist:
             return None
 
     def xml(self, entity_pk=None):
@@ -332,9 +341,9 @@ class Doc(DETNode):
                     tiler_image.read_tile(*map(int, (zoom, x, y,))),
                     content_type='image/jpeg'
                 )
-            except TypeError, e:
+            except TypeError:
                 return tiler_image
-        except TilerImage.DoesNotExist, e:
+        except TilerImage.DoesNotExist:
             return None
 
     def cur_revision(self):
@@ -378,7 +387,7 @@ class Doc(DETNode):
         if entity_pk is not None:
             entity = Entity.objects.get(pk=entity_pk)
             qs = qs.filter(tree_id=entity.tree_id,
-                           lft__range=(entity.lft+1, entity.rgt - 1))
+                           lft__range=(entity.lft + 1, entity.rgt - 1))
         qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
         return qs.distinct().order_by('text__lft')
 
@@ -407,7 +416,7 @@ class Doc(DETNode):
                     with self.ImageFile(f, rend=rend) as img:
                         try:
                             pb.tilerimage.delete()
-                        except TilerImage.DoesNotExist, e:
+                        except TilerImage.DoesNotExist:
                             pass
                         tiler_image = TilerImage(doc=pb)
                         tiler_image.image.save(file_name, img)
@@ -417,10 +426,10 @@ class Doc(DETNode):
             if rend and len(rend) == 4:
                 img = Image.open(file)
                 rend_img = img.crop((
-                    img.size[0]*int(rend[0])/100,
-                    img.size[1]*int(rend[1])/100,
-                    img.size[0]*int(rend[2])/100,
-                    img.size[1]*int(rend[3])/100,
+                    img.size[0] * int(rend[0]) / 100,
+                    img.size[1] * int(rend[1]) / 100,
+                    img.size[0] * int(rend[2]) / 100,
+                    img.size[1] * int(rend[3]) / 100,
                 ))
 
                 rend_path = os.path.join(
@@ -503,6 +512,7 @@ def _to_xml(qs, exclude=None):
             prev_depth = depth
             prev_el = node.to_el(parent=parent_el)
     return etree.tostring(root_el)[len('<TEI>'):- len('</TEI>')]
+
 
 class Text(Node):
     tag = models.CharField(max_length=15)
@@ -607,13 +617,13 @@ class Text(Node):
         bulk_data = []
         for el in bulk_el:
             tag = el.xpath('local-name()')
-            data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '',}
+            data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '', }
             if tag in ('pb', 'cb', 'lb') and docs:
                 data['doc'] = docs.pop(0)
             try:
                 entity_urn = el.attrib.pop('{%s}entity' % el.nsmap.get('det'))
                 data['entity'] = Entity.get_or_create_by_urn(entity_urn)
-            except KeyError, e:
+            except KeyError:
                 pass
             children = cls._el_to_bulk_data(el.getchildren(), docs=docs)
             bulk_data.append({'data': data, 'children': children})
@@ -657,7 +667,6 @@ class Text(Node):
             if tag_list.index(prev['tag']) < index:
                 i = 1
                 q.append(prev)
-            p = q[-1]
             while q and tag_list.index(q[-1]['tag']) >= index:
                 q.pop()
             prev = {
@@ -678,13 +687,13 @@ class Text(Node):
         try:
             doc_refsdecl = community.refsdecls.get(
                 name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
-        except RefsDecl.DoesNotExist, e:
+        except RefsDecl.DoesNotExist:
             doc_refsdecl = root_com.refsdecls.get(
                 name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
         try:
             entity_refsdecl = community.refsdecls.get(
                 name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
-        except RefsDecl.DoesNotExist, e:
+        except RefsDecl.DoesNotExist:
             entity_refsdecl = root_com.refsdecls.get(
                 name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
 
@@ -774,9 +783,11 @@ class Attr(models.Model):
     class Meta:
         unique_together = (('text', 'name'), )
 
+
 class Header(models.Model):
     xml = models.TextField()
     text = models.ForeignKey(Text)
+
 
 class Revision(models.Model):
     # only support page level document
@@ -790,7 +801,7 @@ class Revision(models.Model):
     text = models.TextField(blank=True)
 
     class Meta:
-        ordering = ['-create_date',]
+        ordering = ['-create_date', ]
 
     def _commit_el(self, parent_el, ancestors, after=None):
         bulk_el = parent_el.getchildren()
@@ -819,7 +830,7 @@ class Revision(models.Model):
                 # TODO
                 try:
                     body = root.get_children().get(tag='body')
-                except Text.DoesNotExist, e:
+                except Text.DoesNotExist:
                     body = root.add_child(tag='body')
                     body = Text.objects.get(pk=body.pk)
                 pb = body.add_child(tag='pb', doc=doc)
@@ -828,7 +839,7 @@ class Revision(models.Model):
             pb = Text.objects.get(pk=pb.pk)
 
         root_el = etree.XML(self.text)
-        if not root_el.nsmap.has_key('det'):
+        if 'det' not in root_el.nsmap:
             tmp = etree.XML(
                 '<xml xmlns:det="http://textualcommunities.usask.ca/"/>'
             )
@@ -887,12 +898,14 @@ class Revision(models.Model):
         self.save()
         return {'success': 'success'}
 
+
 def get_path(instance, filename):
     path = os.path.join(instance.base_path(), 'image')
     full_path = os.path.join(settings.MEDIA_ROOT, path)
     if not os.path.isdir(full_path):
         os.makedirs(full_path, 0755)
     return os.path.join(path, filename)
+
 
 class TilerImage(models.Model):
     image = models.ImageField(
@@ -913,13 +926,13 @@ class TilerImage(models.Model):
     def base_path(self):
         doc_pk = str(self.doc_id)
         return os.path.join(self.PATH, *[
-            doc_pk[i:i+self.DIR_LENGTH]
+            doc_pk[i:i + self.DIR_LENGTH]
             for i in range(0, len(doc_pk), self.DIR_LENGTH)
         ])
 
     def max_zoom(self):
         return int(math.ceil(
-            math.log(max(self.width, self.height)/float(self.TILE_SIZE), 2)
+            math.log(max(self.width, self.height) / float(self.TILE_SIZE), 2)
         ))
 
     def read_tile(self, zoom, x, y):
@@ -937,7 +950,7 @@ class TilerImage(models.Model):
 
         try:
             tile = self.tile_set.get(zoom=zoom, x=x, y=y)
-        except Tile.DoesNotExist, e:
+        except Tile.DoesNotExist:
             self.image.open()
             tile = self.save_tile(
                 Tiler().create_tile(self.image, zoom, x, y), zoom, x, y
@@ -992,6 +1005,7 @@ def css_upload_to(instance, filename):
         os.makedirs(full_path, 0755)
     return os.path.join(path, filename)
 
+
 class CSS(models.Model):
     community = models.ForeignKey(Community)
     css = models.FileField(upload_to=css_upload_to, verbose_name='CSS')
@@ -1002,6 +1016,7 @@ class CSS(models.Model):
     def name(self):
         return os.path.basename(self.css.name)
 
+
 def js_upload_to(instance, filename):
     path = os.path.join('js', str(instance.community_id))
     full_path = os.path.join(settings.MEDIA_ROOT, path)
@@ -1009,12 +1024,14 @@ def js_upload_to(instance, filename):
         os.makedirs(full_path, 0755)
     return os.path.join(path, filename)
 
+
 class JS(models.Model):
     community = models.ForeignKey(Community)
     js = models.FileField(upload_to=js_upload_to, verbose_name='Javascript')
 
     def name(self):
         return os.path.basename(self.js.name)
+
 
 class RefsDecl(models.Model):
     DOC_TYPE, ENTITY_TYPE, TEXT_TYPE = range(3)
@@ -1035,6 +1052,7 @@ class RefsDecl(models.Model):
             display_name += ' - ' + self.description
         return display_name
 
+
 class APIUser(User):
     class Meta:
         proxy = True
@@ -1048,6 +1066,7 @@ class APIUser(User):
     def tasks(self):
         return self.task_set.all()
 
+
 class Task(models.Model):
     ASSIGNED, IN_PROGRESS, SUBMITTED, COMPLETED = range(4)
     STATUS_CHOICES = (
@@ -1058,7 +1077,7 @@ class Task(models.Model):
     )
     doc = models.ForeignKey(Doc)
     user = models.ForeignKey(User)
-    community = models.ForeignKey(Community) # TODO: not nessary
+    community = models.ForeignKey(Community)  # TODO: not nessary
     status = models.IntegerField(choices=STATUS_CHOICES, default=ASSIGNED)
 
     class Meta:
@@ -1081,6 +1100,7 @@ class Partner(models.Model):
     def get_user(self, mapping_id):
         return self.usermapping_set.get(mapping_id=mapping_id).user
 
+
 class PartnerMapping(models.Model):
     partner = models.ForeignKey(Partner)
     mapping_id = models.IntegerField(null=False, blank=False)
@@ -1088,6 +1108,7 @@ class PartnerMapping(models.Model):
     class Meta:
         abstract = True
         unique_together = ('partner', 'mapping_id')
+
 
 class CommunityMapping(PartnerMapping):
     community = models.OneToOneField(Community)
@@ -1111,7 +1132,7 @@ class CommunityMapping(PartnerMapping):
         dates = {}
         for entry in feed.entries:
             date = entry.updated.split('T')[0]
-            if not dates.has_key(date):
+            if date not in dates:
                 dates[date] = []
             dates[date].append(entry)
         return dates
@@ -1124,6 +1145,4 @@ class UserMapping(PartnerMapping):
         db_table = 'community_usermapping'
 
     def __unicode__(self):
-        return u'%s %s %s'  % (self.user, self.partner, self.mapping_id)
-
-
+        return u'%s %s %s' % (self.user, self.partner, self.mapping_id)
