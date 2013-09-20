@@ -98,6 +98,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.cache.FetchFromCacheMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'api.middleware.QueryLogMiddleware',
     # Uncomment the next line for simple clickjacking protection:
