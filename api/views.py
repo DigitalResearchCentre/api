@@ -8,6 +8,7 @@ from django.conf import settings
 from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_control
 
 from rest_framework import status
 from rest_framework import permissions
@@ -154,6 +155,8 @@ class APIView(CreateModelMixin, RelationView):
         data.update({'doc': self.kwargs['pk']})
         return self.create(data=data)
 
+
+    @method_decorator(cache_control(private=True, max_age=3600))
     def _get_has_image(self, request, *args, **kwargs):
         zoom = self.kwargs.get('zoom', None)
         x = self.kwargs.get('x', None)
