@@ -2,6 +2,9 @@ import os
 import random
 import shutil
 import zipfile
+import json
+import urllib
+import urllib2
 from django.db import models
 from django.http import HttpResponse, Http404
 from django.conf import settings
@@ -18,7 +21,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from api.models import (
     Community, Membership, Entity, Doc, Text, Revision, RefsDecl,
-    APIUser, Group, )
+    APIUser, Group, UserMapping, CommunityMapping, Partner)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, )
@@ -155,7 +158,6 @@ class APIView(CreateModelMixin, RelationView):
         data.update({'doc': self.kwargs['pk']})
         return self.create(data=data)
 
-
     @method_decorator(cache_control(private=True, max_age=3600))
     def _get_has_image(self, request, *args, **kwargs):
         zoom = self.kwargs.get('zoom', None)
@@ -218,6 +220,34 @@ class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
 class CommunityList(generics.ListCreateAPIView):
     model = Community
     serializer_class = CommunitySerializer
+
+    def create_liferay_community(self):
+        url = settings.PARTNER_URL + 'add-organization'
+        values = {
+            'parentOrganizationId': 11888,
+            'name': self.object.name,
+            'comments': self.object.description
+        }
+        try:
+            values['userId'] = self.request.user.usermapping.mapping_id
+        except UserMapping.DoesNotExist:
+            pass
+        data = urllib.urlencode(values)
+        req = urllib2.Request(url, data)
+        resp = urllib2.urlopen(req)
+        resp_json = json.loads(resp.read())
+        url = settings.PARTNER_URL + 'get-group-by-organization-id'
+        values = {
+            'organizationId': resp_json['organizationId'],
+        }
+        data = urllib.urlencode(values)
+        resp = urllib2.urlopen(urllib2.Request(url, data))
+        resp_json = json.loads(resp.read())
+        partner = Partner.objects.get(pk=1)
+        CommunityMapping.objects.create(
+            community=self.object, mapping_id=resp_json['groupId'],
+            partner=partner
+        )
 
     def post(self, request, *args, **kwargs):
         response = self.create(request, *args, **kwargs)
