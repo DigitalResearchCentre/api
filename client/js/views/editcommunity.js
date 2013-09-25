@@ -6,6 +6,7 @@ define([
   $, _, urls,
   ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, FileUploadView, tmpl
 ) {
+  var mediaURL = 'http://textualcommunities.usask.ca/media/tc/';
 
   var TEIUploadView = FileUploadView.extend({
     getTmplData: function() {
@@ -35,8 +36,10 @@ define([
       return urls.get(['community:upload-js', {community: this.model.id}]);
     },
     onFileAdd: function(file) {
-      var $li = $(
-        '<li data-pk="' + file.id + '">' + file.get('js') +
+      var url = mediaURL + file.get('js')
+        , $li = $(
+        '<li data-pk="' + file.id + '">' + 
+        '<a target="_blank" href="' + url + '">' + file.get('js') + '</a>' +
         '<a href="#" class="close" style="float: none">×</a>' +
         '</li>')
         , fList = this.getFileList()
@@ -68,8 +71,10 @@ define([
       return this.model.getCSS();
     },
     onFileAdd: function(file) {
-      var $li = $(
-        '<li data-pk="' + file.id + '">' + file.get('css') +
+      var url = mediaURL + file.get('css')
+        , $li = $(
+        '<li data-pk="' + file.id + '">' + 
+        '<a target="_blank" href="' + url + '">' + file.get('css') + '</a>' +
         '<a href="#" class="close" style="float: none">×</a>' +
         '</li>')
         , fList = this.getFileList()
@@ -101,8 +106,11 @@ define([
       return this.model.getDTD();
     },
     onFileAdd: function(file) {
-      var $li = $(
-        '<li data-pk="' + file.id + '">' + file.get('schema') +
+      var url = mediaURL + file.get('schema')
+        , $li = $(
+        '<li data-pk="' + file.id + '">' + 
+        '<a target="_blank" href="' + url + '">' + 
+        file.get('schema') + '</a>' +
         '<a href="#" class="close" style="float: none">×</a>' +
         '</li>')
         , fList = this.getFileList()
