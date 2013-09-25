@@ -167,7 +167,7 @@ class APIView(CreateModelMixin, RelationView):
             self.get_object().has_image(zoom=zoom, x=x, y=y))
 
     def _get_xmlvalidate(self, request, *args, **kwargs):
-        xml = request.DATA.get('xml', None)
+        xml = request.REQUEST.get('xml', None)
         return self.get_response(self.get_object().validate(xml))
 
     def _post_js(self, request, *args, **kwargs):
