@@ -119,8 +119,10 @@ define([
     },
     render: function() {
       FileUploadView.prototype.render.apply(this, arguments);
-      var $ul = $('<ul>Default DTD:</ul>');
+      this.$('.file-list').before('<label>Default DTD:</label>');
+      var $ul = $('<ul></ul>');
       this.$('.file-list').before($ul);
+      this.$('.file-list').before('<label>Community DTD:</label>');
       var dtds = this.model.getDefaultDTD();
       if (dtds.isFetched()){
         dtds.each(function(file) {

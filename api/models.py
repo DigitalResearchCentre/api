@@ -74,7 +74,6 @@ class Community(models.Model):
     def schema(self):
         return self.schema_set.all()
 
-
     def info(self):
         num_pages = num_entity_parts = num_transcribed = num_committed = 0
         for doc in self.docs.all():
