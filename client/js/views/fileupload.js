@@ -34,6 +34,7 @@ define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
         , $srOnly = $('.sr-only', $progress)
         , $error = this.$('.error')
         , that = this
+        , fList = this.getFileList()
       ;
       $error.addClass('hide');
       $.ajax({
@@ -59,6 +60,9 @@ define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
           return myXhr;
         },
         success: function() {
+          if (fList) {
+            fList.fetch();
+          }
           that.onBack();
         },
         error: function(resp) {
