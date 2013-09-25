@@ -142,7 +142,7 @@ define([
             var url = mediaURL + file.get('schema');
             $ul.append(
               '<li data-pk="' + file.id + '">' + 
-              '<a target="_blank" href="' + url + '">' + file.get('css') +
+              '<a target="_blank" href="' + url + '">' + file.get('schema') +
               '</a></li>');
           });
         });
