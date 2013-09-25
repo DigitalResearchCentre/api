@@ -1049,11 +1049,11 @@ class CSS(models.Model):
 
 
 def schema_upload_to(instance, filename):
-    path = os.path.join('upload', 'schema')
+    path = os.path.join('schema', str(instance.community_id))
     full_path = os.path.join(settings.MEDIA_ROOT, path)
     if not os.path.isdir(full_path):
         os.makedirs(full_path, 0755)
-    return os.path.join(path, str(instance.pk))
+    return os.path.join(path, filename)
 
 
 class Schema(models.Model):
