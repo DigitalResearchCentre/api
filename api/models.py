@@ -108,7 +108,7 @@ class Community(models.Model):
             schema = get_first(self.schema())
             if not schema:
                 schema = get_first(Community.get_root_community().schema())
-            dtd = etree.DTD(schema.file)
+            dtd = etree.DTD(schema.schema.file)
             try:
                 doc = etree.XML(xml)
                 if not dtd.validate(doc):
@@ -117,7 +117,7 @@ class Community(models.Model):
                     resp['status'] = 'success'
             except etree.XMLSyntaxError, e:
                 resp['error'] = unicode(e)
-            schema.file.close()
+            schema.schema.file.close()
         return resp
 
     @classmethod
