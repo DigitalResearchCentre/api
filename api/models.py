@@ -757,7 +757,10 @@ class Text(Node):
                     n = ancestor.get('n')
                     if n:
                         path = (n,) + path
-                el.set('{%s}entity' % el.nsmap.get('det'), mp % path)
+                length = - (len(mp.split('%s')) - 1)
+                print length
+                print path[length:]
+                el.set('{%s}entity' % el.nsmap.get('det'), mp % path[length:])
 
         docs = list(doc.get_descendants())
         text.load_bulk_el(text_el.getchildren(), docs=docs)
@@ -887,7 +890,10 @@ class Revision(models.Model):
                     n = ancestor.get('n')
                     if n:
                         path = (n,) + path
-                el.set('{%s}entity' % el.nsmap.get('det'), mp % path)
+                length = - (len(mp.split('%s')) - 1)
+                print length
+                print path[length:]
+                el.set('{%s}entity' % el.nsmap.get('det'), mp % path[length:])
 
         doc.get_descendants().delete()
         doc = Doc.objects.get(pk=doc.pk)
