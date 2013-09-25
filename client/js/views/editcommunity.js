@@ -139,7 +139,11 @@ define([
       }else{
         dtds.fetch().done(function() {
           dtds.each(function(file) {
-            $ul.append('<li>' + file.get('schema') + '</li>');
+            var url = mediaURL + file.get('schema');
+            $ul.append(
+              '<li data-pk="' + file.id + '">' + 
+              '<a target="_blank" href="' + url + '">' + file.get('css') +
+              '</a></li>');
           });
         });
       }
