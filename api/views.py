@@ -166,14 +166,25 @@ class APIView(CreateModelMixin, RelationView):
         return self.get_response(
             self.get_object().has_image(zoom=zoom, x=x, y=y))
 
+    def _get_xmlvalidate(self, request, *args, **kwargs):
+        xml = self.DATA.get('xml', None)
+        return self.get_response(self.get_object().validate(xml))
+
     def _post_js(self, request, *args, **kwargs):
         data = request.DATA.copy()
         data.update({'community': self.kwargs['pk']})
         return self.create(data=data, files=request.FILES)
 
     def _post_css(self, request, *args, **kwargs):
-        print request.DATA
-        return {}
+        data = request.DATA.copy()
+        data.update({'community': self.kwargs['pk']})
+        return self.create(data=data, files=request.FILES)
+
+    def _post_schema(self, request, *args, **kwargs):
+        data = request.DATA.copy()
+        data.update({'community': self.kwargs['pk']})
+        return self.create(data=data, files=request.FILES)
+
 
     def _post_upload_tei(self, request, *args, **kwargs):
         f = request.FILES['xml']

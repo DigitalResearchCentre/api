@@ -3,11 +3,12 @@ from django.conf.urls import patterns, url, include
 from django.contrib import admin
 from rest_framework import generics, permissions
 from api.models import (
-    Community, Entity, Doc, Text, Revision, APIUser, JS, Partner, )
+    Community, Entity, Doc, Text, Revision, APIUser, JS, Partner, Schema, CSS)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, TaskSerializer,
-    MembershipSerializer, CSSSerializer, JSSerializer, TilerImageSerializer,)
+    MembershipSerializer, CSSSerializer, JSSerializer, TilerImageSerializer,
+    SchemaSerializer, CSSSerializer,)
 from api.views import (
     api_root, CommunityList, CommunityDetail, APIView, DocList,
     EntityList, TextDetail, TextList, UserList, UserDetail, RefsDeclList,
@@ -24,6 +25,7 @@ urlpatterns = patterns(
     url(r'^communities/(?P<pk>\d+)/$', CommunityDetail.as_view()),
     url(r'^communities/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
+            {'func': 'xmlvalidate'},
             {'func': 'docs', 'serializer_class': DocSerializer},
             {'func': 'entities', 'serializer_class': EntitySerializer},
             {'func': 'css', 'serializer_class': CSSSerializer},
@@ -34,6 +36,9 @@ urlpatterns = patterns(
                 'methods': ['post'], 'func': 'add_refsdecl',
                 'func_args': '(?P<refsdecl_pk>\d+)',
                 'serializer_class': RefsDeclSerializer
+            }, {
+                'methods': ['post'], 'func': 'dtd',
+                'serializer_class': SchemaSerializer
             }, {
                 'methods': ['post'], 'func': 'js',
                 'serializer_class': JSSerializer
@@ -138,8 +143,13 @@ urlpatterns = patterns(
         }, ], extra={'model': Partner}))),
     url(r'^js/(?P<pk>\d+)/',
         generics.RetrieveUpdateDestroyAPIView.as_view(
-            model=JS, serializer_class=JSSerializer,
-            permission_classes=(permissions.AllowAny,))),
+            model=JS, serializer_class=JSSerializer,)),
+    url(r'^css/(?P<pk>\d+)/',
+        generics.RetrieveUpdateDestroyAPIView.as_view(
+            model=CSS, serializer_class=CSSSerializer,)),
+    url(r'^schema/(?P<pk>\d+)/',
+        generics.RetrieveUpdateDestroyAPIView.as_view(
+            model=Schema, serializer_class=SchemaSerializer,)),
     url(r'^refsdecl/$', RefsDeclList.as_view()),
     url(r'^refsdecl/(?P<pk>\d+)/$', RefsDeclDetail.as_view()),
     url(r'^auth/$', UserInfo.as_view()),

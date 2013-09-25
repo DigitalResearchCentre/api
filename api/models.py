@@ -92,6 +92,27 @@ class Community(models.Model):
             self.docs.add(doc)
             return doc
 
+    def validate(self, xml):
+        resp = {}
+        if not xml:
+            resp['error'] = 'given xml is empty'
+        else:
+            if self.schema:
+                schema = self.schema
+            else:
+                schema = Community.get_root_community().schema
+            dtd = etree.DTD(schema.file)
+            try:
+                doc = etree.XML(xml)
+                if not dtd.validate(doc):
+                    resp['error'] = unicode(dtd.error_log)
+                else:
+                    resp['status'] = 'success'
+            except etree.XMLSyntaxError, e:
+                resp['error'] = unicode(e)
+            schema.file.close()
+        return resp
+
     @classmethod
     def get_root_community(cls):
         return cls.objects.get(abbr='TC')
@@ -1016,6 +1037,24 @@ class CSS(models.Model):
     def name(self):
         return os.path.basename(self.css.name)
 
+
+def schema_upload_to(instance, filename):
+    path = os.path.join('upload', 'schema')
+    full_path = os.path.join(settings.MEDIA_ROOT, path)
+    if not os.path.isdir(full_path):
+        os.makedirs(full_path, 0755)
+    return os.path.join(path, str(instance.pk))
+
+
+class Schema(models.Model):
+    community = models.ForeignKey(Community)
+    schema = models.FileField(upload_to=schema_upload_to)
+
+    class Meta:
+        unique_together = ('community', 'schema', )
+
+    def name(self):
+        return os.path.basename(self.schema.name)
 
 def js_upload_to(instance, filename):
     path = os.path.join('js', str(instance.community_id))
