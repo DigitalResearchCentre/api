@@ -182,6 +182,10 @@ class APIView(CreateModelMixin, RelationView):
 
     def _post_schema(self, request, *args, **kwargs):
         data = request.DATA.copy()
+        community = Community.objects.get(pk=self.kwargs['pk'])
+        qs = community.schema_set.all()
+        if qs.exists():
+            qs.delete()
         data.update({'community': self.kwargs['pk']})
         return self.create(data=data, files=request.FILES)
 

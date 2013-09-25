@@ -7,11 +7,28 @@ define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-primary", text: 'Upload', event: 'onUpload'},
     ],
+    initialize: function() {
+      var fList = this.getFileList();
+      if (fList) {
+        this.listenTo(fList, 'add', this.onFileAdd);
+        if (!fList.isFetched()) {
+          fList.fetch();
+        }
+      }
+    },
     render: function() {
       ModalView.prototype.render.apply(this, arguments);
       this.$('.progress').hide();
+      var fList = this.getFileList();
+      if (fList) {
+        fList.each(this.onFileAdd, this);
+      }
       return this;
     },
+    getFileList: function() {
+      return null;
+    },
+    onFileAdd: function(file) {},
     onUpload: function() {
       var $progress = this.$('form.fileupload .progress').show()
         , $srOnly = $('.sr-only', $progress)

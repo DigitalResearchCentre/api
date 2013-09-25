@@ -24,6 +24,11 @@ from tiler.tiler import Tiler
 from lxml import etree
 
 
+def get_first(qs):
+    lst = list(qs[:1])
+    return lst[0] if lst else None
+
+
 class Community(models.Model):
     name = models.CharField(max_length=20, unique=True)
     abbr = models.CharField(
@@ -66,6 +71,10 @@ class Community(models.Model):
     def js(self):
         return self.js_set.all()
 
+    def schema(self):
+        return get_first(self.schema_set.all())
+
+
     def info(self):
         num_pages = num_entity_parts = num_transcribed = num_committed = 0
         for doc in self.docs.all():
@@ -97,10 +106,9 @@ class Community(models.Model):
         if not xml:
             resp['error'] = 'given xml is empty'
         else:
-            if self.schema:
-                schema = self.schema
-            else:
-                schema = Community.get_root_community().schema
+            schema = self.schema()
+            if not schema:
+                schema = Community.get_root_community().schema()
             dtd = etree.DTD(schema.file)
             try:
                 doc = etree.XML(xml)
@@ -132,10 +140,6 @@ class Membership(models.Model):
         return unicode('%s %s %s' % (
             unicode(self.community), unicode(self.role), unicode(self.user),))
 
-
-def get_first(qs):
-    lst = list(qs[:1])
-    return lst[0] if lst else None
 
 
 def get_last(qs):

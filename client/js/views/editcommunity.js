@@ -6,6 +6,7 @@ define([
   $, _, urls,
   ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, FileUploadView, tmpl
 ) {
+
   var TEIUploadView = FileUploadView.extend({
     getTmplData: function() {
       return {name: 'xml'};
@@ -20,6 +21,9 @@ define([
   });
 
   var JSUploadView = FileUploadView.extend({
+    getFileList: function() {
+      return this.model.getJS();
+    },
     getTmplData: function() {
       return {name: 'js'};
     },
@@ -29,9 +33,109 @@ define([
     },
     getUrl: function() {
       return urls.get(['community:upload-js', {community: this.model.id}]);
+    },
+    onFileAdd: function(file) {
+      var $li = $(
+        '<li data-pk="' + file.id + '">' + file.get('js') +
+        '<a href="#" class="close" style="float: none">×</a>' +
+        '</li>')
+        , fList = this.getFileList()
+      ;
+      $('.close', $li).click(function() {
+        var id = $li.data('pk');
+        fList.get(id).destroy().done(function() {
+          $li.remove();
+        }).fail(function(resp) {
+          this.$('.error').removeClass('hide').html(resp.responseText);
+        });
+      });
+      this.$('.file-list').append($li);
     }
   });
 
+  var CSSUploadView = FileUploadView.extend({
+    getTmplData: function() {
+      return {name: 'css'};
+    },
+    getFormData: function() {
+      var $form = this.$('form.fileupload');
+      return new FormData($form[0]);
+    },
+    getUrl: function() {
+      return urls.get(['community:upload-css', {community: this.model.id}]);
+    },
+    getFileList: function() {
+      return this.model.getCSS();
+    },
+    onFileAdd: function(file) {
+      var $li = $(
+        '<li data-pk="' + file.id + '">' + file.get('css') +
+        '<a href="#" class="close" style="float: none">×</a>' +
+        '</li>')
+        , fList = this.getFileList()
+      ;
+      $('.close', $li).click(function() {
+        var id = $li.data('pk');
+        fList.get(id).destroy().done(function() {
+          $li.remove();
+        }).fail(function(resp) {
+          this.$('.error').removeClass('hide').html(resp.responseText);
+        });
+      });
+      this.$('.file-list').append($li);
+    }
+  });
+
+  var DTDUploadView = FileUploadView.extend({
+    getTmplData: function() {
+      return {name: 'schema'};
+    },
+    getFormData: function() {
+      var $form = this.$('form.fileupload');
+      return new FormData($form[0]);
+    },
+    getUrl: function() {
+      return urls.get(['community:upload-dtd', {community: this.model.id}]);
+    },
+    getFileList: function() {
+      return this.model.getDTD();
+    },
+    onFileAdd: function(file) {
+      var $li = $(
+        '<li data-pk="' + file.id + '">' + file.get('schema') +
+        '<a href="#" class="close" style="float: none">×</a>' +
+        '</li>')
+        , fList = this.getFileList()
+      ;
+      $('.close', $li).click(function() {
+        var id = $li.data('pk');
+        fList.get(id).destroy().done(function() {
+          $li.remove();
+        }).fail(function(resp) {
+          this.$('.error').removeClass('hide').html(resp.responseText);
+        });
+      });
+      this.$('.file-list').append($li);
+    },
+    render: function() {
+      FileUploadView.prototype.render.apply(this, arguments);
+      var $ul = $('<ul>Default DTD:</ul>');
+      this.$('.file-list').before($ul);
+      var dtds = this.model.getDefaultDTD();
+      if (dtds.isFetched()){
+        dtds.each(function(file) {
+          $ul.append('<li>' + file.get('schema') + '</li>');
+        });
+      }else{
+        dtds.fetch().done(function() {
+          dtds.each(function(file) {
+            $ul.append('<li>' + file.get('schema') + '</li>');
+          });
+        });
+      }
+      return this;
+    },
+  });
 
   var EditDocView = ModalView.extend({
     bodyTemplate: function() {
@@ -239,6 +343,8 @@ define([
       'click .edit-doc-refsdecl': 'onEditDocRefsDeclClick',
       'click .edit-entity-refsdecl': 'onEditEntityRefsDeclClick',
       'click .add-js': 'onAddJSClick',
+      'click .add-css': 'onAddCSSClick',
+      'click .add-dtd': 'onAddDTDClick'
     },
     buttons: [
       {cls: "btn-default", text: 'Close', event: 'onClose'},
@@ -305,16 +411,17 @@ define([
       })).render();
     },
     onAddJSClick: function() {
-      (new JSUploadView({model: this.model})).render();
+      (new JSUploadView({
+        model: this.model, onBack: _.bind(this.render, this)
+      })).render();
     },
     onAddCSSClick: function() {
-      (new CSSUploadView({model: this.model})).render();
+      (new CSSUploadView({
+        model: this.model, onBack: _.bind(this.render, this)
+      })).render();
     },
     onAddDTDClick: function() {
-      (new DTDUploadView({model: this.model})).render();
-    },
-    onDocMenuClick: function() {
-      (new EditDocView({
+      (new DTDUploadView({
         model: this.model, onBack: _.bind(this.render, this)
       })).render();
     }

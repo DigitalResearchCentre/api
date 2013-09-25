@@ -1,14 +1,14 @@
 from django.conf import settings
 from django.conf.urls import patterns, url, include
 from django.contrib import admin
-from rest_framework import generics, permissions
+from rest_framework import generics
 from api.models import (
     Community, Entity, Doc, Text, Revision, APIUser, JS, Partner, Schema, CSS)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, TaskSerializer,
     MembershipSerializer, CSSSerializer, JSSerializer, TilerImageSerializer,
-    SchemaSerializer, CSSSerializer,)
+    SchemaSerializer, )
 from api.views import (
     api_root, CommunityList, CommunityDetail, APIView, DocList,
     EntityList, TextDetail, TextList, UserList, UserDetail, RefsDeclList,
@@ -32,12 +32,13 @@ urlpatterns = patterns(
             {'func': 'info'},
             {'func': 'get_refsdecls', 'serializer_class': RefsDeclSerializer},
             {'func': 'js', 'serializer_class': JSSerializer},
+            {'func': 'schema', 'serializer_class': SchemaSerializer},
             {
                 'methods': ['post'], 'func': 'add_refsdecl',
                 'func_args': '(?P<refsdecl_pk>\d+)',
                 'serializer_class': RefsDeclSerializer
             }, {
-                'methods': ['post'], 'func': 'dtd',
+                'methods': ['post'], 'func': 'schema',
                 'serializer_class': SchemaSerializer
             }, {
                 'methods': ['post'], 'func': 'js',

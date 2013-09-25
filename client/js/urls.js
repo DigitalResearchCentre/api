@@ -6,8 +6,13 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',
     'community:refsdecls': '/communities/{pk}/get_refsdecls/',
+    'community:js': '/communities/{pk}/js/',
+    'community:css': '/communities/{pk}/css/',
+    'community:dtd': '/communities/{pk}/schema/',
     'community:upload-tei': '/communities/{community}/upload_tei/',
     'community:upload-js': '/communities/{community}/js/',
+    'community:upload-css': '/communities/{community}/css/',
+    'community:upload-dtd': '/communities/{community}/schema/',
     'user': '/users/',
     'user:communities': '/users/{pk}/communities/',
     'user:memberships': '/users/{pk}/memberships/',
@@ -17,6 +22,9 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
     'doc:upload-image-zip': '/docs/{pk}/upload_zip/',
     'text': '/texts/',
     'refsdecl': '/refsdecl/',
+    'js': '/js/',
+    'css': '/css/',
+    'schema': '/schema/',
   };
 
   return {

@@ -40,6 +40,38 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
         }))();
       }
       return this._refsdecls;
+    },
+    getJS: function() {
+      if (!this._js) {
+        this._js = new (Collection.extend({
+          rest: ['community:js', {pk: this.id}], model: JS
+        }))();
+      }
+      return this._js;
+    },
+    getCSS: function() {
+      if (!this._css) {
+        this._css = new (Collection.extend({
+          rest: ['community:css', {pk: this.id}], model: CSS
+        }))();
+      }
+      return this._css;
+    },
+    getDTD: function() {
+      if (!this._dtd) {
+        this._dtd= new (Collection.extend({
+          rest: ['community:dtd', {pk: this.id}], model: DTD
+        }))();
+      }
+      return this._dtd;
+    },
+    getDefaultDTD: function() {
+      if (!Community._defaultDTD) {
+        Community._defaultDTD = new (Collection.extend({
+          rest: ['community:dtd', {pk: 1}]
+        }))();
+      }
+      return Community._defaultDTD;
     }
   });
 
@@ -98,6 +130,18 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
       return this._memberships;
     }
 
+  });
+
+  var CSS = Model.extend({
+    rest: 'css'
+  });
+
+  var JS = Model.extend({
+    rest: 'js'
+  });
+
+  var DTD = Model.extend({
+    rest: 'schema'
   });
 
   return {
