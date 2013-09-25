@@ -72,7 +72,7 @@ class Community(models.Model):
         return self.js_set.all()
 
     def schema(self):
-        return get_first(self.schema_set.all())
+        return self.schema_set.all()
 
 
     def info(self):
@@ -106,9 +106,9 @@ class Community(models.Model):
         if not xml:
             resp['error'] = 'given xml is empty'
         else:
-            schema = self.schema()
+            schema = get_first(self.schema())
             if not schema:
-                schema = Community.get_root_community().schema()
+                schema = get_first(Community.get_root_community().schema())
             dtd = etree.DTD(schema.file)
             try:
                 doc = etree.XML(xml)
