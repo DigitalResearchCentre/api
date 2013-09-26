@@ -38,7 +38,6 @@ define([
     }
   });
 
-
-
-  return (new AuthUser);
+  return (new AuthUser());
 });
+

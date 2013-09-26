@@ -12,143 +12,73 @@ define([
     getTmplData: function() {
       return {name: 'xml'};
     },
-    getFormData: function() {
-      var $form = this.$('form.fileupload');
-      return new FormData($form[0]);
-    },
     getUrl: function() {
       return urls.get(['community:upload-tei', {community: this.model.id}]);
     }
   });
+  var FileListWithDefaultUploadView = FileUploadView({
+     render: function() {
+      FileUploadView.prototype.render.apply(this, arguments);
+      var name = this.getName()
+        , $ul = $('<ul></ul>')
+        , dtds = this.model.getDefaultDTD()
+      ;
+      this.$('.file-list').before('<label>Default:</label>');
+      this.$('.file-list').before($ul);
+      this.$('.file-list').before('<label>Current:</label>');
+      if (dtds.isFetched()){
+        dtds.each(function(file) {
+          $ul.append('<li>' + file.get(name) + '</li>');
+        });
+      }else{
+        dtds.fetch().done(function() {
+          dtds.each(function(file) {
+            var url = mediaURL + file.get(name);
+            $ul.append(
+              '<li data-pk="' + file.id + '">' + 
+              '<a target="_blank" href="' + url + '">' + file.get(name) +
+              '</a></li>');
+          });
+        });
+      }
+      return this;
+    }
+  });
 
-  var JSUploadView = FileUploadView.extend({
+  var JSUploadView = FileListWithDefaultUploadView.extend({
     getFileList: function() {
       return this.model.getJS();
     },
     getTmplData: function() {
       return {name: 'js'};
     },
-    getFormData: function() {
-      var $form = this.$('form.fileupload');
-      return new FormData($form[0]);
-    },
     getUrl: function() {
       return urls.get(['community:upload-js', {community: this.model.id}]);
-    },
-    onFileAdd: function(file) {
-      var url = mediaURL + file.get('js')
-        , $li = $(
-        '<li data-pk="' + file.id + '">' + 
-        '<a target="_blank" href="' + url + '">' + file.get('js') + '</a>' +
-        '<a href="#" class="close" style="float: none">×</a>' +
-        '</li>')
-        , fList = this.getFileList()
-      ;
-      $('.close', $li).click(function() {
-        var id = $li.data('pk');
-        fList.get(id).destroy().done(function() {
-          $li.remove();
-        }).fail(function(resp) {
-          this.$('.error').removeClass('hide').html(resp.responseText);
-        });
-      });
-      this.$('.file-list').append($li);
     }
   });
 
-  var CSSUploadView = FileUploadView.extend({
+  var CSSUploadView = FileListWithDefaultUploadView.extend({
     getTmplData: function() {
       return {name: 'css'};
-    },
-    getFormData: function() {
-      var $form = this.$('form.fileupload');
-      return new FormData($form[0]);
     },
     getUrl: function() {
       return urls.get(['community:upload-css', {community: this.model.id}]);
     },
     getFileList: function() {
       return this.model.getCSS();
-    },
-    onFileAdd: function(file) {
-      var url = mediaURL + file.get('css')
-        , $li = $(
-        '<li data-pk="' + file.id + '">' + 
-        '<a target="_blank" href="' + url + '">' + file.get('css') + '</a>' +
-        '<a href="#" class="close" style="float: none">×</a>' +
-        '</li>')
-        , fList = this.getFileList()
-      ;
-      $('.close', $li).click(function() {
-        var id = $li.data('pk');
-        fList.get(id).destroy().done(function() {
-          $li.remove();
-        }).fail(function(resp) {
-          this.$('.error').removeClass('hide').html(resp.responseText);
-        });
-      });
-      this.$('.file-list').append($li);
     }
   });
 
-  var DTDUploadView = FileUploadView.extend({
+  var DTDUploadView = FileListWithDefaultUploadView.extend({
     getTmplData: function() {
       return {name: 'schema'};
-    },
-    getFormData: function() {
-      var $form = this.$('form.fileupload');
-      return new FormData($form[0]);
     },
     getUrl: function() {
       return urls.get(['community:upload-dtd', {community: this.model.id}]);
     },
     getFileList: function() {
       return this.model.getDTD();
-    },
-    onFileAdd: function(file) {
-      var url = mediaURL + file.get('schema')
-        , $li = $(
-        '<li data-pk="' + file.id + '">' + 
-        '<a target="_blank" href="' + url + '">' + 
-        file.get('schema') + '</a>' +
-        '<a href="#" class="close" style="float: none">×</a>' +
-        '</li>')
-        , fList = this.getFileList()
-      ;
-      $('.close', $li).click(function() {
-        var id = $li.data('pk');
-        fList.get(id).destroy().done(function() {
-          $li.remove();
-        }).fail(function(resp) {
-          this.$('.error').removeClass('hide').html(resp.responseText);
-        });
-      });
-      this.$('.file-list').append($li);
-    },
-    render: function() {
-      FileUploadView.prototype.render.apply(this, arguments);
-      this.$('.file-list').before('<label>Default DTD:</label>');
-      var $ul = $('<ul></ul>');
-      this.$('.file-list').before($ul);
-      this.$('.file-list').before('<label>Community DTD:</label>');
-      var dtds = this.model.getDefaultDTD();
-      if (dtds.isFetched()){
-        dtds.each(function(file) {
-          $ul.append('<li>' + file.get('schema') + '</li>');
-        });
-      }else{
-        dtds.fetch().done(function() {
-          dtds.each(function(file) {
-            var url = mediaURL + file.get('schema');
-            $ul.append(
-              '<li data-pk="' + file.id + '">' + 
-              '<a target="_blank" href="' + url + '">' + file.get('schema') +
-              '</a></li>');
-          });
-        });
-      }
-      return this;
-    },
+    }
   });
 
   var EditDocView = ModalView.extend({

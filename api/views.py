@@ -175,11 +175,19 @@ class APIView(CreateModelMixin, RelationView):
 
     def _post_js(self, request, *args, **kwargs):
         data = request.DATA.copy()
+        community = Community.objects.get(pk=self.kwargs['pk'])
+        qs = community.js_set.all()
+        if qs.exists():
+            qs.delete()
         data.update({'community': self.kwargs['pk']})
         return self.create(data=data, files=request.FILES)
 
     def _post_css(self, request, *args, **kwargs):
         data = request.DATA.copy()
+        community = Community.objects.get(pk=self.kwargs['pk'])
+        qs = community.css_set.all()
+        if qs.exists():
+            qs.delete()
         data.update({'community': self.kwargs['pk']})
         return self.create(data=data, files=request.FILES)
 
@@ -191,7 +199,6 @@ class APIView(CreateModelMixin, RelationView):
             qs.delete()
         data.update({'community': self.kwargs['pk']})
         return self.create(data=data, files=request.FILES)
-
 
     def _post_upload_tei(self, request, *args, **kwargs):
         f = request.FILES['xml']

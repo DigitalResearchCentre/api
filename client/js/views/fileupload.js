@@ -25,10 +25,43 @@ define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
       }
       return this;
     },
+    getTmplData: function() {
+      return {name: this.getName()};
+    },
+    getFormData: function() {
+      var $form = this.$('form.fileupload');
+      return new FormData($form[0]);
+    },
+    getName: function() {
+      return 'file';
+    },
+    getUrl: function() {
+      return '';
+    },
     getFileList: function() {
       return null;
     },
-    onFileAdd: function(file) {},
+    onFileAdd: function(file) {
+      var name = this.getName()
+        , path = file.get(name)
+        , url = mediaURL + path
+        , $li = $(
+        '<li data-pk="' + file.id + '">' + 
+        '<a target="_blank" href="' + url + '">' + path + '</a>' +
+        '<a href="#" class="close" style="float: none">×</a>' +
+        '</li>')
+        , fList = this.getFileList()
+      ;
+      $('.close', $li).click(function() {
+        var id = $li.data('pk');
+        fList.get(id).destroy().done(function() {
+          $li.remove();
+        }).fail(function(resp) {
+          this.$('.error').removeClass('hide').html(resp.responseText);
+        });
+      });
+      this.$('.file-list').append($li);
+    },
     onUpload: function() {
       var $progress = this.$('form.fileupload .progress').show()
         , $srOnly = $('.sr-only', $progress)
