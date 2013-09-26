@@ -170,6 +170,9 @@ class APIView(CreateModelMixin, RelationView):
         xml = request.REQUEST.get('xml', None)
         return self.get_response(self.get_object().validate(xml))
 
+    def _post_xmlvalidate(self, request, *args, **kwargs):
+        return self._get_xmlvalidate(request, *args, **kwargs)
+
     def _post_js(self, request, *args, **kwargs):
         data = request.DATA.copy()
         data.update({'community': self.kwargs['pk']})

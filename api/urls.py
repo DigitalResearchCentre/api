@@ -25,7 +25,7 @@ urlpatterns = patterns(
     url(r'^communities/(?P<pk>\d+)/$', CommunityDetail.as_view()),
     url(r'^communities/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
-            {'func': 'xmlvalidate'},
+            {'methods': ['get', 'post'], 'func': 'xmlvalidate'},
             {'func': 'docs', 'serializer_class': DocSerializer},
             {'func': 'entities', 'serializer_class': EntitySerializer},
             {'func': 'css', 'serializer_class': CSSSerializer},
