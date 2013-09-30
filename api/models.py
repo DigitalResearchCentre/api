@@ -71,6 +71,9 @@ class Community(models.Model):
     def css(self):
         return self.css_set.all()
 
+    def friendly_url(self):
+        return self.communitymapping.get_friendly_url()
+
     def js(self):
         return self.js_set.all()
 

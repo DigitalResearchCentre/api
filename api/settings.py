@@ -179,7 +179,8 @@ LOGGING = {
 }
 
 FROM_EMAIL = 'noreply@textualcommunities.usask.ca'
-PARTNER_API = 'http://localhost:8080/textual-community-portlet/api'
+PARTNER_BASE = 'http://localhost:8080'
+PARTNER_API = PARTNER_BASE + '/textual-community-portlet/api'
 PARTNER_URL = PARTNER_API + '/secure/jsonws/myorganization/'
 
 try:

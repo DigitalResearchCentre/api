@@ -1,6 +1,6 @@
 define([
-  'backbone', 'models', 'auth', 'text!tmpl/communitylist.html'
-], function(Backbone, models, auth, tmpl) {
+  'backbone', 'models', 'auth', 'urls', 'text!tmpl/communitylist.html'
+], function(Backbone, models, auth, urls, tmpl) {
   var Community = models.Community;
 
   var CommunityListView = Backbone.View.extend({
@@ -29,7 +29,14 @@ define([
       this.$('.nav-tabs li:visible:first a').tab('show');
     },
     onCommunityAdd: function($ul, community) {
-      $ul.append($('<li/>').text(community.get('name')));
+      var $a = $('<a href="#"/>').text(community.get('name'));
+      $a.click(_.bind(function() {
+        var url = urls.get(['community:friendly_url', {pk: community.id}]);
+        $.get(url, function(friendlyURL) {
+          window.parent.location = friendlyURL;
+        });
+      }, this));
+      $ul.append($('<li/>').append($a));
     },
     onPublicCommunityAdd: function(community) {
       this.onCommunityAdd(this.$('#public-communities'), community);

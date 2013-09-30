@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Module>
+    <ModulePrefs 
+        title="Viewer"
+        author_email="xiaohan.zhang@arts.usask.com"
+        author="DRC"
+        height="800"
+        scrolling="true">
+        <Require feature="opensocial-0.8"/>
+        <Require feature="dynamic-height"/>
+    </ModulePrefs>
+    <Content type="html">
+        <![CDATA[
+        <script>gadgets.window.adjustHeight();</script>
+        <script src="http://code.jquery.com/jquery-1.10.2.min.js"
+            type="text/javascript"></script>
+        <script type="text/javascript">
+            var Liferay = window.Liferay || parent.Liferay;
+            var groupId = Liferay.ThemeDisplay.getScopeGroupId();
+            var base = 'http://textualcommunities.usask.ca';
+            var url = base + '/api/partner/1/get_community/' + 
+                groupId + '/?format=json';
+            $.get(url, function(data){
+                window.location = base + 
+                    '/api/client/index.xml?community=' + data.id;
+            });
+        </script>
+        ]]>
+    </Content>
+</Module>

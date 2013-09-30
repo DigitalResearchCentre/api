@@ -30,6 +30,7 @@ urlpatterns = patterns(
             {'func': 'entities', 'serializer_class': EntitySerializer},
             {'func': 'css', 'serializer_class': CSSSerializer},
             {'func': 'info'},
+            {'func': 'friendly_url'},
             {'func': 'get_refsdecls', 'serializer_class': RefsDeclSerializer},
             {'func': 'js', 'serializer_class': JSSerializer},
             {'func': 'schema', 'serializer_class': SchemaSerializer},
