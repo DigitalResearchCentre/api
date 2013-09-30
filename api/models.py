@@ -477,7 +477,7 @@ class Doc(DETNode):
             super(Doc.ImageFile, self).close()
 
 
-def _to_xml(qs, exclude=None):
+def _to_xml(qs, exclude=None, bound=None):
     root_el = prev_el = parent_el = etree.Element('TEI')
     qs = qs.prefetch_related('attr_set')
     prev_depth = 0
@@ -513,8 +513,8 @@ def _to_xml(qs, exclude=None):
                                                  extra_attrs=extra_attrs)
             parent_el.text = None
             prev_depth = ancestor.get_depth()
-            # TODO: should not display tail if el is continue on next page
-            # need add someting: if ancestor.is_continue: el.tail = ''
+            if bound and bound.rgt < ancestor.rgt:
+                parent_el.tail = None
             q.append(parent_el)
 
         if exclude == node:
@@ -537,6 +537,8 @@ def _to_xml(qs, exclude=None):
 
             prev_depth = depth
             prev_el = node.to_el(parent=parent_el)
+            if bound and bound.rgt < node.rgt:
+                prev_el.tail = None
     return etree.tostring(root_el)[len('<TEI>'):- len('</TEI>')]
 
 
