@@ -519,8 +519,9 @@ def _to_xml(qs, exclude=None, bound=None):
 
         if exclude == node:
             # if first node is exclude, only display it's tail in xml
-            parent_el.text = nodes.pop(0).tail
-
+            parent_el.text = node.tail
+            prev_depth = node.get_depth()
+            nodes.pop(0)
         # prev_el is already append to q, remove it to prevent duplicate
         if q:
             q.pop()
