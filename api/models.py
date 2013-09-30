@@ -586,10 +586,12 @@ class Text(Node):
         if self.entity_id is not None or self.doc_id is None:
             qs = self.get_tree(self)
             exclude = None
+            bound = None
         else:
             qs = self.doc.get_texts()
+            bound = self.doc._get_texts_bound()
             exclude = self.doc.has_text_in()
-        return _to_xml(qs, exclude=exclude)
+        return _to_xml(qs, exclude=exclude, bound=bound)
 
     def is_text_in(self):
         if self.doc_id is not None:
