@@ -28,7 +28,7 @@ require([
   });
 
   var uri = new urls.URI()
-    , community = new Community({id: uri.query(true).community})
+    , community = new Community({id: uri.query(true).community || 1})
   ;
 
   community.fetch().done(function() {
