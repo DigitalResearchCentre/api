@@ -65,6 +65,9 @@ class Community(models.Model):
     def get_refsdecls(self):
         return self.refsdecls.all()
 
+    def memberships(self):
+        return self.membership_set.all()
+
     def css(self):
         return self.css_set.all()
 
@@ -138,7 +141,6 @@ class Membership(models.Model):
     def __unicode__(self):
         return unicode('%s %s %s' % (
             unicode(self.community), unicode(self.role), unicode(self.user),))
-
 
 
 def get_last(qs):
@@ -1065,6 +1067,7 @@ class Schema(models.Model):
     def name(self):
         return os.path.basename(self.schema.name)
 
+
 def js_upload_to(instance, filename):
     path = os.path.join('js', str(instance.community_id))
     full_path = os.path.join(settings.MEDIA_ROOT, path)
@@ -1166,7 +1169,9 @@ class CommunityMapping(PartnerMapping):
 
     def get_friendly_url(self):
         url = settings.PARTNER_URL + 'get-group'
-        url = 'http://www.textualcommunities.usask.ca/textual-community-portlet/api/secure/jsonws/myorganization/' + 'get-group'
+        url = ('http://www.textualcommunities.usask.ca/' +
+               'textual-community-portlet/api/secure/jsonws/myorganization/' +
+               'get-group')
         values = {'groupId': self.mapping_id}
         data = urllib.urlencode(values)
         req = urllib2.Request(url, data)

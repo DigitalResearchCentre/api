@@ -1,4 +1,6 @@
-define(['jquery', 'underscore', './modal'], function($, _, ModalView) {
+define([
+  'jquery', 'underscore', 'urls', './modal'], function($, _, urls, ModalView) {
+  var mediaURL = urls.mediaURL;
   var FileUploadView = ModalView.extend({
     bodyTemplate: function() {
       return _.template($('#file-upload-tmpl').html(), this.getTmplData());

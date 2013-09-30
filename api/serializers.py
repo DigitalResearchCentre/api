@@ -95,8 +95,24 @@ class MembershipSerializer(serializers.ModelSerializer):
         model = Membership
 
     def get_tasks(self, obj):
-        qs = obj.user.task_set.filter(community=obj.community)
-        return TaskSerializer(qs).data
+        if obj.user:
+            qs = obj.user.task_set.filter(community=obj.community)
+            return TaskSerializer(qs).data
+
+
+class MemberSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField('get_name')
+
+    class Meta:
+        model = Membership
+
+    def get_name(self, obj):
+        user = obj.user
+        if user:
+            name = '%s %s' % (user.first_name, user.last_name)
+            return name.strip() or user.username
+        else:
+            return ''
 
 
 class JSSerializer(serializers.ModelSerializer):

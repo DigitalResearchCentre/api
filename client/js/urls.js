@@ -1,11 +1,14 @@
 define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
 //  var restBase = 'http://textualcommunities.usask.ca/api'
+    //mediaURL = 'http://textualcommunities.usask.ca/media/tc/'
   var restBase = 'http://localhost:8000'
+    , mediaURL = 'http://localhost:8000'
     , patterns = {
     'auth': '/auth/',
     'community': '/communities/',
     'community:docs': '/communities/{pk}/docs/',
     'community:refsdecls': '/communities/{pk}/get_refsdecls/',
+    'community:memberships': '/communities/{pk}/memberships/',
     'community:js': '/communities/{pk}/js/',
     'community:css': '/communities/{pk}/css/',
     'community:dtd': '/communities/{pk}/schema/',
@@ -24,10 +27,11 @@ define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
     'refsdecl': '/refsdecl/',
     'js': '/js/',
     'css': '/css/',
-    'schema': '/schema/',
+    'schema': '/schema/'
   };
 
   return {
+    mediaURL: mediaURL,
     get: function(name, search) {
       var uri = new URI(restBase)
         , kwargs = {}

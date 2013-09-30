@@ -1,12 +1,13 @@
 define([
-  'jquery', 'underscore', 'urls',
+  'jquery', 'underscore', 'urls', 'auth',
   './modal', './editdocrefsdecl', './editentityrefsdecl', './fileupload', 
-  'text!tmpl/communityedit.html'
+  './members', 'text!tmpl/communityedit.html'
 ], function(
-  $, _, urls,
-  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, FileUploadView, tmpl
+  $, _, urls, auth,
+  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, 
+  FileUploadView, MembersView, tmpl
 ) {
-  var mediaURL = 'http://textualcommunities.usask.ca/media/tc/';
+  var mediaURL = urls.mediaURL;
 
   var TEIUploadView = FileUploadView.extend({
     getTmplData: function() {
@@ -16,23 +17,24 @@ define([
       return urls.get(['community:upload-tei', {community: this.model.id}]);
     }
   });
-  var FileListWithDefaultUploadView = FileUploadView({
-     render: function() {
+
+  var FileListWithDefaultUploadView = FileUploadView.extend({
+    render: function() {
       FileUploadView.prototype.render.apply(this, arguments);
       var name = this.getName()
         , $ul = $('<ul></ul>')
-        , dtds = this.model.getDefaultDTD()
+        , defaults = this.getDefault()
       ;
       this.$('.file-list').before('<label>Default:</label>');
       this.$('.file-list').before($ul);
       this.$('.file-list').before('<label>Current:</label>');
-      if (dtds.isFetched()){
-        dtds.each(function(file) {
+      if (defaults.isFetched()){
+        defaults.each(function(file) {
           $ul.append('<li>' + file.get(name) + '</li>');
         });
       }else{
-        dtds.fetch().done(function() {
-          dtds.each(function(file) {
+        defaults.fetch().done(function() {
+          defaults.each(function(file) {
             var url = mediaURL + file.get(name);
             $ul.append(
               '<li data-pk="' + file.id + '">' + 
@@ -49,35 +51,44 @@ define([
     getFileList: function() {
       return this.model.getJS();
     },
-    getTmplData: function() {
-      return {name: 'js'};
-    },
     getUrl: function() {
       return urls.get(['community:upload-js', {community: this.model.id}]);
+    },
+    getName: function() {
+      return 'js';
+    },
+    getDefault: function() {
+      return this.model.getDefaultJS();
     }
   });
 
   var CSSUploadView = FileListWithDefaultUploadView.extend({
-    getTmplData: function() {
-      return {name: 'css'};
+    getName: function() {
+      return 'css';
     },
     getUrl: function() {
       return urls.get(['community:upload-css', {community: this.model.id}]);
     },
     getFileList: function() {
       return this.model.getCSS();
+    },
+    getDefault: function() {
+      return this.model.getDefaultCSS();
     }
   });
 
   var DTDUploadView = FileListWithDefaultUploadView.extend({
-    getTmplData: function() {
-      return {name: 'schema'};
+    getName: function() {
+      return 'schema';
     },
     getUrl: function() {
       return urls.get(['community:upload-dtd', {community: this.model.id}]);
     },
     getFileList: function() {
       return this.model.getDTD();
+    },
+    getDefault: function() {
+      return this.model.getDefaultDTD();
     }
   });
 
@@ -288,10 +299,12 @@ define([
       'click .edit-entity-refsdecl': 'onEditEntityRefsDeclClick',
       'click .add-js': 'onAddJSClick',
       'click .add-css': 'onAddCSSClick',
-      'click .add-dtd': 'onAddDTDClick'
+      'click .add-dtd': 'onAddDTDClick',
+      'click .members': 'onMembersClick'
     },
     buttons: [
       {cls: "btn-default", text: 'Close', event: 'onClose'},
+      {cls: "btn-danger", text: 'Delete', event: 'onDeleteClick'},
       {cls: "btn-primary", text: 'Update', event: 'onUpdate'},
     ],
     render: function() {
@@ -366,6 +379,25 @@ define([
     },
     onAddDTDClick: function() {
       (new DTDUploadView({
+        model: this.model, onBack: _.bind(this.render, this)
+      })).render();
+    },
+    onDeleteClick: function() {
+      var that = this;
+      return this.model.destroy().done(_.bind(function() {
+        var $alert = this.$('.alert-success').removeClass('hide').show();
+        this.$('.error').addClass('hide');
+        auth.getUser().getMemberships().fetch();
+        _.delay(function() {
+          $alert.hide(1000);
+          that.onClose();
+        }, 500);
+      }, this)).fail(_.bind(function(resp) {
+        this.$('.error').removeClass('hide').html(resp.responseText);
+      }, this));
+    },
+    onMembersClick: function() {
+      (new MembersView({
         model: this.model, onBack: _.bind(this.render, this)
       })).render();
     }

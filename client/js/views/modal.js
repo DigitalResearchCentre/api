@@ -16,9 +16,10 @@ define(['backbone', 'jquery', 'underscore'], function(Backbone, $, _) {
     },
     onBack: function() {
       var back = this.options.onBack;
-      if (back) return back();
+      if (back) {
+        return back();
+      }
     }
   });
   return ModalView;   
 });
-

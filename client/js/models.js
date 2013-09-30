@@ -41,6 +41,14 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
       }
       return this._refsdecls;
     },
+    getMemberships: function() {
+      if (!this._memberships) {
+        this._memberships = new (Collection.extend({
+          rest: ['community:memberships', {pk: this.id}], model: Membership
+        }))();
+      }
+      return this._memberships;
+    },
     getJS: function() {
       if (!this._js) {
         this._js = new (Collection.extend({
@@ -72,6 +80,22 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
         }))();
       }
       return Community._defaultDTD;
+    },
+    getDefaultJS: function() {
+      if (!Community._defaultJS) {
+        Community._defaultJS = new (Collection.extend({
+          rest: ['community:js', {pk: 1}]
+        }))();
+      }
+      return Community._defaultJS;
+    },
+    getDefaultCSS: function() {
+      if (!Community._defaultCSS) {
+        Community._defaultCSS = new (Collection.extend({
+          rest: ['community:css', {pk: 1}]
+        }))();
+      }
+      return Community._defaultCSS;
     }
   });
 
@@ -129,7 +153,6 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
       }
       return this._memberships;
     }
-
   });
 
   var CSS = Model.extend({

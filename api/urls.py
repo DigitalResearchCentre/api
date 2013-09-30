@@ -8,7 +8,7 @@ from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, TaskSerializer,
     MembershipSerializer, CSSSerializer, JSSerializer, TilerImageSerializer,
-    SchemaSerializer, )
+    SchemaSerializer, MemberSerializer)
 from api.views import (
     api_root, CommunityList, CommunityDetail, APIView, DocList,
     EntityList, TextDetail, TextList, UserList, UserDetail, RefsDeclList,
@@ -33,6 +33,7 @@ urlpatterns = patterns(
             {'func': 'get_refsdecls', 'serializer_class': RefsDeclSerializer},
             {'func': 'js', 'serializer_class': JSSerializer},
             {'func': 'schema', 'serializer_class': SchemaSerializer},
+            {'func': 'memberships', 'serializer_class': MemberSerializer},
             {
                 'methods': ['post'], 'func': 'add_refsdecl',
                 'func_args': '(?P<refsdecl_pk>\d+)',

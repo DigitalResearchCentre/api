@@ -10,7 +10,9 @@ define([
       this.listenTo(auth, 'login', this.onLogin);
       this.listenTo(auth, 'logout', this.onLogout);
       this.listenTo(communities, 'add', this.onPublicCommunityAdd);
-      if (!communities.isFetched()) communities.fetch();
+      if (!communities.isFetched()) {
+        communities.fetch();
+      }
     },
     onLogin: function() {
       var myCommunities = this.myCommunities = auth.getUser().getCommunities();
@@ -53,7 +55,7 @@ define([
       this.renderPublic();
       return this;
     }
-  })
+  });
 
   return CommunityListView;
 });
