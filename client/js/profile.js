@@ -59,7 +59,10 @@ require([
 
   if (!auth.isLogin()) {
     auth.login().fail(function() {
-      //window.location = 'http://textualcommunities.usask.ca/drc/auth/login/?next=http://textualcommunities.usask.ca/api/client/profile.html';
+      window.location = 'http://textualcommunities.usask.ca/drc/auth/login/' + 
+        '?partner=1' + 
+        '&next=http://textualcommunities.usask.ca/api/client/profile.html'
+      ;
     });
   } 
   auth.on('login', function() {
