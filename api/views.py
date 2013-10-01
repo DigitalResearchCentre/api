@@ -79,7 +79,7 @@ class RelationView(
 
     # Note: session based authentication is explicitly CSRF validated,
     # all other authentication is CSRF exempt.
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         """
         `.dispatch()` is pretty much the same as Django's regular dispatch,
