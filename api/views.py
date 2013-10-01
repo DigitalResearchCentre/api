@@ -280,6 +280,7 @@ class CommunityList(generics.ListCreateAPIView):
             Membership.objects.create(
                 user=request.user, community=self.object,
                 role=Group.objects.get(name='Leader'))
+            self.create_liferay_community()
         return response
 
 
