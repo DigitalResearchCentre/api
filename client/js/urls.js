@@ -1,8 +1,8 @@
 define(['underscore', 'urijs/URI', 'urijs/URITemplate'], function(_, URI) {
-//  var restBase = 'http://textualcommunities.usask.ca/api'
-    //mediaURL = 'http://textualcommunities.usask.ca/media/tc/'
-  var restBase = 'http://localhost:8000'
-    , mediaURL = 'http://localhost:8000'
+  var restBase = 'http://textualcommunities.usask.ca/api'
+    , mediaURL = 'http://textualcommunities.usask.ca/media/tc/'
+  //var restBase = 'http://localhost:8000'
+    //, mediaURL = 'http://localhost:8000'
     , patterns = {
     'auth': '/auth/',
     'community': '/communities/',

@@ -572,7 +572,8 @@ class Text(Node):
                 el = etree.Element(self.tag, attrs)
         else:
             if self.tag == '!--':
-                parent.append(etree.Comment())
+                el = etree.Comment()
+                parent.append(el)
             else:
                 el = etree.SubElement(parent, self.tag, attrs)
         # use text or None is because:
