@@ -566,9 +566,15 @@ class Text(Node):
         for attr in self.attr_set.all():
             attrs[attr.name] = attr.value
         if parent is None:
-            el = etree.Element(self.tag, attrs)
+            if self.tag == '!--':
+                el = etree.Comment()
+            else:
+                el = etree.Element(self.tag, attrs)
         else:
-            el = etree.SubElement(parent, self.tag, attrs)
+            if self.tag == '!--':
+                parent.append(etree.Comment())
+            else:
+                el = etree.SubElement(parent, self.tag, attrs)
         # use text or None is because:
         #   lxml will treat None as <tag/>, but '' as <tag></tag>
         el.text = self.text or None
