@@ -560,6 +560,9 @@ class Text(Node):
             doc=doc, entity=self.is_text_of()
         )
 
+    def is_tag(self):
+        return self.tag in (etree.Comment, '!==',)
+
     def to_el(self, parent=None, extra_attrs={}):
         attrs = {}
         attrs.update(extra_attrs)
