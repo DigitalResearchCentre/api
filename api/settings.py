@@ -183,6 +183,8 @@ PARTNER_BASE = 'http://localhost:8080'
 PARTNER_API = PARTNER_BASE + '/textual-community-portlet/api'
 PARTNER_URL = PARTNER_API + '/secure/jsonws/myorganization/'
 
+PARTNER_SESSION_KEY = '_tc_partner_pk'
+
 try:
     from env import *
 except ImportError, e:
