@@ -15,8 +15,10 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.contrib.auth.models import User, Group
 from django.utils.timezone import utc
-from django.template import Template, Context
+from django.template import Template, Context, loader
 from django.core import files
+from django.core.urlresolvers import reverse
+from django.core.mail import EmailMultiAlternatives
 from PIL import Image
 from urlparse import urlsplit
 from treebeard.ns_tree import NS_Node
@@ -132,8 +134,7 @@ class Community(models.Model):
 
 
 class Membership(models.Model):
-    # invited member will has user=null until they active
-    user = models.ForeignKey(User, null=True)
+    user = models.ForeignKey(User)
     community = models.ForeignKey(Community)
     role = models.ForeignKey(Group)
     create_date = models.DateField(auto_now=True, editable=False)
@@ -142,6 +143,10 @@ class Membership(models.Model):
         return unicode('%s %s %s' % (
             unicode(self.community), unicode(self.role), unicode(self.user),))
 
+    @property
+    def name(self):
+        name = '%s %s' % (self.user.first_name, self.user.last_name)
+        return name.strip() or self.user.username 
 
 def get_last(qs):
     lst = list(qs.reverse()[:1])
@@ -1220,62 +1225,39 @@ class UserMapping(PartnerMapping):
 class Invitation(models.Model):
     invitor = models.ForeignKey(Membership, related_name='+')
     invitee = models.OneToOneField(Membership)
-    email = models.EmailField()
     email_content = models.TextField(blank=True)
     code = models.CharField(max_length=32, db_index=True)
     invited_date = models.DateTimeField(auto_now_add=True)
     accepted_date = models.DateTimeField(blank=True, null=True)
 
     def __unicode__(self):
-        return unicode('%s %s' % (self.invitee, self.email))
+        return unicode('%s' % self.invitee)
 
     def is_activated(self):
         return self.accepted_date != None
 
     def activate(self):
-        if self.is_activated():
-            return
-        user = User.objects.get(email=self.email)
-        try:
-            # if user grant membership from other place,
-            # or active use othe email, we won't duplicate his membership
-            membership = user.membership_set.get(
-                community=self.invitee.community, role=self.invitee.role
-            )
-            self.invitee.task_set.update(member=membership)
-            self.invitee.delete()
-            self.delete()
-            return
-        except Membership.DoesNotExist, e:
-            self.invitee.user = user
-            self.invitee.save()
-        self.accepted_date = datetime.now()
-        self.save()
+        if not self.is_activated():
+            self.accepted_date = datetime.datetime.now()
+            self.save()
 
     def invite_url(self):
         return '%s%s?code=%s&partner=1' % (
-            settings.BASE_URL, reverse('auth:activate'), self.code
-        )
+            settings.BASE_URL, reverse('auth:activate'), self.code)
 
-    def sent_invitation(self):
+    def send_invitation(self):
         subject = 'Welcome to %s' % self.invitee.community.name
         from_email = 'noreply@textualcommunities.usask.ca'
-        recipient_list = [self.email]
+        recipient_list = [self.invitee.user.email]
         data = {'invitation': self}
-        try:
-            user = User.objects.get(email=self.email)
-            self.activate()
-            data['user'] = user
-        except User.DoesNotExist, e:
-            pass
         context = Context(data)
         html_template = loader.get_template('invitation.html')
         text_template = loader.get_template('invitation.txt')
+
         # TODO: exception handle
         # errno 61, Connection refused
         mail_msg = EmailMultiAlternatives(
-            subject, text_template.render(context), from_email, recipient_list
-        )
+            subject, text_template.render(context), from_email, recipient_list)
         mail_msg.attach_alternative(html_template.render(context), 'text/html')
         mail_msg.send()
 

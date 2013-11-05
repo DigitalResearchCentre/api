@@ -193,6 +193,10 @@ PARTNER_URL = PARTNER_API + '/secure/jsonws/myorganization/'
 
 PARTNER_SESSION_KEY = '_tc_partner_pk'
 
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = '1025'
+
+
 try:
     from env import *
 except ImportError, e:

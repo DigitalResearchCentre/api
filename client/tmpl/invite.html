@@ -1,5 +1,8 @@
 <div class="panel panel-default">
     <form role="form" class="form-horizontal">
+        <div class="error alert alert-block alert-warning hide"></div>
+        <div class="alert alert-success fade in hide"
+            >Invitation Send Success!</div>
         <div class="form-group">
             <label for="form-field-email" class="col-md-2 control-label">Email</label>
             <div class="col-md-10">
@@ -10,9 +13,10 @@
         <div class="form-group">
             <label class="col-md-2 control-label">Choose Role</label>
             <div class="col-md-10">
-                <select class="form-control role-dropdown">
-                    <option>Co Leader</option>
-                    <option selected="true">Transcriber</option>
+                <select class="form-control role-dropdown" id="form-field-role">
+                    <option value="Co Leader">Co Leader</option>
+                    <option value="Transcriber" 
+                        selected="true">Transcriber</option>
                 </select>
             </div>
         </div>

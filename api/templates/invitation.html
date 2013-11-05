@@ -4,24 +4,13 @@
     <p>{{ invitation.email_content }}</p>
     <p>
     You are invited by {{ invitation.invitor.name }} as a
-    {{ invitation.invitee.get_role_display }} of
+    {{ invitation.invitee.role.name }} of
     {{ invitation.invitee.community.name }}
     </p>
-    {% if user %}
-    <p>
-      Please click 
-      <a>here</a>,
-      to view your tasks.
-    </p>
-    {% else %}
     <p>
     Please click <a href="{{ invitation.invite_url }}">here</a> 
     if you accept this invitation.
     </p> 
-    {% endif %}
-    <p>
-    Sincerely, <br/>
-    Textual Community
-    </p>
+    <p>Sincerely, <br/> Textual Community</p>
   </body>
 </html>

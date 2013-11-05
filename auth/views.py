@@ -1,17 +1,18 @@
-import urllib, urllib2, json
+import urllib, urllib2, json, re, uuid
+from django.db import IntegrityError
 from django import forms
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate
 from django.shortcuts import render_to_response
 from django.contrib.auth.views import redirect_to_login, login as login_view
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.contrib.auth.forms import UserCreationForm
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.views.generic import (
     UpdateView, View, CreateView, DetailView, TemplateView, FormView)
 from auth import login as auth_login, logout as auth_logout
-from api.models import Invitation, CommunityMapping
+from api.models import Invitation, CommunityMapping, Membership
 
 def login(request, *args, **kwargs):
     partner = request.partner
@@ -63,94 +64,66 @@ def login(request, *args, **kwargs):
 #        return HttpResponse('log out sucess')
 #
 
-def invite(request):
+def invite(request, *args, **kwargs):
     community = request.REQUEST.get('community')
-    role = request.REQUEST.get('role')
+    role_name = request.REQUEST.get('role')
     emails = request.REQUEST.get('emails')
-    return HttpResponse('hello')
+    content = request.REQUEST.get('content')
+    data = {'status': 'error'}
+    if not (role_name and emails):
+        data['msg'] = 'required field missing'
+    elif role_name not in ('Co Leader', 'Transcriber'):
+        data['msg'] = 'invalid role: %s' % role_name
+    else:
+        data['status'] = 'success'
 
-class MyUserCreationForm(UserCreationForm):
-    first_name = forms.CharField(max_length=30)
-    last_name = forms.CharField(max_length=30)
-
-class ActivationView(FormView):
-    form_class = MyUserCreationForm
-    template_name = 'auth/activate.html'
-
-    def get(self, request, *args, **kwargs):
-        code = request.GET.get('code')
-        user_created = request.GET.get('user_created')
-        invitation = Invitation.objects.get(code=code)
-        qs = User.objects.filter(email=invitation.email)
-        if not qs.exists() and not user_created:
-            # TODO: what if created fail ?
-            auth_logout(request)
-            return HttpResponseRedirect(
-                '%s/c/portal/sso?%s' % (
-                    settings.PARTNER_BASE,
-                    urllib.urlencode({
-                        'action': 'create', 
-                        'redirect': '%s&%s' % ( 
-                            request.build_absolute_uri(), 
-                            'user_created=created'
-                        )
-                    })
-                )
-            )
-
-        # TODO: is user login here?
-        if not request.user.is_authenticated():
-            return redirect_to_login(request.build_absolute_uri())
-
-        if invitation.email != request.user.email:
-            invitation.email = request.user.email
-            invitation.save()
-        invitation.activate()
-        #TODO: change to profile view
-        return HttpResponseRedirect(
-            reverse('community:profile', args=[invitation.invitee.community.pk])
-        )
-
-
-    def get_success_url(self):
-        return '%s?code=%s' % (
-            reverse('auth:activate'), self.request.GET.get('code')
-        )
-
-    def form_valid(self, form):
-        code = self.request.GET.get('code')
-        invitation = Invitation.objects.get(code=code)
+    invitor = Membership.objects.get(user=request.user, community_id=community,
+                                     role__name__in=('Leader', 'Co Leader'))
+    # TODO: Co Leader can not invite leader
+    code = uuid.uuid1().hex
+    invitor = Membership.objects.get(user=request.user, community_id=community,
+                                     role__name__in=('Leader', 'Co Leader'))
+    role = Group.objects.get(name=role_name)
+    for email in re.split('\s|[,;]', emails.lower()):
         try:
-            user = User.objects.get(email=invitation.email)
-        except User.DoesNotExist:
-            user = form.save()
-            user.email = invitation.email
-            user.first_name = form.cleaned_data['first_name']
-            user.last_name = form.cleaned_data['last_name']
+            user = User.objects.get(email=email)
+        except User.DoesNotExist, e:
+            user, created = User.objects.get_or_create(username=email)
+            user.email = email
             user.save()
-            url = settings.PARTNER_ADD_USER_URL
-            community_mapping = CommunityMapping.objects.get(
-                community=invitation.invitee.community
-            )
-            values = {
-                'creatorUserId': '10196',
-                'password': form.cleaned_data['password1'],
-                'username': user.username,
-                'email': user.email,
-                'firstName': user.first_name,
-                'lastName': user.last_name,
-                'organizationId': community_mapping.mapping_id
-            }
-            data = urllib.urlencode(values)
-            req = urllib2.Request(settings.PARTNER_ADD_USER_URL, data)
-            try:
-                resp = urllib2.urlopen(req)
-            except urllib2.URLError, e:
-                # TODO
-                print e
-        invitation.activate()
-        if user.email != invitation.email:
-            auth_logout(self.request)
-        return redirect_to_login(self.get_success_url())
+        invitee, created = Membership.objects.get_or_create(
+                user=user, role=role, community_id=community)
+        if created:
+            invitation = Invitation.objects.create(
+                    invitor=invitor, invitee=invitee,
+                    code=code, email_content=content)
+            invitation.send_invitation()
+    return HttpResponse(json.dumps(data), content_type="application/json")
 
+def activate(request, *args, **kwargs):
+    code = request.GET.get('code')
+    user_created = request.GET.get('user_created')
+    invitation = Invitation.objects.get(code=code)
+    user = invitation.invitee.user
+    if not user_created:
+        auth_logout(request)
+
+    if not invitation.is_activated() and not user_created:
+        try:
+            usermapping = user.usermapping
+        except UserMapping.DoesNotExist:
+            redirect = '%s&%s' % (request.build_absolute_uri(), 
+                                  'user_created=created')
+            param = urllib.urlencode({'action': 'create', 'redirect': redirect})
+            return HttpResponseRedirect(
+                    '%s/c/portal/sso?%s' % (settings.PARTNER_BASE, param))
+
+    if not request.user.is_authenticated():
+        return redirect_to_login(request.build_absolute_uri())
+
+    if request.user != user:
+        # TODO: merge user
+        pass
+    invitation.activate()
+    return HttpResponseRedirect('/client/profile.html')
 

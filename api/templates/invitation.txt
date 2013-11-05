@@ -2,13 +2,9 @@ Hello,
 
 {{ invitation.email_content }}
 
-You are invited by {{ invitation.invitor.name }} as a {{ invitation.invitee.get_role_display }} of {{ invitation.invitee.community.name }}
+You are invited by {{ invitation.invitor.name }} as a {{ invitation.invitee.role.name }} of {{ invitation.invitee.community.name }}
 
-{% if user %}
-Please go to , to view your tasks.
-{% else %}
 Please go to {{ invitation.invite_url }}, if you accept this invitation.
-{% endif %}
 
 Sincerely,
 Textual Community
