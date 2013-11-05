@@ -152,7 +152,6 @@ def get_last(qs):
     lst = list(qs.reverse()[:1])
     return lst[0] if lst else None
 
-
 class Node(NS_Node):
     class Meta:
         abstract = True

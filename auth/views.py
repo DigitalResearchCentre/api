@@ -12,7 +12,7 @@ from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.views.generic import (
     UpdateView, View, CreateView, DetailView, TemplateView, FormView)
 from auth import login as auth_login, logout as auth_logout
-from api.models import Invitation, CommunityMapping, Membership
+from api.models import Invitation, UserMapping, Membership
 
 def login(request, *args, **kwargs):
     partner = request.partner
