@@ -1,11 +1,11 @@
 define([
   'jquery', 'underscore', 'urls', 'auth',
   './modal', './editdocrefsdecl', './editentityrefsdecl', './fileupload', 
-  './members', 'text!tmpl/communityedit.html'
+  './members', './invite', 'text!tmpl/communityedit.html'
 ], function(
   $, _, urls, auth,
   ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, 
-  FileUploadView, MembersView, tmpl
+  FileUploadView, MembersView, InviteView, tmpl
 ) {
   var mediaURL = urls.mediaURL;
 
@@ -300,7 +300,8 @@ define([
       'click .add-js': 'onAddJSClick',
       'click .add-css': 'onAddCSSClick',
       'click .add-dtd': 'onAddDTDClick',
-      'click .members': 'onMembersClick'
+      'click .members': 'onMembersClick',
+      'click .invite': 'onInviteClick'
     },
     buttons: [
       {cls: "btn-default", text: 'Close', event: 'onClose'},
@@ -398,6 +399,11 @@ define([
     },
     onMembersClick: function() {
       (new MembersView({
+        model: this.model, onBack: _.bind(this.render, this)
+      })).render();
+    },
+    onInviteClick: function() {
+      (new InviteView({
         model: this.model, onBack: _.bind(this.render, this)
       })).render();
     }

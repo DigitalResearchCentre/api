@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from api.models import (
     Community, Membership, Entity, Doc, Text, Revision, RefsDecl,
-    APIUser, Group, TilerImage, CSS, Task, JS, Schema)
+    APIUser, Group, TilerImage, CSS, Task, JS, Schema, Invitation)
 
 
 class CommunitySerializer(serializers.ModelSerializer):
@@ -125,3 +125,9 @@ class SchemaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Schema
+
+
+class InvitationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Invitation

@@ -1269,8 +1269,8 @@ class Invitation(models.Model):
         except User.DoesNotExist, e:
             pass
         context = Context(data)
-        html_template = loader.get_template('community/invitation.html')
-        text_template = loader.get_template('community/invitation.txt')
+        html_template = loader.get_template('invitation.html')
+        text_template = loader.get_template('invitation.txt')
         # TODO: exception handle
         # errno 61, Connection refused
         mail_msg = EmailMultiAlternatives(

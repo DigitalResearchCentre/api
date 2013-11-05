@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.views.generic import (
     UpdateView, View, CreateView, DetailView, TemplateView, FormView)
 from auth import login as auth_login, logout as auth_logout
-from community.models import Invitation, CommunityMapping
+from api.models import Invitation, CommunityMapping
 
 def login(request, *args, **kwargs):
     partner = request.partner
@@ -62,6 +62,12 @@ def login(request, *args, **kwargs):
 #        # this will be a rest call, so no user/partner 
 #        return HttpResponse('log out sucess')
 #
+
+def invite(request):
+    community = request.REQUEST.get('community')
+    role = request.REQUEST.get('role')
+    emails = request.REQUEST.get('emails')
+    return HttpResponse('hello')
 
 class MyUserCreationForm(UserCreationForm):
     first_name = forms.CharField(max_length=30)

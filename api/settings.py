@@ -101,6 +101,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.cache.FetchFromCacheMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'api.middleware.QueryLogMiddleware',
+    'api.middleware.PartnerMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -128,10 +129,16 @@ INSTALLED_APPS = (
     'corsheaders',
     'treebeard',
     'api',
+    'auth',
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
+)
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'auth.backends.SSOBackend',
 )
 
 REST_FRAMEWORK = {
@@ -178,6 +185,7 @@ LOGGING = {
     }
 }
 
+LOGIN_REDIRECT_URL = '/auth/'
 FROM_EMAIL = 'noreply@textualcommunities.usask.ca'
 PARTNER_BASE = 'http://localhost:8080'
 PARTNER_API = PARTNER_BASE + '/textual-community-portlet/api'

@@ -60,7 +60,18 @@
       </ul>
     </li>
     <li class="dropdown">
-      <a role="button" data-target="#" class="btn members">Members</a>
+      <a id="member-menu" class="btn dropdown-toggle" role="button" 
+        data-toggle="dropdown" data-target="#">
+        Members <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu" role="menu" aria-labelledby="member-menu">
+        <li role="presentation"><a role="menuitem" data-target="#"
+          class="btn members">Members</a>
+        </li>
+        <li role="presentation"><a role="menuitem" data-target="#"
+          class="btn invite">Invite</a>
+        </li>
+      </ul>
     </li>
   </ul>
 </nav>
@@ -101,7 +112,7 @@
       >Description</label>
     <div class="col-md-10">
       <textarea class="form-control" id="form-field-description" 
-        placeholder="Description" value="<%- description %>"/> 
+        placeholder="Description"><%- description %></textarea> 
     </div>
   </div>
 </form>

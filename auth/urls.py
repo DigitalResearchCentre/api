@@ -4,6 +4,7 @@ from auth.views import *
 urlpatterns = patterns(
     '',
     url(r'^activate$', ActivationView.as_view(), name='activate'),
+    url(r'^invite/$', invite),
     url(r'^login/$', login, {
         'template_name': 'auth/login.html'
     }, name='login'),

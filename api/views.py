@@ -21,10 +21,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from api.models import (
     Community, Membership, Entity, Doc, Text, Revision, RefsDecl,
-    APIUser, Group, UserMapping, CommunityMapping, Partner)
+    APIUser, Group, UserMapping, CommunityMapping, Partner, Invitation)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
-    TextSerializer, RevisionSerializer, RefsDeclSerializer, )
+    TextSerializer, RevisionSerializer, RefsDeclSerializer, 
+    InvitationSerializer)
 
 from rest_framework.authentication import SessionAuthentication
 
@@ -49,7 +50,6 @@ def api_root(request, format=None):
         'texts': reverse('text-list', request=request),
         'users': reverse('user-list', request=request),
     })
-
 
 class RelationView(
     mixins.ListModelMixin, generics.RetrieveAPIView
@@ -373,6 +373,9 @@ class UserList(generics.ListCreateAPIView):
     model = APIUser
     serializer_class = APIUserSerializer
 
+class InvitationList(generics.ListCreateAPIView):
+    model = Invitation
+    serializer_class = InvitationSerializer
 
 class TranscribeView(generics.CreateAPIView):
     model = Revision
