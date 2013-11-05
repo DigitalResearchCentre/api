@@ -1242,8 +1242,6 @@ class Invitation(models.Model):
             membership = user.membership_set.get(
                 community=self.invitee.community, role=self.invitee.role
             )
-            # TODO: need figure out
-            #self.invitee = membership
             self.invitee.task_set.update(member=membership)
             self.invitee.delete()
             self.delete()
