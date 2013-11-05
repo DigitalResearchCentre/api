@@ -140,8 +140,7 @@ class Membership(models.Model):
     create_date = models.DateField(auto_now=True, editable=False)
 
     def __unicode__(self):
-        return unicode('%s %s %s' % (
-            unicode(self.community), unicode(self.role), unicode(self.user),))
+        return unicode('%s %s %s' % (self.community, self.role, self.user,))
 
     @property
     def name(self):

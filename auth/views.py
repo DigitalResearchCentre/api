@@ -2,7 +2,9 @@ import urllib, urllib2, json, re, uuid
 from django.db import IntegrityError
 from django import forms
 from django.conf import settings
-from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate
+from django.contrib.auth import (
+    REDIRECT_FIELD_NAME, authenticate, 
+    login as auth_login, logout as auth_logout)
 from django.shortcuts import render_to_response
 from django.contrib.auth.views import redirect_to_login, login as login_view
 from django.contrib.auth.models import User, Group
@@ -11,7 +13,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.views.generic import (
     UpdateView, View, CreateView, DetailView, TemplateView, FormView)
-from auth import login as auth_login, logout as auth_logout
 from api.models import Invitation, UserMapping, Membership
 
 def login(request, *args, **kwargs):
@@ -38,7 +39,10 @@ def login(request, *args, **kwargs):
         }
         return render_to_response('auth/login.html', context)
     return login_view(request, *args, **kwargs)
-# TODO: sso logout not work yet
+
+def logout(request, *args, **kwargs):
+    auth_logout(request)
+    return HttpResponseRedirect(request.REQUEST.get('next', '/'))
 
 #def sso(request, *args, **kwargs):
 #    partner = request.partner

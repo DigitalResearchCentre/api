@@ -107,13 +107,7 @@ class MemberSerializer(serializers.ModelSerializer):
         model = Membership
 
     def get_name(self, obj):
-        user = obj.user
-        if user:
-            name = '%s %s' % (user.first_name, user.last_name)
-            return name.strip() or user.username
-        else:
-            return ''
-
+        return self.name
 
 class JSSerializer(serializers.ModelSerializer):
 
