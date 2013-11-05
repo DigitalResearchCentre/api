@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<!-- Force latest IE rendering engine or ChromeFrame if installed -->
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><![endif]-->
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width">
+  <title>{% block title %}{% endblock %}</title>
+  {% block stylesheet %}{% endblock %}
+  <script type="text/javascript">
+    if (window.console === void 0) {
+      window.console = {log: function(){}};
+    }
+  </script>
+<!-- Shim to make HTML5 elements usable in older Internet Explorer versions -->
+<!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js">
+    </script>
+<![endif]-->
+</head>
+<body>
+  <div id="content">{% block content %}{% endblock %}</div>
+  {% block script %}{% endblock %}
+</body>
+</html>
+
+
