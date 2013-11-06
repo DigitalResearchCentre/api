@@ -107,7 +107,7 @@ class MemberSerializer(serializers.ModelSerializer):
         model = Membership
 
     def get_name(self, obj):
-        return self.name
+        return obj.name
 
 class JSSerializer(serializers.ModelSerializer):
 
