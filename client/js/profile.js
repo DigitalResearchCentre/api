@@ -58,9 +58,7 @@ require([
 
   if (!auth.isLogin()) {
     auth.login().fail(function() {
-        console.log(urls);
-        console.log(urls.loginURL);
-        //window.location = urls.loginURL;
+        window.location = urls.loginURL;
     });
   } 
   auth.on('login', function() {
