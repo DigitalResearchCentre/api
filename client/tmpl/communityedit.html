@@ -76,6 +76,8 @@
   </ul>
 </nav>
 <form role="form" class="form-horizontal">
+  <div class="error alert alert-block alert-warning hide"></div>
+  <div class="alert alert-success fade in hide">Save Success !</div>
   <div class="form-group">
     <label for="form-field-name" class="col-md-2 control-label">Name</label>
     <div class="col-md-10">
@@ -104,7 +106,7 @@
       >Font</label>
     <div class="col-md-10">
       <input class="form-control" id="form-field-font" 
-        type="text" placeholder="Font" value="<%- description %>"/> 
+        type="text" placeholder="Font" value="<%- font %>"/> 
     </div>
   </div>
   <div class="form-group">

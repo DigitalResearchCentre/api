@@ -412,13 +412,15 @@ class Doc(DETNode):
 
         # TODO: <div><pb/><l>line1</l>text mix with entity<l>line2</l></div>
         # in above case "text mix with entity" will lost
-        qs = Entity.objects.filter(q)
+        # distinct is importent:
+        # inner join with text will cause duplicate entity
+        qs = Entity.objects.filter(q).distinct()
         if entity_pk is not None:
             entity = Entity.objects.get(pk=entity_pk)
             qs = qs.filter(tree_id=entity.tree_id,
                            lft__range=(entity.lft + 1, entity.rgt - 1))
         qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
-        return qs.distinct().order_by('text__lft')
+        return qs.order_by('text__lft')
 
     def move(self, urn=''):
         pass

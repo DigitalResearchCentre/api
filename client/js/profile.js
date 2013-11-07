@@ -17,8 +17,7 @@ require([
       this.listenTo(this.model, 'remove', this.remove);
     },
     onAdminClick: function() {
-      var community = new Community(this.model.get('community'));
-      (new EditCommunityView({model: community})).render();
+      (new EditCommunityView({model: this.model.getCommunity()})).render();
     },
     render: function() {
       this.$el.html(this.template(this.model.toJSON()));
@@ -59,10 +58,9 @@ require([
 
   if (!auth.isLogin()) {
     auth.login().fail(function() {
-      window.location = 'http://textualcommunities.usask.ca/drc/auth/login/' + 
-        '?partner=1' + 
-        '&next=http://textualcommunities.usask.ca/api/client/profile.html'
-      ;
+        console.log(urls);
+        console.log(urls.loginURL);
+        //window.location = urls.loginURL;
     });
   } 
   auth.on('login', function() {

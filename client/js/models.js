@@ -132,7 +132,13 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
   });
 
   var Membership = Model.extend({
-    rest: 'membership'
+    rest: 'membership',
+    getCommunity: function() {
+      if (!this._community) {
+        this._community = new Community(this.get('community'));
+      }
+      return this._community;
+    }
   });
 
   var User = Model.extend({

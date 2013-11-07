@@ -321,7 +321,9 @@ define([
         data[name] = this.$('#form-field-'+name).val();
       }, this);
       return this.model.save(data).done(_.bind(function() {
+        var $alert = this.$('.alert-success').removeClass('hide').show();
         this.$('.error').addClass('hide');
+        _.delay(function() {$alert.hide(1000);}, 2000);
       }, this)).fail(_.bind(function(resp) {
         this.$('.error').removeClass('hide').html(resp.responseText);
       }, this));
