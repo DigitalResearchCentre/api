@@ -16,7 +16,10 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
     },
     fetch: function(opts) {
       var dfd = Backbone.Collection.prototype.fetch.apply(this, arguments);
-      return dfd.done(_.bind(function() {this._fetched = true;}, this)); 
+      return dfd.done(_.bind(function() {
+          this._fetched = true;
+          this.trigger('fetched');
+      }, this)); 
     },
     isFetched: function() {
       return !!this._fetched;

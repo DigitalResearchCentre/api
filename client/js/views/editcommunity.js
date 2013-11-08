@@ -309,9 +309,10 @@ define([
       {cls: "btn-primary", text: 'Update', event: 'onUpdate'},
     ],
     render: function() {
-      ModalView.prototype.render.apply(this, arguments);
-      this.$('.modal-title').text(this.model.get('name'));
-      return this;
+        console.log('view:onAdminClick');
+        ModalView.prototype.render.apply(this, arguments);
+        this.$('.modal-title').text(this.model.get('name'));
+        return this;
     },
     onUpdate: function() {
       var data = {};

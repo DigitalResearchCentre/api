@@ -125,3 +125,5 @@ class InvitationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Invitation
+
+

@@ -717,8 +717,7 @@ class Text(Node):
                 q.pop()
             prev = {
                 'data': {'name': el.get('n') or str(i), 'label': doc_map[tag]},
-                'tag': tag, 'children': []
-            }
+                'tag': tag, 'children': []}
             q[-1]['children'].append(prev)
             i += 1
         print 'prepare load_bulk'
@@ -746,19 +745,17 @@ class Text(Node):
         text_refsdecl_el = etree.Element('refsDecl')
         for refs in (doc_refsdecl, entity_refsdecl):
             tmpl = Template(refs.xml)
-            el = etree.XML(
-                tmpl.render(Context({
-                    'community_identifier': community.abbr,
-                    'document_identifier': doc_name,
-                }))
-            )
+            context = Context({
+                'community_identifier': community.abbr,
+                'document_identifier': doc_name, 
+            })
+            el = etree.XML(tmpl.render(context))
             for crefpattern in el.getchildren():
                 text_refsdecl_el.append(el)
 
         RefsDecl.objects.create(
             text=text, xml=etree.tostring(text_refsdecl_el),
-            template=entity_refsdecl.template
-        )
+            template=entity_refsdecl.template)
 
         doc_xpath, entity_xpath = {}, {}
         for cref in text_refsdecl_el.xpath('//cRefPattern'):
@@ -783,8 +780,6 @@ class Text(Node):
                     if n:
                         path = (n,) + path
                 length = - (len(mp.split('%s')) - 1)
-                print length
-                print path[length:]
                 el.set('{%s}entity' % el.nsmap.get('det'), mp % path[length:])
 
         docs = list(doc.get_descendants())

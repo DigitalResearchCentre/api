@@ -1,9 +1,11 @@
 require([
   'jquery', 'underscore', 'backbone', 
-  'models', 'views/createcommunity', 'views/editcommunity', 'urls', 'auth',
+  'models', 'views/createcommunity', 'views/editcommunity', 
+  'urls', 'auth', 'router', 'vent',
   'bootstrap', 'bootstrap-fileupload', 'codemirror-xml', 'jquery.cookie'
 ], function(
-  $, _, Backbone, models, CreateCommunityView, EditCommunityView, urls, auth
+  $, _, Backbone, models, CreateCommunityView, EditCommunityView, 
+  urls, auth, router, vent
 ) {
   var Community = models.Community;
 
@@ -15,9 +17,11 @@ require([
     template: _.template($('#membership-row-tmpl').html()),
     initialize: function() {
       this.listenTo(this.model, 'remove', this.remove);
+      this.listenTo(this.model, 'view:onAdminClick', this.onAdminClick);
     },
     onAdminClick: function() {
-      (new EditCommunityView({model: this.model.getCommunity()})).render();
+        $('#modal').modal('show');
+        (new EditCommunityView({model: this.model.getCommunity()})).render();
     },
     render: function() {
       this.$el.html(this.template(this.model.toJSON()));
@@ -35,6 +39,7 @@ require([
     initialize: function() {
       var memberships = this.memberships = this.model.getMemberships();
       this.listenTo(memberships, 'add', this.onMembershipAdd);
+      this.listenTo(vent, 'profile:openCommunity', this.openCommunity);
       if (!memberships.isFetched()) {
         memberships.fetch();
       }
@@ -48,6 +53,20 @@ require([
     },
     onCreateCommunity: function() {
       (new CreateCommunityView({model: new Community()})).render();
+    },
+    openCommunity: function (communityId) {
+        var memberships = this.memberships;
+        if (memberships.isFetched()) {
+            memberships.find(function (membership) {
+                if (membership.getCommunity().id === parseInt(communityId, 10)){
+                    membership.trigger('view:onAdminClick');
+                    return true;
+                }
+            });
+        }else{
+            this.listenToOnce(memberships, 'fetched',
+                              _.bind(this.openCommunity, this, communityId));
+        }
     },
     render: function() {
       this.$el.html(this.template(this.model.toJSON()));
@@ -64,15 +83,15 @@ require([
   auth.on('login', function() {
     var app = new ProfileView({model: auth.getUser()});
     app.render();
+    Backbone.history.start();
+    window.router = router;
   });
 });
 
 /*
-
 Documents
   add documents
   get text from document
   delete text of document
   rename documents
-
  * */
