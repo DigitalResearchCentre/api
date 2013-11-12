@@ -720,12 +720,13 @@ class Text(Node):
                 'tag': tag, 'children': []}
             q[-1]['children'].append(prev)
             i += 1
-        print 'prepare load_bulk'
+        print 'Doc load_bulk start: ', datetime.datetime.now()
         doc = Doc.load_bulk([doc_root])[0]
         doc = Doc.objects.get(pk=doc.pk)
         text.doc = doc
         text.save()
         community.docs.add(doc)
+        print 'Doc load_bulk finished: ', datetime.datetime.now()
 
         refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
         root_com = Community.get_root_community()
@@ -735,12 +736,11 @@ class Text(Node):
         except RefsDecl.DoesNotExist:
             doc_refsdecl = root_com.refsdecls.get(
                 name=refsdecl_el.get('{%s}documentRefsDecl' % nsmap['det']))
+        name = refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det'])
         try:
-            entity_refsdecl = community.refsdecls.get(
-                name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
+            entity_refsdecl = community.refsdecls.get(name=name)
         except RefsDecl.DoesNotExist:
-            entity_refsdecl = root_com.refsdecls.get(
-                name=refsdecl_el.get('{%s}entityRefsDecl' % nsmap['det']))
+            entity_refsdecl = root_com.refsdecls.get(name=name)
 
         text_refsdecl_el = etree.Element('refsDecl')
         for refs in (doc_refsdecl, entity_refsdecl):

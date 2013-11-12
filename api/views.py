@@ -215,7 +215,12 @@ class APIView(CreateModelMixin, RelationView):
 
     def _post_upload_tei(self, request, *args, **kwargs):
         f = request.FILES['xml']
-        return self.get_response(Text.load_tei(f.read(), self.get_object()))
+        try:
+            return self.get_response(Text.load_tei(f.read(), self.get_object()))
+        except RefsDecl.DoesNotExist, e:
+            return HttpResponse(json.dumps({'msg': str(e)}),
+                                content_type='application/json',
+                                status=404)
 
     def _post_upload_zip(self, request, *args, **kwargs):
         doc = self.get_object()
