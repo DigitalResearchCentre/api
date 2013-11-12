@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from api.models import (
     Community, Membership, Entity, Doc, Text, Revision, RefsDecl,
-    APIUser, Group, TilerImage, CSS, Task, JS, Schema, Invitation)
+    APIUser, Group, TilerImage, CSS, Task, JS, Schema, Invitation, )
 
 
 class CommunitySerializer(serializers.ModelSerializer):
@@ -87,18 +87,9 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class MembershipSerializer(serializers.ModelSerializer):
-    community = CommunitySerializer()
-    role = GroupSerializer()
-    tasks = serializers.SerializerMethodField('get_tasks')
 
     class Meta:
         model = Membership
-
-    def get_tasks(self, obj):
-        if obj.user:
-            qs = obj.user.task_set.filter(community=obj.community)
-            return TaskSerializer(qs).data
-
 
 class MemberSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField('get_name')

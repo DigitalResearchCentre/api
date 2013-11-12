@@ -16,16 +16,41 @@ require([
     },
     template: _.template($('#membership-row-tmpl').html()),
     initialize: function() {
-      this.listenTo(this.model, 'remove', this.remove);
-      this.listenTo(this.model, 'view:onAdminClick', this.onAdminClick);
+        var model = this.model;
+
+        this.community = model.getCommunity();
+        this.role = model.getRole();
+
+        this.listenTo(model, 'remove', this.remove);
+        this.listenTo(model, 'view:onAdminClick', this.onAdminClick);
+        this.listenTo(model, 'change', this.onChange);
+        this.listenTo(this.community, 'change', this.onChange);
+        this.listenTo(this.role, 'change', this.onChange);
     },
     onAdminClick: function() {
         $('#modal').modal('show');
         (new EditCommunityView({model: this.model.getCommunity()})).render();
     },
     render: function() {
-      this.$el.html(this.template(this.model.toJSON()));
-      return this;
+        this.$el.html(this.template());
+        this.community.fetch();
+        this.role.fetch();
+        this.onChange();
+        return this;
+    },
+    onChange: function () {
+        var $el = this.$el,
+        createDate = this.model.get('create_date'),
+        roleName = this.role.get('name');
+        this.$('.community').text(this.community.get('name'));
+        console.log(roleName);
+        if (roleName === 'Leader' || roleName === 'Co Leader') {
+            this.$('.btn.admin').removeClass('hide').show();
+        }
+        if (createDate) {
+            roleName += ' since ' + createDate;
+        }
+        this.$('.role').text(roleName);
     }
   });
 

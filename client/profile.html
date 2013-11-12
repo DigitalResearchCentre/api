@@ -333,46 +333,22 @@
   </script>
 
   <script type="text/template" id="membership-row-tmpl">
-    <td><%- community.name %></td>
-    <td>
-      <%- role.name %> 
-      <% if (create_date) { 
-        %> since <%- create_date %><% 
-      } %>
+    <td class="community"></td>
+    <td class="role">
     </td>
-    <td>
-      <% _.each(tasks, function(task){
-        if (task.status == task.ASSIGNED) { 
-          %> <li> <%- task.doc.name %> </li> <%
-        }
-      }) %>
+    <td class="assigned">
     </td>
-    <td>
-      <% _.each(tasks, function(task){
-        if (task.status == task.IN_PROGRESS) { 
-          %> <li> <%- task.doc.name %> </li> <%
-        }
-      }) %>
+    <td class="in-progress">
     </td>
-    <td>
-      <% _.each(tasks, function(task){
-        if (task.status == task.APPROVAL) { 
-          %> <li> <%- task.doc.name %> </li> <%
-        }
-      }) %>
+    <td class="approval">
     </td>
-    <td>
-      <% _.each(tasks, function(task){
-        if (task.status == task.PUBLISHED) { 
-          %> <li> <%- task.doc.name %> </li> <%
-        }
-      }) %>
+    <td class="published">
     </td>
-    <td>
-        <% if (role.name == 'Leader' || role.name == 'Co Leader') { %> 
-        <button class="btn btn-primary admin">Admin</button> 
-        <% } %>
+    <td class="admin">
+        <button class="btn btn-primary admin hide">Admin</button> 
     </td>
   </script>
 </body>
 </html>
+
+

@@ -25,7 +25,7 @@ from api.models import (
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, 
-    InvitationSerializer)
+    InvitationSerializer, MembershipSerializer, GroupSerializer,)
 
 from rest_framework.authentication import SessionAuthentication
 
@@ -377,6 +377,18 @@ class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
 class UserList(generics.ListCreateAPIView):
     model = APIUser
     serializer_class = APIUserSerializer
+
+class MembershipDetail(generics.RetrieveUpdateDestroyAPIView):
+    model = Membership
+    serializer_class = MembershipSerializer
+
+class MembershipList(generics.ListCreateAPIView):
+    model = Membership
+    serializer_class = MembershipSerializer
+
+class RoleDetail(generics.RetrieveUpdateDestroyAPIView):
+    model = Group
+    serializer_class = GroupSerializer
 
 class InvitationList(generics.ListCreateAPIView):
     model = Invitation

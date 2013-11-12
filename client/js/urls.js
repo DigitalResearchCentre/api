@@ -18,6 +18,8 @@ define([
         'user': '/users/',
         'user:communities': '/users/{pk}/communities/',
         'user:memberships': '/users/{pk}/memberships/',
+        'membership': '/memberships/',
+        'role': '/roles/',
         'doc': '/docs/',
         'doc:xml': '/docs/{pk}/xml/',
         'doc:text': '/docs/{pk}/has_text_in/',

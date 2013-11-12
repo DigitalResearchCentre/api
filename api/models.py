@@ -147,6 +147,9 @@ class Membership(models.Model):
         name = '%s %s' % (self.user.first_name, self.user.last_name)
         return name.strip() or self.user.username 
 
+    def tasks(self):
+        return self.task_set.all()
+
 def get_last(qs):
     lst = list(qs.reverse()[:1])
     return lst[0] if lst else None
@@ -720,13 +723,11 @@ class Text(Node):
                 'tag': tag, 'children': []}
             q[-1]['children'].append(prev)
             i += 1
-        print 'Doc load_bulk start: ', datetime.datetime.now()
         doc = Doc.load_bulk([doc_root])[0]
         doc = Doc.objects.get(pk=doc.pk)
         text.doc = doc
         text.save()
         community.docs.add(doc)
-        print 'Doc load_bulk finished: ', datetime.datetime.now()
 
         refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
         root_com = Community.get_root_community()
@@ -1129,10 +1130,6 @@ class APIUser(User):
     def memberships(self):
         return self.membership_set.all()
 
-    def tasks(self):
-        return self.task_set.all()
-
-
 class Task(models.Model):
     ASSIGNED, IN_PROGRESS, SUBMITTED, COMPLETED = range(4)
     STATUS_CHOICES = (
@@ -1142,12 +1139,11 @@ class Task(models.Model):
         (COMPLETED, 'completed'),
     )
     doc = models.ForeignKey(Doc)
-    user = models.ForeignKey(User)
-    community = models.ForeignKey(Community)  # TODO: not nessary
+    membership = models.ForeignKey(Membership)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ASSIGNED)
 
     class Meta:
-        unique_together = ('doc', 'user', )
+        unique_together = ('doc', 'membership', )
 
 
 class Partner(models.Model):

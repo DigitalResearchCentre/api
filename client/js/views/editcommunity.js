@@ -289,7 +289,7 @@ define([
 
   var EditCommunityView = ModalView.extend({
     bodyTemplate: function() {
-      return _.template(tmpl)(this.model.toJSON());
+      return _.template(tmpl)();
     },
     events: {
       'click .add-text-file': 'onAddTextFileClick',
@@ -311,11 +311,22 @@ define([
       {cls: "btn-danger", text: 'Delete', event: 'onDeleteClick'},
       {cls: "btn-primary", text: 'Update', event: 'onUpdate'},
     ],
+    initialize: function () {
+        this.listenTo(this.model, 'change', this.onChange);
+    },
     render: function() {
-        console.log('view:onAdminClick');
         ModalView.prototype.render.apply(this, arguments);
         this.$('.modal-title').text(this.model.get('name'));
+        this.onChange();
         return this;
+    },
+    onChange: function () {
+        var model = this.model;
+        _.each([
+            'name', 'abbr', 'long_name', 'font', 'description'
+        ], function(name) {
+            this.$('#form-field-'+name).val(model.get(name));
+        }, this);
     },
     onUpdate: function() {
       var data = {};

@@ -3,7 +3,8 @@ from django.conf.urls import patterns, url, include
 from django.contrib import admin
 from rest_framework import generics
 from api.models import (
-    Community, Entity, Doc, Text, Revision, APIUser, JS, Partner, Schema, CSS)
+    Community, Entity, Doc, Text, Revision, APIUser, JS, Partner, Schema, CSS,
+    Membership,)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, TaskSerializer,
@@ -12,7 +13,8 @@ from api.serializers import (
 from api.views import (
     api_root, CommunityList, CommunityDetail, APIView, DocList,
     EntityList, TextDetail, TextList, UserList, UserDetail, RefsDeclList,
-    RefsDeclDetail, UserInfo, DocDetail)
+    RefsDeclDetail, UserInfo, DocDetail, MembershipDetail, MembershipList,
+    RoleDetail,)
 from django.conf.urls.static import static
 
 admin.autodiscover()
@@ -121,7 +123,6 @@ urlpatterns = patterns(
     url(r'^users/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
             {'func': 'communities', 'serializer_class': CommunitySerializer},
-            {'func': 'tasks_in', 'serializer_class': TaskSerializer},
             {
                 'func': 'memberships',
                 'serializer_class': MembershipSerializer
@@ -130,6 +131,15 @@ urlpatterns = patterns(
                 'serializer_class': MembershipSerializer,
             },
         ], extra={'model': APIUser, 'serializer_class': APIUserSerializer}))),
+    url(r'^memberships/$', MembershipList.as_view()),
+    url(r'^memberships/(?P<pk>\d+)/$', MembershipDetail.as_view()),
+    url(r'^memberships/(?P<pk>\d+)/',
+        include(APIView.urlpatterns([
+            {'func': 'tasks', 'serializer_class': TaskSerializer},
+        ], extra={
+            'model': Membership, 'serializer_class': MembershipSerializer
+        }))),
+    url(r'^roles/(?P<pk>\d+)/$', RoleDetail.as_view()),
     url(r'^revision/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
             {}, {

@@ -138,14 +138,30 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
     rest: 'membership',
     getCommunity: function() {
       if (!this._community) {
-        this._community = new Community(this.get('community'));
+        this._community = new Community({id: this.get('community')});
       }
       return this._community;
+    },
+    getUser: function() {
+      if (!this._user) {
+        this._user = new User({id: this.get('user')});
+      }
+      return this._user;
+    },
+    getRole: function () {
+        if (!this._role) {
+            this._role = new Role({id: this.get('role')});
+        }
+        return this._role;
     }
   });
 
+  var Role = Model.extend({
+      rest: 'role'
+  });
+
   var User = Model.extend({
-    rest: 'users',
+    rest: 'user',
     getCommunities: function() {
       if (!this._communities) {
         this._communities = new (Collection.extend({
