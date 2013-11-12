@@ -180,10 +180,10 @@ define([
           that.$('.error').removeClass('hide').html(resp.responseText);
         }
       }).done(_.bind(function() {
-        var $alert = this.$('.alert-success').removeClass('hide').show();
+        this.$('.alert-success').removeClass('hide').show();
         this.$('.error').addClass('hide');
-        _.delay(function() {$alert.hide(1000);}, 2000);
       }, this)).fail(_.bind(function(resp) {
+        this.$('.alert-success').hide();
         this.$('.error').removeClass('hide').html(resp.responseText);
       }, this));
     }
