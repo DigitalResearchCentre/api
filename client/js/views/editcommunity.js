@@ -159,14 +159,17 @@ define([
         contentType: false,
         processData: false,
         xhr: function() {  // Custom XMLHttpRequest
-          var myXhr = $.ajaxSettings.xhr();
+          var 
+          myXhr = $.ajaxSettings.xhr(),
+          $bar = $('.progress-bar', $progress);
+
           if(myXhr.upload){ // Check if upload property exists
             myXhr.upload.addEventListener('progress', function(e) {
               if(e.lengthComputable){
                 var percent = (e.loaded*100.0)/e.total + '%';
-                $progress.attr({
-                  'aria-valuenow': e.loaded, 'aria-valuemax': e.total
-                }).width();
+                $bar.attr({
+                    'aria-valuenow': e.loaded, 'aria-valuemax': e.total
+                }).width(percent);
                 $srOnly.text(percent);
               } 
             }, false); // For handling the progress of the upload
