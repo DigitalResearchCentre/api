@@ -20,6 +20,7 @@ define([
         'user:memberships': '/users/{pk}/memberships/',
         'membership': '/memberships/',
         'role': '/roles/',
+        'task': '/tasks/',
         'doc': '/docs/',
         'doc:xml': '/docs/{pk}/xml/',
         'doc:text': '/docs/{pk}/has_text_in/',

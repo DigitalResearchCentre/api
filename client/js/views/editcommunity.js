@@ -303,7 +303,7 @@ define([
       'click .add-js': 'onAddJSClick',
       'click .add-css': 'onAddCSSClick',
       'click .add-dtd': 'onAddDTDClick',
-      'click .members': 'onMembersClick',
+      'click .btn.members': 'onMembersClick',
       'click .invite': 'onInviteClick'
     },
     buttons: [

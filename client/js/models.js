@@ -153,7 +153,19 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
             this._role = new Role({id: this.get('role')});
         }
         return this._role;
+    },
+    getTasks: function () {
+        if (!this._tasks) {
+            this._tasks = new (Collection.extend({
+                rest: ['membership:tasks', {pk: this.id}], model: Task
+            }))();
+        }
+        return this._tasks;
     }
+  });
+
+  var Task = Model.extend({
+      rest: 'task'
   });
 
   var Role = Model.extend({

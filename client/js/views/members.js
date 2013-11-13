@@ -1,7 +1,33 @@
 define([
-    'jquery', 'underscore', './modal', 'text!tmpl/members.html'
-], function($, _, ModalView, tmpl) {
+    'jquery', 'underscore', 'backbone', './modal', 'text!tmpl/members.html'
+], function($, _, Backbone, ModalView, tmpl) {
     'use strict';
+
+    var MembershipRowView = Backbone.View.extend({
+        tagName: 'tr',
+        initialize: function () {
+            console.log(this.model);
+            this.tasks = this.model.getTasks();
+            this.listenTo(this.tasks, 'add', this.onTaskAdd);
+        },
+        render: function () {
+            var model = this.model;
+            this.$el.html(
+                '<td>' + model.get('name') + '</td>' + 
+                '<td>' + model.get('create_date') + '</td>' + 
+                '<td class="assigned">' + '</td>' + 
+                '<td class="in-progress">' + '</td>' + 
+                '<td class="submitted">' + '</td>' +
+                '<td class="completed">' + '</td>' +
+                '<td><button class="btn btn-primary">assign</button></td>');
+            this.tasks.each(this.onTaskAdd, this);
+            return this;
+        },
+        onTaskAdd: function (task) {
+
+        }
+    });
+
     var MembersView = ModalView.extend({
         buttons: [
             {cls: "btn-default", text: 'Back', event: 'onBack'},
@@ -16,17 +42,10 @@ define([
             }
             this._increaseWidth = 0;
         },
-        onMembershipAdd: function(member) {
-            var $members = this.$('.members');
-            $members.append($('<tr>' + 
-                              '<td>' + member.get('name') + '</td>' +
-                              '<td>' + member.get('create_date') + '</td>' +
-                              '<td>' + '</td>' +
-                              '<td>' + '</td>' +
-                              '<td>' + '</td>' +
-                              '<td>' + '</td>' +
-                              '<td>' + '</td>' +
-                              '</tr>'));
+        onMembershipAdd: function(membership) {
+            var view = new MembershipRowView({model: membership});
+
+            this.$('.members').append(view.render().$el);
             this.autoResize();
         },
         autoResize: function () {
