@@ -165,7 +165,13 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
   });
 
   var Task = Model.extend({
-      rest: 'task'
+      rest: 'task',
+      status: {
+        ASSIGNED: 0,
+        IN_PROGRESS: 1,
+        SUBMITTED: 2,
+        COMPLETED: 3
+      }
   });
 
   var Role = Model.extend({

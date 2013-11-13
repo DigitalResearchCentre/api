@@ -20,11 +20,11 @@ from rest_framework.reverse import reverse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from api.models import (
-    Community, Membership, Entity, Doc, Text, Revision, RefsDecl,
+    Community, Membership, Entity, Doc, Text, Revision, RefsDecl, Task,
     APIUser, Group, UserMapping, CommunityMapping, Partner, Invitation)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
-    TextSerializer, RevisionSerializer, RefsDeclSerializer, 
+    TextSerializer, RevisionSerializer, RefsDeclSerializer, TaskSerializer,
     InvitationSerializer, MembershipSerializer, GroupSerializer,)
 
 from rest_framework.authentication import SessionAuthentication
@@ -372,6 +372,11 @@ class RefsDeclList(generics.ListCreateAPIView):
 class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer
+
+
+class TaskDetail(generics.RetrieveUpdateDestroyAPIView):
+    model = Task
+    serializer_class = TaskSerializer
 
 
 class UserList(generics.ListCreateAPIView):

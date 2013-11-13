@@ -19,6 +19,7 @@ define([
         'user:communities': '/users/{pk}/communities/',
         'user:memberships': '/users/{pk}/memberships/',
         'membership': '/memberships/',
+        'membership:tasks': '/memberships/{pk}/tasks/',
         'role': '/roles/',
         'task': '/tasks/',
         'doc': '/docs/',

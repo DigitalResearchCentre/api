@@ -29,6 +29,7 @@ require([
     },
     onAdminClick: function() {
         $('#modal').modal('show');
+        router.navigate('community=' + this.model.getCommunity().id);
         (new EditCommunityView({model: this.model.getCommunity()})).render();
     },
     render: function() {
