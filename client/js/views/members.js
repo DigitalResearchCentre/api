@@ -42,13 +42,12 @@ define([
                 '<td><button class="btn btn-primary">assign</button></td>');
             this.tasks.each(this.onTaskAdd, this);
             this.tasks.fetch();
-                
-            $ul = this.$('td>ul').addClass('folder folder-close');
+            this.$('td>ul').addClass('folder folder-close');
             this.$('td>span').addClass('btn glyphicon glyphicon-folder-close').
                 click(function () {
                 $(this).toggleClass(
                     'glyphicon-folder-close glyphicon-folder-open');
-                $ul.toggleClass('folder-open folder-close');
+                $(this).siblings('ul').toggleClass('folder-open folder-close');
             });
             return this;
         },
