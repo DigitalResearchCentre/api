@@ -791,33 +791,34 @@ class Text(Node):
 
     @classmethod
     def get_by_urn(cls, urn):
-        return
-#        community_urn = re.findall(r'(^(?:(?:^|:)\w+)+):', urn)[0]
-#        community = Community.objects.get(abbr=community_urn.split(':')[-1])
-#
-#        value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', urn)
-#
-#        parent = None
-#        for label, name in value_pairs:
-#            if label == 'document':
-#                doc = community.docs.get(name=name)
-#            elif label == 'entity':
-#                entity = community.entities.get(name=name)
-#            elif parent is not None:
-#                parent = parent.get_children().get(label=label, name=name)
-#
-#        label, name = value_pairs[0]
-#        try:
-#            entity = community.entities.get(name=name, label=label)
-#        except Entity.DoesNotExist:
-#            entity = Entity.add_root(name=name, label=label)
-#            community.entities.add(entity)
-#
-#            try:
-#                entity = entity.get_children().get(label=label, name=name)
-#            except Entity.DoesNotExist, e:
-#                entity = entity.add_child(label=label, name=name)
-#        return entity
+        community_urn = re.findall(r'(^(?:(?:^|:)\w+)+):', urn)[0]
+        community = Community.objects.get(abbr=community_urn.split(':')[-1])
+
+        value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', urn)
+        obj = None
+        doc = None
+        entity = None
+        # document=Hg:Folio=13r:entity=book1:line=13
+        for label, name in value_pairs:
+            if label == 'document':
+                entity = obj
+                qs = community.docs
+            elif label == 'entity':
+                doc = obj
+                qs = community.entities
+            else:
+                qs = obj.get_children()
+            obj = qs.get(name=name, label=label)
+        if doc is None:
+            doc = obj
+        if entity is None:
+            entity = obj
+        doc_text = doc.has_text_in()
+        q = Q(tree_id=doc_text.tree_id, rgt__gt=doc_text.lft)
+        bound = doc._get_texts_bound()
+        if bound is not None:
+            q &= Q(lft__lt=bound.lft)
+        return entity.has_text_of().get(q)
 
 
 class Attr(models.Model):
@@ -912,13 +913,19 @@ class Revision(models.Model):
                     if n:
                         path = (n,) + path
                 length = - (len(mp.split('%s')) - 1)
-                print length
-                print path[length:]
                 el.set('{%s}entity' % el.nsmap.get('det'), mp % path[length:])
 
+        prev_urn = root_el.xpath('//@prev')
+        if len(prev_urn) > 0:
+            continue_text = Text.get_by_urn(prev_urn[-1])
+            prev_text = continue_text.get_child_before(pb)
+            if prev_text is None:
+                pb.move(continue_text, pos='first-child')
+            else:
+                pb.move(prev_text, pos='right')
+        pb = Text.objects.get(pk=pb.pk)
         doc.get_descendants().delete()
         doc = Doc.objects.get(pk=doc.pk)
-        pb = Text.objects.get(pk=pb.pk)
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         # TODO: rebind all doc/entity
         doc.cur_rev = self

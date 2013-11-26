@@ -95,17 +95,18 @@ define([
             }, false); // For handling the progress of the upload
           }
           return myXhr;
-        },
-        success: function() {
-          if (fList) {
-            fList.fetch();
-          }
-          that.onBack();
-        },
-        error: function(resp) {
-          that.$('.error').removeClass('hide').html(resp.responseText);
         }
-      });
+      }).done(_.bind(function() {
+        if (fList) {
+            fList.fetch();
+        }
+        this.$('.alert-success').removeClass('hide').show();
+        this.$('.error').addClass('hide');
+      }, this)).fail(_.bind(function(resp) {
+        this.$('.alert-success').hide();
+        this.$('.error').removeClass('hide').html(resp.responseText);
+      }, this));
+
     }
   });
   return FileUploadView;
