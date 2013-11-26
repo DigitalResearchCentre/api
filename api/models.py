@@ -912,8 +912,6 @@ class Revision(models.Model):
                     if n:
                         path = (n,) + path
                 length = - (len(mp.split('%s')) - 1)
-                print length
-                print path[length:]
                 el.set('{%s}entity' % el.nsmap.get('det'), mp % path[length:])
 
         doc.get_descendants().delete()
