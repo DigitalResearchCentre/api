@@ -852,19 +852,19 @@ class Revision(models.Model):
     def _commit_el(self, parent_el, ancestors, after=None):
         bulk_el = parent_el.getchildren()
         parent = ancestors.pop(0)
-        if ancestors and bulk_el:
-            parent_el = bulk_el.pop(0)
-            if parent_el.text:
+        if not ancestors:
+            if parent_el.text is not None and parent_el.text.strip():
                 if after is not None:
                     after.tail += parent_el.text
                     after.save()
                 else:
                     parent.text += parent_el.text
                     parent.save()
-            if parent_el.tail:
+            if parent_el.tail is not None and parent_el.tail.strip():
                 parent.tail = parent_el.tail
                 parent.save()
-            self._commit_el(bulk_el, ancestors, after=after)
+        elif bulk_el:
+            self._commit_el(bulk_el.pop(0), ancestors, after=after)
 
         if bulk_el and (after is None or parent.rgt > after.lft):
             parent.load_bulk_el(bulk_el, after=after)
