@@ -28,7 +28,7 @@
                 }
                 window.location = next;
             });
-        </script>
-        ]]>
-    </Content>
-</Module>
+            </script>
+            ]]>
+        </Content>
+    </Module>

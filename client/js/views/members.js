@@ -25,9 +25,10 @@ define([
 
     var MembershipRowView = Backbone.View.extend({
         tagName: 'tr',
-        initialize: function () {
+        initialize: function (options) {
             this.tasks = this.model.getTasks();
             this.listenTo(this.tasks, 'add', this.onTaskAdd);
+            this.options = options;
         },
         render: function () {
             var $span, $ul,
@@ -40,63 +41,86 @@ define([
                 '<td class="submitted"><span> 0 tasks</span><ul></ul></td>' +
                 '<td class="completed"><span> 0 tasks</span><ul></ul></td>' +
                 '<td><button class="btn btn-primary">assign</button></td>');
-            this.tasks.each(this.onTaskAdd, this);
-            this.tasks.fetch();
-            this.$('td>ul').addClass('folder folder-close');
-            this.$('td>span').addClass('btn glyphicon glyphicon-folder-close').
-                click(function () {
-                $(this).toggleClass(
-                    'glyphicon-folder-close glyphicon-folder-open');
-                $(this).siblings('ul').toggleClass('folder-open folder-close');
-            });
-            return this;
+                this.tasks.each(this.onTaskAdd, this);
+                this.tasks.fetch();
+                this.$('td>ul').addClass('folder folder-close');
+                this.$('td>span').addClass('btn glyphicon glyphicon-folder-close').
+                    click(function () {
+                    $(this).toggleClass(
+                        'glyphicon-folder-close glyphicon-folder-open');
+                        $(this).siblings('ul').toggleClass('folder-open folder-close');
+                });
+                return this;
         },
         onTaskAdd: function (task) {
-            var cls, $td, $ul,
+            var cls, $td, $ul, $a,
+            doc = task.getDoc(),
             status = task.status;
 
             switch (task.get('status')) {
                 case status.ASSIGNED:
                     cls = 'assigned';
-                    break;
+                break;
                 case status.IN_PROGRESS:
                     cls = 'in-progress';
-                    break;
+                break;
                 case status.SUBMITTED:
                     cls = 'submitted';
-                    break;
+                break;
                 case status.COMPLETED:
                     cls = 'completed';
-                    break;
+                break;
                 default:
                     return;
             }
             $td = this.$('.' + cls);
             $ul = $td.children('ul');
-            $ul.append('<li>' + task.get('doc') + '</li>');
+            $a = $('<a href="#task=' + task.id + '">' + doc.get('name') + '</a>');
+            $a.click(_.bind(function () {
+                this.options.viewTask(task);
+            }, this));
+            this.listenTo(doc, 'change', function () {
+                $a.text(doc.get('name'));
+            });
+            doc.fetch();
+            $ul.append($('<li></li>').append($a));
             $td.children('span').text(' ' + $ul.children().length + ' tasks');
             this.options.autoResize();
         }
     });
 
+    var TaskView = ModalView.extend({
+        buttons: [
+            {cls: "btn-default", text: 'Back', event: 'onBack'},
+            {cls: "btn-default", text: 'Close', event: 'onClose'}
+        ],
+        bodyTemplate: _.template('<textarea></textarea>'),
+        render: function () {
+            var doc = this.model.getDoc();
+            this.$('textarea').val(doc.get('name'));
+        }
+    });
 
-   var MembersView = ModalView.extend({
+    var MembersView = ModalView.extend({
         buttons: [
             {cls: "btn-default", text: 'Back', event: 'onBack'},
             {cls: "btn-default", text: 'Close', event: 'onClose'}
         ],
         bodyTemplate: _.template(tmpl),
-        initialize: function() {
+        initialize: function(options) {
             var memberships = this.memberships = this.model.getMemberships();
             this.listenTo(memberships, 'add', this.onMembershipAdd);
             if (!memberships.isFetched()) {
                 memberships.fetch();
             }
             this._increaseWidth = 0;
+            this.options = options;
         },
         onMembershipAdd: function(membership) {
             var view = new MembershipRowView({
-                model: membership, autoResize: _.bind(this.autoResize, this)
+                model: membership, 
+                autoResize: _.bind(this.autoResize, this),
+                viewTask: _.bind(this.viewTask, this)
             });
             this.$('.members').append(view.render().$el);
             this.autoResize();
@@ -125,6 +149,11 @@ define([
         onClose: function () {
             this.revertWidth();
             ModalView.prototype.onClose.apply(this, arguments);
+        },
+        viewTask: function (task) {
+            (new TaskView({
+                model: task, onBack: _.bind(this.onBack, this)
+            })).render();
         },
         render: function() {
             ModalView.prototype.render.apply(this, arguments);
