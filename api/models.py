@@ -853,7 +853,18 @@ class Revision(models.Model):
         bulk_el = parent_el.getchildren()
         parent = ancestors.pop(0)
         if ancestors and bulk_el:
-            self._commit_el(bulk_el.pop(0), ancestors, after=after)
+            parent_el = bulk_el.pop(0)
+            if parent_el.text:
+                if after is not None:
+                    after.tail += parent_el.text
+                    after.save()
+                else:
+                    parent.text += parent_el.text
+                    parent.save()
+            if parent_el.tail:
+                parent.tail = parent_el.tail
+                parent.save()
+            self._commit_el(bulk_el, ancestors, after=after)
 
         if bulk_el and (after is None or parent.rgt > after.lft):
             parent.load_bulk_el(bulk_el, after=after)
