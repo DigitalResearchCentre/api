@@ -665,7 +665,10 @@ class Text(Node):
     def _el_to_bulk_data(cls, bulk_el, docs=[]):
         bulk_data = []
         for el in bulk_el:
-            tag = el.xpath('local-name()')
+            if el.tag == etree.Comment:
+                tag = '!--'
+            else:
+                tag = el.xpath('local-name()')
             data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '', }
             if tag in ('pb', 'cb', 'lb') and docs:
                 data['doc'] = docs.pop(0)
