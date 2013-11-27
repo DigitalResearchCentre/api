@@ -47,7 +47,7 @@ class Community(models.Model):
     members = models.ManyToManyField(User, through='Membership')
 
     def __unicode__(self):
-        return unicode(self.name)
+        return self.name
 
     def delete(self, *args, **kwargs):
         self.get_docs().delete()
@@ -140,7 +140,7 @@ class Membership(models.Model):
     create_date = models.DateField(auto_now=True, editable=False)
 
     def __unicode__(self):
-        return unicode('%s %s %s' % (self.community, self.role, self.user,))
+        return u'%s %s %s' % (self.community, self.role, self.user,)
 
     @property
     def name(self):
