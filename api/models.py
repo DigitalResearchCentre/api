@@ -895,7 +895,7 @@ class Revision(models.Model):
             continue_to_next_page = []
             if bound is not None:
                 close_on_page = close_on_page.filter(rgt__lt=bound.lft)
-                on_page = open_on_page.filter(lft__lt=bound.lft)
+                on_page = on_page.filter(lft__lt=bound.lft)
                 continue_to_next_page = list(on_page.filter(rgt__gt=bound.lft))
                 on_page = on_page.filter(rgt__lt=bound.lft)
                 close_on_page.update(tail='')
