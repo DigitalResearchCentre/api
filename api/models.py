@@ -397,11 +397,10 @@ class Doc(DETNode):
         # find the first text with a doc
         # which isnot decensder of current doc
         # TODO: exclude is slow
-        return text and get_first(text.get_all_after()
-                                  .exclude(doc__tree_id=self.tree_id,
-                                           doc__lft__gte=self.lft,
-                                           doc__rgt__lte=self.rgt)
-                                  .exclude(doc__isnull=True))
+        return text and get_first(
+            text.get_all_after().filter(doc__isnull=False)
+            .exclude(doc__tree_id=self.tree_id, 
+                     doc__lft__gte=self.lft, doc__rgt__lte=self.rgt))
 
     def has_entities(self, entity_pk=None):
         text = self.has_text_in()
@@ -876,12 +875,44 @@ class Revision(models.Model):
         doc = Doc.objects.get(pk=self.doc.pk)
         root = doc.get_root().has_text_in()
         pb = doc.has_text_in()
+        root_el = etree.XML(self.text)
+        if 'det' not in root_el.nsmap:
+            tmp = etree.XML(
+                '<xml xmlns:det="http://textualcommunities.usask.ca/"/>'
+            )
+            tmp.append(root_el)
+        # TODO: verify root_el against cref
+        prev_urn = root_el.xpath('//@prev')
+        continue_text = None
+        if len(prev_urn) > 0:
+            continue_text = Text.get_by_urn(prev_urn[-1])
+
         if pb is not None:
-            texts = doc.get_texts().exclude(pk=pb.pk)
+            qs = Text.objects.filter(tree_id=pb.tree_id)
+            close_on_page = qs.filter(lft__lt=pb.lft, rgt__gt=pb.lft)
+            on_page = qs.filter(lft__gt=pb.lft)
             bound = doc._get_texts_bound()
+            continue_to_next_page = []
             if bound is not None:
-                texts = texts.filter(rgt__lt=bound.lft)
-            texts.delete()
+                close_on_page = close_on_page.filter(rgt__lt=bound.lft)
+                on_page = open_on_page.filter(lft__lt=bound.lft)
+                continue_to_next_page = list(on_page.filter(rgt__gt=bound.lft))
+                on_page = on_page.filter(rgt__lt=bound.lft)
+                close_on_page.update(tail='')
+
+            if continue_text:
+                close_on_page = (close_on_page
+                                 .filter(rgt__lt=continue_text.rgt)
+                                 .order_by('rgt'))
+            else:
+                close_on_page = (close_on_page
+                                 .exclude(tag__in=('text', 'body',))
+                                 .order_by('rgt'))
+            close_on_page = get_last(close_on_page)
+            on_page.delete()
+            if close_on_page:
+                pb = Text.objects.get(pk=pb.pk)
+                pb.move(close_on_page, pos='right')
             pb = Text.objects.get(pk=pb.pk)
         else:
             sibling = get_first(
@@ -897,14 +928,6 @@ class Revision(models.Model):
             else:
                 pb = sibling.add_sibling(pos='left', tag='pb', doc=doc)
             pb = Text.objects.get(pk=pb.pk)
-
-        root_el = etree.XML(self.text)
-        if 'det' not in root_el.nsmap:
-            tmp = etree.XML(
-                '<xml xmlns:det="http://textualcommunities.usask.ca/"/>'
-            )
-            tmp.append(root_el)
-        # TODO: verify root_el against cref
 
         entity_xpath = {}
         for refsdecl in pb.get_root().refsdecl_set.all():
@@ -941,6 +964,23 @@ class Revision(models.Model):
         doc.get_descendants().delete()
         doc = Doc.objects.get(pk=doc.pk)
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
+        target = continue_to_next_page[0] if continue_to_next_page else None
+        for t in continue_to_next_page:
+            t = Text.objects.get(pk=t.pk)
+            merge_text = get_first(
+                Text.objects.filter(tree_id=t.tree_id, rgt__lt=target.lft, 
+                                    entity__isnull=False).order_by('rgt'))
+            if merge_text.entity != t.entity:
+                break
+            merge_text.tail = t.tail
+            for child in t.get_children():
+                child = Text.objects.get(pk=child.pk)
+                child.move(merge_text, pos='last-child')
+                merge_text = Text.objects.get(pk=merge_text.pk)
+            t.delete()
+            merge_text.save()
+            target = merge_text
+
         # TODO: rebind all doc/entity
         doc.cur_rev = self
         doc.save()
