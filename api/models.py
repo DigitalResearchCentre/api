@@ -820,7 +820,7 @@ class Text(Node):
         bound = doc._get_texts_bound()
         if bound is not None:
             q &= Q(lft__lt=bound.lft)
-        return entity.has_text_of().get(q)
+        return get_last(entity.has_text_of().filter(q))
 
 
 class Attr(models.Model):
