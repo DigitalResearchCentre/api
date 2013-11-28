@@ -970,7 +970,7 @@ class Revision(models.Model):
             merge_text = get_first(
                 Text.objects.filter(tree_id=t.tree_id, rgt__lt=target.lft, 
                                     entity__isnull=False).order_by('rgt'))
-            if merge_text.entity != t.entity:
+            if not merge_text or merge_text.entity != t.entity:
                 break
             merge_text.tail = t.tail
             for child in t.get_children():
