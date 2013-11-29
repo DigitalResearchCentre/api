@@ -100,11 +100,11 @@ define([
       'change .doc-dropdown': 'onDocChange'
     },
     initialize: function(options) {
-      var docs = this.docs = this.model.getDocs();
-      this.listenTo(docs, 'add', this.onDocAdd);
-      if (!docs.isFetched()) {
-        this.docs.fetch();
-      }
+        var docs = this.docs = this.model.getDocs();
+        this.listenTo(docs, 'add', this.onDocAdd);
+        if (!docs.isFetched()) {
+            this.docs.fetch();
+        }
     },
     getSelectedDoc: function() {
       return this.docs.get(this.$('.doc-dropdown').val());
@@ -275,7 +275,6 @@ define([
       ;
       if (text.isNew()) {
         text.fetch().done(function() {
-          console.log(text);
           text.destroy().done(function() {
             var $alert = that.$('.alert-success').removeClass('hide').show();
             that.$('.error').addClass('hide');
@@ -293,7 +292,7 @@ define([
     },
     events: {
       'click .add-text-file': 'onAddTextFileClick',
-      'click .add-image-zip': 'onAddImageZipClick',
+      'click .btn.add-image-zip': 'onAddImageZipClick',
       'click .get-doc-xml': 'onGetDocXMLClick',
       'click .rename-doc': 'onRenameDocClick',
       'click .delete-doc': 'onDeleteDocClick',
@@ -313,6 +312,7 @@ define([
     ],
     initialize: function () {
         this.listenTo(this.model, 'change', this.onChange);
+        this._subViewCache = {};
     },
     render: function() {
         ModalView.prototype.render.apply(this, arguments);
@@ -343,62 +343,51 @@ define([
         this.$('.error').removeClass('hide').html(resp.responseText);
       }, this));
     },
+    openSubView: function (key, cls, kwargs) {
+        if (!kwargs) {
+            kwargs = {model: this.model, onBack: _.bind(this.render, this)};
+        }
+        if (!this._subViewCache[key]) {
+            this._subViewCache[key] = new cls(kwargs);
+        }
+        return this._subViewCache[key].render();
+    },
     onEditDocRefsDeclClick: function(){
-      var view = new EditDocRefsDeclView({
-        community: this.model, onBack: _.bind(this.render, this)
-      });
-      return view.render();
+        return this.openSubView('EditDocRefsDecl', EditDocRefsDeclView, {
+            community: this.model, onBack: _.bind(this.render, this)
+        });
     },
     onEditEntityRefsDeclClick: function(){
-      var view = new EditEntityRefsDeclView({
-        community: this.model, onBack: _.bind(this.render, this)
-      });
-      return view.render();
+        return this.openSubView('EditEntityRefsDecl', EditEntityRefsDeclView, {
+            community: this.model, onBack: _.bind(this.render, this)
+        });
     },
     onAddTextFileClick: function() {
-      (new TEIUploadView({
-        model: this.model, onBack: _.bind(this.render, this) 
-      })).render();
+        return this.openSubView('TEIUpload', TEIUploadView);
     },
     onAddImageZipClick: function() {
-      (new ImageZipUploadView({
-        model: this.model, onBack:  _.bind(this.render, this)
-      })).render();
+        return this.openSubView('ImageZipUpload', ImageZipUploadView);
     },
     onGetDocXMLClick: function() {
-      (new GetDocXMLView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('GetDocXML', GetDocXMLView);
     },
     onRenameDocClick: function() {
-      (new RenameDocView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('RenameDoc', RenameDocView);
     },
     onDeleteDocClick: function() {
-      (new DeleteDocView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('DeleteDoc', DeleteDocView);
     },
     onDeleteDocTextClick: function() {
-      (new DeleteDocTextView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('DeleteDocText', DeleteDocTextView);
     },
     onAddJSClick: function() {
-      (new JSUploadView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('JSUpload', JSUploadView);
     },
     onAddCSSClick: function() {
-      (new CSSUploadView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('CSSUpload', CSSUploadView);
     },
     onAddDTDClick: function() {
-      (new DTDUploadView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('DTDUpload', DTDUploadView);
     },
     onDeleteClick: function() {
       var that = this;
@@ -415,14 +404,10 @@ define([
       }, this));
     },
     onMembersClick: function() {
-      (new MembersView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('Members', MembersView);
     },
     onInviteClick: function() {
-      (new InviteView({
-        model: this.model, onBack: _.bind(this.render, this)
-      })).render();
+        return this.openSubView('Invite', InviteView);
     }
   });
   return EditCommunityView;

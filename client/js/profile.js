@@ -12,7 +12,7 @@ require([
   var MembershipRowView = Backbone.View.extend({
     tagName: 'tr',
     events: {
-      'click .admin': 'onAdminClick'
+      'click .btn.admin': 'onAdminClick'
     },
     template: _.template($('#membership-row-tmpl').html()),
     initialize: function() {
@@ -28,9 +28,14 @@ require([
         this.listenTo(this.role, 'change', this.onChange);
     },
     onAdminClick: function() {
+        console.log('onAdminClick');
         $('#modal').modal('show');
         router.navigate('community=' + this.model.getCommunity().id);
-        (new EditCommunityView({model: this.model.getCommunity()})).render();
+        if (!this._ecv) {
+            var community = this.model.getCommunity();
+            this._ecv = new EditCommunityView({model: community});
+        }
+        this._ecv.render();
     },
     render: function() {
         this.$el.html(this.template());
@@ -44,7 +49,6 @@ require([
         createDate = this.model.get('create_date'),
         roleName = this.role.get('name');
         this.$('.community').text(this.community.get('name'));
-        console.log(roleName);
         if (roleName === 'Leader' || roleName === 'Co Leader') {
             this.$('.btn.admin').removeClass('hide').show();
         }
@@ -83,6 +87,7 @@ require([
     openCommunity: function (communityId) {
         var memberships = this.memberships;
         if (memberships.isFetched()) {
+            console.log('openCommunity');
             memberships.find(function (membership) {
                 if (membership.getCommunity().id === parseInt(communityId, 10)){
                     membership.trigger('view:onAdminClick');
@@ -103,7 +108,7 @@ require([
 
   if (!auth.isLogin()) {
     auth.login().fail(function() {
-        window.location = urls.loginURL;
+        window.location = urls.loginURL; 
     });
   } 
   auth.on('login', function() {
