@@ -444,7 +444,9 @@ class Doc(DETNode):
             if file_name:
                 path = os.path.join(folder, file_name)
                 if not os.path.isfile(path):
-                    continue
+                    path = '%s.jpg' % path
+                    if not os.path.isfile(path):
+                        continue
                 with open(path, 'r') as f:
                     with self.ImageFile(f, rend=rend) as img:
                         try:
@@ -452,7 +454,14 @@ class Doc(DETNode):
                         except TilerImage.DoesNotExist:
                             pass
                         tiler_image = TilerImage(doc=pb)
-                        tiler_image.image.save(file_name, img)
+                        try:
+                            tiler_image.image.save(file_name, img)
+                        except ValueError:
+                            img = Image.open(open(path, 'r'))
+                            tiler_image.image._dimensions_cache = img.size
+                            tiler_image.width = tiler_image.image.width
+                            tiler_image.height = tiler_image.image.height
+                            tiler_image.save()
 
     class ImageFile(files.File):
         def __init__(self, file, rend=None, **kwargs):
