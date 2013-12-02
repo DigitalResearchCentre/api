@@ -20,11 +20,40 @@
             var base = 'http://textualcommunities.usask.ca';
             var url = base + '/api/partner/1/get_community/' + 
                 groupId + '/?format=json';
+            var search = parent.location.search.substr(1);
             $.get(url, function(data){
+                var community = data.abbr;
+                var docName = null;
+                var pageName = null;
+                if (search)  {
+                    var params = search.split('&');
+                    for (var i=0; i<params.length; i++) {
+                        var param = params[i].split('=');
+                        var key = param[0];
+                        var value = param[1];
+                        if (key == 'community') {
+                            community = value;
+                        }
+                        if (key == 'docName') {
+                            docName = value;
+                        }
+                        if (key == 'pageName') {
+                            pageName = value;
+                        }
+
+                    }
+                }
+
                 var next = base + 
-                    '/interface/indexajax.html?community=' + data.abbr;
+                    '/interface/indexajax.html?community=' + community;
                 if (Liferay.ThemeDisplay.isSignedIn())  {
                     next += '&login=1';
+                }
+                if (docName) {
+                    next += '&docName=' + docName;
+                }
+                if (pageName) {
+                    next += '&pageName=' + pageName;
                 }
                 window.location = next;
             });

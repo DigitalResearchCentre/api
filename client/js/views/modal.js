@@ -1,6 +1,9 @@
 define(['backbone', 'jquery', 'underscore'], function(Backbone, $, _) {
   var ModalView = Backbone.View.extend({
     el: $('#modal'),
+    initialize: function(options){
+        this.options = options;
+    },
     render: function() {
       var $footer = this.$('.modal-footer').empty();
       this.$('.modal-body').html(this.bodyTemplate());

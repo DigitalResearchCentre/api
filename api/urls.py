@@ -63,6 +63,7 @@ urlpatterns = patterns(
             {'func': 'prev'},
             {'func': 'parent'},
             {'func': 'has_parts'},
+            {'func': 'get_urn'},
             {'func': 'xml'},
             {'func': 'xml', 'func_args': '(?P<entity_pk>\d+)'},
             {'func': 'has_text_in', 'serializer_class': TextSerializer},

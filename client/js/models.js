@@ -127,6 +127,22 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
                 }}))();
             }
             return this._text;
+        },
+        getParent: function() {
+            var id = this.id;
+            if (!this._parent) {
+                this._parent = new (Doc.extend({url: function() {
+                    if (this.isNew()) {
+                        return urls.get(['doc:parent', {pk: id}], {format: 'json'});
+                    }
+                    return Doc.prototype.url.apply(this, arguments);
+                }}))();
+            }
+            return this._parent;
+        },
+        getUrn: function() {
+            return $.get(urls.get(['doc:urn', {pk: this.id}], 
+                                  {format: 'json', page_size: 0}));
         }
     });
 

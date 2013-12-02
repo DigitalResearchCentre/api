@@ -23,7 +23,9 @@ define([
         'role': '/roles/',
         'task': '/tasks/',
         'doc': '/docs/',
+        'doc:parent': '/docs/{pk}/parent/',
         'doc:xml': '/docs/{pk}/xml/',
+        'doc:urn': '/docs/{pk}/get_urn/',
         'doc:text': '/docs/{pk}/has_text_in/',
         'doc:upload-image-zip': '/docs/{pk}/upload_zip/',
         'text': '/texts/',
@@ -37,6 +39,7 @@ define([
     return {
         mediaURL: env.mediaURL,
         loginURL: env.loginURL,
+        window: window,
         get: function(name, search) {
             var uri = new URI(env.restBase)
                 , kwargs = {}

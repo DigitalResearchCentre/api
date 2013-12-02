@@ -1,6 +1,7 @@
 define([
-    'jquery', 'underscore', 'backbone', './modal', 'text!tmpl/members.html'
-], function($, _, Backbone, ModalView, tmpl) {
+    'jquery', 'underscore', 'backbone', './modal', 'urls',
+    'text!tmpl/members.html'
+], function($, _, Backbone, ModalView, urls, tmpl) {
     'use strict';
 
     function initTree($tree) {
@@ -40,17 +41,20 @@ define([
                 '<td class="in-progress"><span> 0 tasks</span><ul></ul></td>' + 
                 '<td class="submitted"><span> 0 tasks</span><ul></ul></td>' +
                 '<td class="completed"><span> 0 tasks</span><ul></ul></td>' +
-                '<td><button class="btn btn-primary">assign</button></td>');
-                this.tasks.each(this.onTaskAdd, this);
-                this.tasks.fetch();
-                this.$('td>ul').addClass('folder folder-close');
-                this.$('td>span').addClass('btn glyphicon glyphicon-folder-close').
-                    click(function () {
-                    $(this).toggleClass(
-                        'glyphicon-folder-close glyphicon-folder-open');
-                        $(this).siblings('ul').toggleClass('folder-open folder-close');
-                });
-                return this;
+                '<td><button class="btn btn-primary">assign</button></td>'
+            );
+            this.tasks.each(this.onTaskAdd, this);
+            this.tasks.fetch();
+            this.$('td>ul').addClass('folder folder-close');
+            this.$('td>span').
+                addClass('btn glyphicon glyphicon-folder-close').
+                click(_.bind(this.onToggleClick, this));
+            return this;
+        },
+        onToggleClick: function (event){
+            var $el = $(event.target);
+            $el.toggleClass('glyphicon-folder-close glyphicon-folder-open');
+            $el.siblings('ul').toggleClass('folder-open folder-close');
         },
         onTaskAdd: function (task) {
             var cls, $td, $ul, $a,
@@ -75,7 +79,17 @@ define([
             }
             $td = this.$('.' + cls);
             $ul = $td.children('ul');
-            $a = $('<a href="#task=' + task.id + '">' + doc.get('name') + '</a>');
+            $a = $('<a href="#task=' + task.id + '">'+doc.get('name')+'</a>');
+            doc.getUrn().done(function(urn){
+                var name = [];
+                _.each(urn.split(':'), function (parts) {
+                    parts = parts.split('=');
+                    if (parts.length > 1) {
+                        name.push(parts[1]);
+                    }
+                });
+                $a.text(name.join(':'));
+            });
             $a.click(_.bind(function () {
                 this.options.viewTask(task);
             }, this));
@@ -151,9 +165,32 @@ define([
             ModalView.prototype.onClose.apply(this, arguments);
         },
         viewTask: function (task) {
+            var doc = task.getDoc();
+            var parent = doc.getParent();
+            var model = this.model;
+            if (parent.isNew()) {
+
+                parent.fetch().done(function() {
+                    var url = 'http://www.textualcommunities.usask.ca/web/' 
+                        + 'textual-community/viewer?community=' + model.id 
+                        + '&docName=' + parent.get('name') 
+                        + '&pageName=' + doc.get('name');
+
+                    urls.window.open(url, '_blank');
+                });
+            }else{
+                var url = 'http://www.textualcommunities.usask.ca/web/' 
+                    + 'textual-community/viewer&community=' + model.id 
+                    + '&docName=' + parent.get('name') 
+                    + '&pageName=' + doc.get('name');
+
+                urls.window.open(url, '_blank');
+            }
+            /*
             (new TaskView({
                 model: task, onBack: _.bind(this.onBack, this)
             })).render();
+            */
         },
         render: function() {
             ModalView.prototype.render.apply(this, arguments);
