@@ -138,6 +138,7 @@ urlpatterns = patterns(
     url(r'^memberships/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
             {'func': 'tasks', 'serializer_class': TaskSerializer},
+            {'func': 'assign'},
         ], extra={
             'model': Membership, 'serializer_class': MembershipSerializer
         }))),

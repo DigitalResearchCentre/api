@@ -1,6 +1,7 @@
+/*jslint browser: true, devel: true*/
 define([
     'jquery', 'underscore', 'backbone', './modal', 'urls',
-    'text!tmpl/members.html'
+    'text!tmpl/members.html', 'dynatree'
 ], function($, _, Backbone, ModalView, urls, tmpl) {
     'use strict';
 
@@ -24,9 +25,74 @@ define([
         });
     }
 
+    var AssignTaskView = ModalView.extend({
+        buttons: [
+            {cls: "btn-default", text: 'Assign Task', event: 'onAssign'},
+            {cls: "btn-default", text: 'Back', event: 'onBack'},
+            {cls: "btn-default", text: 'Close', event: 'onClose'}
+        ],
+        bodyTemplate: _.template('<div class="assign-task-tree"></div>'),
+        initialize: function(){
+            this.url = urls.get(
+                ['membership:assign', {pk: this.model.id}], {format: 'json'});
+        },
+        render: function () {
+            ModalView.prototype.render.apply(this, arguments);
+            var $tree = this.$tree = this.$('.assign-task-tree'),
+            expand = {};
+
+            $tree.dynatree({
+                autoOpen: false, resizable: true, modal: true,
+                onExpand: function(flag, node) {
+                    if (flag) {
+                        expand[node.data.key] = flag;
+                    }else{
+                        delete expand[node.data.key];
+                    }
+                }
+            });
+
+            $.get(this.url, function(treeData){
+                var tree = $tree.dynatree('getTree');
+                $tree.dynatree('option', 'children', treeData);
+                tree.reload();
+                $.map(expand, function(v, k){
+                    tree.getNodeByKey(k).toggleExpand();
+                });
+            });
+
+            return this;
+        },
+        onAssign: function() {
+            var 
+            $tree = this.$tree,
+            selNodes = $tree.dynatree("getSelectedNodes"),
+            selKeys = $.map(selNodes, function(node){
+                return node.data.key;
+            });
+            $.post(this.url, {'docs': selKeys}, function(errors){
+                if (errors.length > 0){
+                    alert(errors);
+                }else{
+                    $.map(selNodes, function(node){
+                        node.toggleSelect();
+                    });
+                }
+                // TODO: change to ajax here
+                // var assigned = tr.find('.assigned_tasks');
+                $tree.dynatree('close');
+            });
+        },
+        onClose: function(){
+            this.$tree.dynatree('close');
+            ModalView.prototype.onClose.apply(this, arguments);
+        }
+    });
+
     var MembershipRowView = Backbone.View.extend({
         tagName: 'tr',
         initialize: function (options) {
+            this.onBack = options.onBack;
             this.tasks = this.model.getTasks();
             this.listenTo(this.tasks, 'add', this.onTaskAdd);
             this.options = options;
@@ -41,7 +107,7 @@ define([
                 '<td class="in-progress"><span> 0 tasks</span><ul></ul></td>' + 
                 '<td class="submitted"><span> 0 tasks</span><ul></ul></td>' +
                 '<td class="completed"><span> 0 tasks</span><ul></ul></td>' +
-                '<td><button class="btn btn-primary">assign</button></td>'
+                '<td><button class="btn btn-primary assign">assign</button></td>'
             );
             this.tasks.each(this.onTaskAdd, this);
             this.tasks.fetch();
@@ -49,7 +115,15 @@ define([
             this.$('td>span').
                 addClass('btn glyphicon glyphicon-folder-close').
                 click(_.bind(this.onToggleClick, this));
+            this.$('td>.btn.assign').click(_.bind(this.onAssignClick, this));
             return this;
+        },
+        onAssignClick: function(event){
+            var view = new AssignTaskView({
+                model: this.model, 
+                onBack: _.bind(this.render, this)
+            });
+            return view.render();
         },
         onToggleClick: function (event){
             var $el = $(event.target);
@@ -133,6 +207,7 @@ define([
         onMembershipAdd: function(membership) {
             var view = new MembershipRowView({
                 model: membership, 
+                onBack: _.bind(this.render, this),
                 autoResize: _.bind(this.autoResize, this),
                 viewTask: _.bind(this.viewTask, this)
             });

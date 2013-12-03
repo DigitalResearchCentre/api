@@ -15,7 +15,9 @@ var require = {
       '../lib/bootstrap-jasny/docs/assets/js/bootstrap-fileupload',
     codemirror: '../lib/codemirror/lib/codemirror',
     'jquery.cookie': '../lib/jquery.cookie/jquery.cookie',
+    'jquery-ui': '../lib/jquery-ui/ui/jquery-ui',
     'codemirror-xml': '../lib/codemirror/mode/xml/xml',
+    'dynatree': '../lib/dynatree/dist/jquery.dynatree.min',
     tmpl: '../tmpl'
   },
   shim: {
@@ -23,6 +25,8 @@ var require = {
     'bootstrap-fileupload': ['bootstrap'],
     'jquery.cookie': ['jquery'],
     codemirror: {exports: 'CodeMirror'},
+    'jquery-ui': {deps: ['jquery']},
+    dynatree: ['jquery-ui'],
     'codemirror-xml': ['codemirror']
   }
   , urlArgs: 'bust=' + (new Date()).getTime()
