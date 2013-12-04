@@ -184,7 +184,34 @@ class APIView(CreateModelMixin, RelationView):
         return self.get_response(self.get_object().validate(xml))
 
     def _get_assign(self, request, *args, **kwargs):
-        return self.get_response([{'title': 'hello', 'key': 123, 'children': []}])
+        membership = Membership.objects.get(pk=kwargs['pk'])
+        data = []
+        for doc in membership.community.docs.all():
+            children = []
+            for page in doc.has_parts():
+                names = []
+                child = {'key': page.pk}
+                for task in page.task_set.all():
+                    if task.membership == membership:
+                        child['select'] = True
+                    names.append(task.membership.name)
+                names = ['(%s) %s' % pair 
+                         for pair in zip(xrange(1, len(names)+1), names)]
+                names = ' - %s' % ', '.join(names) if names else ''
+                child['title'] = page.name + names 
+                children.append(child)
+            data.append({'title': doc.name, 'key': doc.pk, 'children': children})
+        return self.get_response(data)
+
+    def _post_assign(self, request, *args, **kwargs):
+        pk_list = map(int, request.POST.getlist('docs[]', []))
+        membership = Membership.objects.get(pk=kwargs['pk'])
+        doc_pk_list = membership.task_set.values_list('doc_id', flat=True)
+        pk_list = [pk for pk in pk_list if pk not in doc_pk_list]
+        for doc in Doc.objects.filter(pk__in=pk_list).exclude():
+            Task.objects.create(doc=doc, membership=membership)
+        return self._get_assign(self, request, *args, **kwargs)
+
 
     def _post_xmlvalidate(self, request, *args, **kwargs):
         return self._get_xmlvalidate(request, *args, **kwargs)

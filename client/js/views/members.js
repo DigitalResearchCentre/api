@@ -31,61 +31,58 @@ define([
             {cls: "btn-default", text: 'Back', event: 'onBack'},
             {cls: "btn-default", text: 'Close', event: 'onClose'}
         ],
-        bodyTemplate: _.template('<div class="assign-task-tree"></div>'),
-        initialize: function(){
+        bodyTemplate: _.template(
+            '<div class="error alert alert-block alert-warning hide"></div>' +
+            '<div class="alert alert-success fade in hide">Success !</div>' +
+            '<div class="assign-task-tree"></div>'),
+        initialize: function(options){
             this.url = urls.get(
                 ['membership:assign', {pk: this.model.id}], {format: 'json'});
+            this.onBack = options.onBack;
         },
         render: function () {
             ModalView.prototype.render.apply(this, arguments);
-            var $tree = this.$tree = this.$('.assign-task-tree'),
+            var $tree = this.$('.assign-task-tree'),
             expand = {};
 
             $tree.dynatree({
-                autoOpen: false, resizable: true, modal: true,
+                checkbox: true,
+                selectMode: 3,
+                initAjax: {url: this.url},
                 onExpand: function(flag, node) {
                     if (flag) {
                         expand[node.data.key] = flag;
                     }else{
                         delete expand[node.data.key];
                     }
+                },
+                onDblClick: function(node, event) {
+                    node.toggleSelect();
+                },
+                onKeydown: function(node, event) {
+                    if( event.which === 32 ) {
+                        node.toggleSelect();
+                        return false;
+                    }
                 }
-            });
-
-            $.get(this.url, function(treeData){
-                var tree = $tree.dynatree('getTree');
-                $tree.dynatree('option', 'children', treeData);
-                tree.reload();
-                $.map(expand, function(v, k){
-                    tree.getNodeByKey(k).toggleExpand();
-                });
             });
 
             return this;
         },
         onAssign: function() {
             var 
-            $tree = this.$tree,
+            $tree = this.$('.assign-task-tree'),
             selNodes = $tree.dynatree("getSelectedNodes"),
             selKeys = $.map(selNodes, function(node){
                 return node.data.key;
             });
-            $.post(this.url, {'docs': selKeys}, function(errors){
-                if (errors.length > 0){
-                    alert(errors);
-                }else{
-                    $.map(selNodes, function(node){
-                        node.toggleSelect();
-                    });
-                }
-                // TODO: change to ajax here
-                // var assigned = tr.find('.assigned_tasks');
-                $tree.dynatree('close');
-            });
-        },
-        onClose: function(){
-            this.$tree.dynatree('close');
-            ModalView.prototype.onClose.apply(this, arguments);
+            $.post(this.url, {'docs': selKeys}).done(_.bind(function(data){
+                $tree.dynatree({children: data});
+                this.$('.error').addClass('hide');
+                this.$('.alert-success').removeClass('hide').show();
+            }, this)).fail(_.bind(function(resp) {
+                this.$('.error').removeClass('hide').html(resp.responseText);
+            }, this));
         }
     });
 
@@ -121,7 +118,7 @@ define([
         onAssignClick: function(event){
             var view = new AssignTaskView({
                 model: this.model, 
-                onBack: _.bind(this.render, this)
+                onBack: _.bind(this.onBack, this)
             });
             return view.render();
         },
