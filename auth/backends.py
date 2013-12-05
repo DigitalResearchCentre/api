@@ -25,6 +25,8 @@ class SSOBackend(ModelBackend):
                 invitation.activate()
             except User.DoesNotExist, e:
                 user = User.objects.create_user(email, email=data['email'])
+            except Invitation.DoesNotExist, e:
+                user = User.objects.create_user(email, email=data['email'])
             UserMapping.objects.create(
                 partner=partner, user=user, mapping_id=data['user_id'])
             for membership in user.membership_set.all():
