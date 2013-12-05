@@ -164,7 +164,7 @@ class Membership(models.Model):
     def sync(self):
         try:
             role = {
-                'Co Leader': 10166, 'Leader': 10167, 'Transcriber': 10168
+                'Co Leader': 10166, 'Leader': 10167, 'Transcriber': 10168,
                 'Member': 10168,
             }
             usermapping = self.user.usermapping
