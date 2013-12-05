@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.views.generic import (
     UpdateView, View, CreateView, DetailView, TemplateView, FormView)
-from api.models import Invitation, UserMapping, Membership
+from api.models import Invitation, UserMapping, APIUser
 
 
 def login(request, *args, **kwargs):
@@ -76,12 +76,11 @@ def invite(request, *args, **kwargs):
     else:
         data['status'] = 'success'
 
-    invitor = Membership.objects.get(user=request.user, community_id=community,
-                                     role__name__in=('Leader', 'Co Leader'))
+    invitor = community.get_membership(
+        user=request.user, community_id=community,
+        role__name__in=('Leader', 'Co Leader'))
     # TODO: Co Leader can not invite leader
     code = uuid.uuid1().hex
-    invitor = Membership.objects.get(user=request.user, community_id=community,
-                                     role__name__in=('Leader', 'Co Leader'))
     role = Group.objects.get(name=role_name)
     for email in re.split('\s|[,;]', emails.lower()):
         try:
@@ -90,8 +89,8 @@ def invite(request, *args, **kwargs):
             user, created = User.objects.get_or_create(username=email)
             user.email = email
             user.save()
-        invitee, created = Membership.objects.get_or_create(
-                user=user, role=role, community_id=community)
+        invitee, created = community.get_or_create__membership(
+            user=user, role=role, community_id=community)
         if created:
             invitation = Invitation.objects.create(
                     invitor=invitor, invitee=invitee,

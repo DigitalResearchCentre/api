@@ -128,6 +128,17 @@ class Community(models.Model):
             schema.schema.file.close()
         return resp
 
+    def add_membership(self, **kwargs):
+        membership = Membership.objects.create(**kwargs)
+        membership.sync()
+        return membership
+
+    def get_or_create_membership(self, **kwargs):
+        membership, created = Membership.objects.get_or_create(**kwargs)
+        if created:
+            membership.sync()
+        return membership
+
     @classmethod
     def get_root_community(cls):
         return cls.objects.get(abbr='TC')
@@ -149,6 +160,24 @@ class Membership(models.Model):
 
     def tasks(self):
         return self.task_set.all()
+
+    def sync(self):
+        try:
+            role = {'Co Leader': 10166, 'Leader': 10167, 'Transcriber': 10168}
+            usermapping = self.user.usermapping
+            communitymapping = self.community.communitymapping
+            url = settings.PARTNER_URL + 'add-organization-user-by-group-id'
+            data = {
+                'groupId': communitymapping.mapping_id,
+                'userId': usermapping.mapping_id,
+                'roleId': role[self.role.name]
+            }
+            resp = urllib2.urlopen(urllib2.Request(url, urllib.urlencode(data)))
+        except UserMapping.DoesNotExist:
+            pass
+        except CommunityMapping.DoesNotExist:
+            pass
+
 
 def get_last(qs):
     lst = list(qs.reverse()[:1])

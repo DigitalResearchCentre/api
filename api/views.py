@@ -325,10 +325,10 @@ class CommunityList(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         response = self.create(request, *args, **kwargs)
         if hasattr(self, 'object') and self.object:
-            Membership.objects.create(
+            self.create_liferay_community()
+            self.object.add_membership(
                 user=request.user, community=self.object,
                 role=Group.objects.get(name='Leader'))
-            self.create_liferay_community()
         return response
 
 

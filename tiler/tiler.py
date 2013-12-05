@@ -31,9 +31,7 @@ class Tiler:
     def create_tiles(self, image, save=None):
         ceil = lambda x: int(math.ceil(x))
         image = Image.open(image)
-        print image.size
         level = ceil(math.log(max(image.size)/float(self.tile_size), 2))
-        print level
         for lv in xrange(level+1):
             tile_size = self.tile_size
             img = self.scale(image, (2**lv) * tile_size)
