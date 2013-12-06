@@ -100,6 +100,7 @@ define([
       'change .doc-dropdown': 'onDocChange'
     },
     initialize: function(options) {
+        this.options = options;
         var docs = this.docs = this.model.getDocs();
         this.listenTo(docs, 'add', this.onDocAdd);
         if (!docs.isFetched()) {

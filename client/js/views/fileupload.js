@@ -9,7 +9,8 @@ define([
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-primary", text: 'Upload', event: 'onUpload'},
     ],
-    initialize: function() {
+    initialize: function(options) {
+        this.options = options;
       var fList = this.getFileList();
       if (fList) {
         this.listenTo(fList, 'add', this.onFileAdd);

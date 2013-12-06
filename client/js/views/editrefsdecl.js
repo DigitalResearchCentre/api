@@ -17,7 +17,8 @@ define([
             {cls: "btn-default", text: 'Close', event: 'onClose'},
             {cls: "btn-primary", text: 'Save', event: 'onSave'}
         ],
-        initialize: function() {
+        initialize: function(options) {
+            this.options = options;
             this.refsdecls = this.options.community.getRefsdecls();
             this.listenTo(baseRefsDecls, 'add', this.onBaseRefsDeclAdd);
             this.listenTo(this.refsdecls, 'add', this.onRefsDeclAdd);
