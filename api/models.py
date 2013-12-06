@@ -139,6 +139,9 @@ class Community(models.Model):
             membership.sync()
         return membership
 
+    def get_membership(self, **kwargs):
+        return self.membership_set.filter(**kwargs)
+
     @classmethod
     def get_root_community(cls):
         return cls.objects.get(abbr='TC')
