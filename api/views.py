@@ -218,7 +218,7 @@ class APIView(CreateModelMixin, RelationView):
                 editable = True
             except Membership.DoesNotExist:
                 pass
-        return {'editable': editable}
+        return self.get_response({'editable': editable})
 
 
 
