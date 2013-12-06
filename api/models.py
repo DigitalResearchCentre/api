@@ -140,7 +140,7 @@ class Community(models.Model):
         return (membership, created,)
 
     def get_membership(self, **kwargs):
-        return self.membership_set.filter(**kwargs)
+        return self.membership_set.get(**kwargs)
 
     @classmethod
     def get_root_community(cls):
