@@ -244,14 +244,14 @@ define([
             $.get(url, function(friendlyURL) {
                 if (parent.isNew()) {
                     parent.fetch().done(function() {
-                        var url = friendlyURL + '/viewer?community=' + community.id 
-                            + '&docName=' + parent.get('name') 
+                        var url = friendlyURL + '/viewer?' 
+                            + 'docName=' + parent.get('name') 
                             + '&pageName=' + doc.get('name');
                         window.parent.location = url;
                     });
                 }else{
-                    var url = friendlyURL + '/viewer?community=' + community.id 
-                        + '&docName=' + parent.get('name') 
+                    var url = friendlyURL + '/viewer?' 
+                        + 'docName=' + parent.get('name') 
                         + '&pageName=' + doc.get('name');
                     window.parent.location = url;
                 }
