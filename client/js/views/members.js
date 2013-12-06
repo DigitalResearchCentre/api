@@ -239,25 +239,24 @@ define([
         viewTask: function (task) {
             var doc = task.getDoc();
             var parent = doc.getParent();
-            var model = this.model;
-            if (parent.isNew()) {
-
-                parent.fetch().done(function() {
-                    var url = 'http://www.textualcommunities.usask.ca/web/' 
-                        + 'textual-community/viewer?community=' + model.id 
+            var community = this.model;
+            var url = urls.get(['community:friendly_url', {pk: community.id}]);
+            $.get(url, function(friendlyURL) {
+                if (parent.isNew()) {
+                    parent.fetch().done(function() {
+                        var url = friendlyURL + '?community=' + community.id 
+                            + '&docName=' + parent.get('name') 
+                            + '&pageName=' + doc.get('name');
+                        urls.window.open(url, '_blank');
+                    });
+                }else{
+                    var url = friendlyURL + '?community=' + community.id 
                         + '&docName=' + parent.get('name') 
                         + '&pageName=' + doc.get('name');
-
                     urls.window.open(url, '_blank');
-                });
-            }else{
-                var url = 'http://www.textualcommunities.usask.ca/web/' 
-                    + 'textual-community/viewer&community=' + model.id 
-                    + '&docName=' + parent.get('name') 
-                    + '&pageName=' + doc.get('name');
+                }
+            });
 
-                urls.window.open(url, '_blank');
-            }
             /*
             (new TaskView({
                 model: task, onBack: _.bind(this.onBack, this)

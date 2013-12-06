@@ -12,12 +12,12 @@ require([
   var MembershipRowView = Backbone.View.extend({
     tagName: 'tr',
     events: {
-      'click .btn.admin': 'onAdminClick'
+      'click .btn.admin': 'onAdminClick',
+      'click .link.community': 'onCommunityLinkClick'
     },
     template: _.template($('#membership-row-tmpl').html()),
     initialize: function() {
         var model = this.model;
-
         this.community = model.getCommunity();
         this.role = model.getRole();
 
@@ -36,6 +36,13 @@ require([
             this._ecv = new EditCommunityView({model: community});
         }
         this._ecv.render();
+    },
+    onCommunityLinkClick: function(){
+        var community = this.model.getCommunity();
+        var url = urls.get(['community:friendly_url', {pk: community.id}]);
+        $.get(url, function(friendlyURL) {
+          window.parent.location = friendlyURL + '/viewer';
+        });
     },
     render: function() {
         this.$el.html(this.template());
