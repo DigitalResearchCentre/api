@@ -124,7 +124,7 @@ urlpatterns = patterns(
     url(r'^users/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
             {'func': 'communities', 'serializer_class': CommunitySerializer},
-            {'func': 'can_edit'},
+            {'func': 'can_edit', 'func_args': '(?P<doc_pk>\d+)/'},
             {
                 'func': 'memberships',
                 'serializer_class': MembershipSerializer
