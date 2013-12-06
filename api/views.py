@@ -203,6 +203,25 @@ class APIView(CreateModelMixin, RelationView):
             data.append({'title': doc.name, 'key': doc.pk, 'children': children})
         return self.get_response(data)
 
+
+    def _get_can_edit(self, request, *args, **kwargs):
+        user = self.get_object()
+        doc_pk = self.kwargs['doc_pk']
+        qs = Task.objects.filter(doc__id=doc_pk, membership__user=user)
+        editable = qs.exists()
+        if not editable:
+            doc = Doc.objects.get(pk=doc_pk)
+            community = doc.get_community()
+            try:
+                community.get_membership(user=user, 
+                                     role__name__in=('Leader', 'Co Leader'))
+                editable = True
+            except Membership.DoesNotExist:
+                pass
+        return {'editable': editable}
+
+
+
     def _post_assign(self, request, *args, **kwargs):
         pk_list = map(int, request.POST.getlist('docs[]', []))
         membership = Membership.objects.get(pk=kwargs['pk'])
@@ -282,6 +301,7 @@ class APIView(CreateModelMixin, RelationView):
         refsdecl = RefsDecl.objects.get(pk=self.kwargs['refsdecl_pk'])
         self.get_object().add(refsdecl)
         return refsdecl
+
 
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):

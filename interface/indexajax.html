@@ -103,7 +103,7 @@ function loadTexts (mycommunity) {
 }
 	
 	  			//check for default font
-function getDefaultFont(mycommunity) {
+                                function getDefaultFont(mycommunity) {
 	$.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
 		$.each(data, function(h, thiscommunity){ 
 			if (thiscommunity.abbr==mycommunity) {
@@ -793,66 +793,76 @@ function hideTOC(){
 
 var imageLoaded=0;
 function loadTCDocIdText(pageid, pagekey) {
-	if (!imageLoaded) {
-		var imagecall='<script type="text/javascript"> \
-							var $imageMap = $(".image_map");\
-							var options = {\
-									zoom: 2 ,\
-									minZoom: 1,\
-									maxZoom: 5 \
-							};\
-							imageMap = new ImageMap($imageMap[0], "http://textualcommunities.usask.ca/api/docs/'+pageid+'/has_image/", options);';
-		$('#docimage').html(imagecall);
-		imageLoaded=1;
-	}
-	//this version for getting the current revision:
-	//test: is there a revision? if so... show it
-	//set up menus for showing revisions, etc
-		$.getJSON(url+'docs/'+pageid+'/?format=json',function(thetext) {
-			if (thetext.cur_rev) {
-				currentTranscript=thetext.cur_rev; //but what exactly is cur_rev???
-				//if we have several versions -- call up the revision system
-				//first, test how many revisions we have
-				$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
-					if (versions.length==1) {
-						$.getJSON(url+'docs/'+pageid+'/cur_revision/?page_size=0&format=json',function(thetext){
-							$.getJSON(url+'users/'+thetext.user+'/?page_size=0&format=json',function(user) {
-								$('#transcriptinf').html('Only one edited version ('+thetext.create_date+', '+user.first_name+' '+user.last_name+').  <a href="javascript:compareToDb('+pageid+', '+thetext.id+')">Compare to database.</a>');
-								loadTCDocumentText(thetext.text, pagekey);
-								createTranscriptMenus(pageid, thetext.id, -1).done(function (menus) {
-									$('#revinf1').html(menus.left);
-									$('#revinf2').html(menus.right);
-								});
-								imageLoaded=0;
-							});
-						});
-					} else {
-						//we have more than one revision -- prepare compare view
-//						$.getJSON(url+'docs/'+pageid+'/cur_revision/?format=json',function(thetext){
-							$('#transcriptinf').html('Several versions.  Compare with each other, and the database.');
-							loadTCDocumentText(versions[0].text, pagekey);
-							createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
-									$('#revinf1').html(menus.left);
-									$('#revinf2').html(menus.right);
-								});
-							imageLoaded=0;
-//						});
-					}
-				});
-			}  else {
-				$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
-					$.getJSON(url+'texts/'+hastextin.id+'/xml',function(thetext){
-						$('#transcriptinf').html('No edited versions: as loaded in database');
-						loadTCDocumentText(thetext, pagekey);
-						createTranscriptMenus(pageid, 0, -1).done(function (menus) {
-								$('#revinf1').html(menus.left);
-								$('#revinf2').html(menus.right);
-						});
-						imageLoaded=0;		
-					});
-				});
-			}
-		});
+    if (!imageLoaded) {
+        var imagecall='<script type="text/javascript">'
+            + 'var $imageMap = $(".image_map");'
+            + 'var options = {zoom: 2 , minZoom: 1, maxZoom: 5};'
+            + 'imageMap = new ImageMap($imageMap[0], '
+            +   '"http://textualcommunities.usask.ca/api/docs/'
+            +   pageid +'/has_image/", options);'
+            + '</script>';
+            $('#docimage').html(imagecall);
+            imageLoaded=1;
+    }
+    if (curUser) {
+        var $buttons = $('.btn.commit, .btn.publish, .btn.save, .btn.new');
+        $buttons.prop('disabled', true);
+        $.getJSON(
+            url + 'users/' + curUser.id + '/has_task/' + pageid + '/', 
+            function(data) {
+                console.log(data);
+                $buttons.prop('disabled', false);
+            }
+        );
+    }
+    //this version for getting the current revision:
+    //test: is there a revision? if so... show it
+    //set up menus for showing revisions, etc
+    $.getJSON(url+'docs/'+pageid+'/?format=json',function(thetext) {
+        if (thetext.cur_rev) {
+            currentTranscript=thetext.cur_rev; //but what exactly is cur_rev???
+            //if we have several versions -- call up the revision system
+            //first, test how many revisions we have
+            $.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+                if (versions.length==1) {
+                    $.getJSON(url+'docs/'+pageid+'/cur_revision/?page_size=0&format=json',function(thetext){
+                        $.getJSON(url+'users/'+thetext.user+'/?page_size=0&format=json',function(user) {
+                            $('#transcriptinf').html('Only one edited version ('+thetext.create_date+', '+user.first_name+' '+user.last_name+').  <a href="javascript:compareToDb('+pageid+', '+thetext.id+')">Compare to database.</a>');
+                            loadTCDocumentText(thetext.text, pagekey);
+                            createTranscriptMenus(pageid, thetext.id, -1).done(function (menus) {
+                                    $('#revinf1').html(menus.left);
+                                    $('#revinf2').html(menus.right);
+                            });
+                            imageLoaded=0;
+                        });
+                    });
+                } else {
+                    //we have more than one revision -- prepare compare view
+                    //$.getJSON(url+'docs/'+pageid+'/cur_revision/?format=json',function(thetext){
+                    $('#transcriptinf').html('Several versions.  Compare with each other, and the database.');
+                    loadTCDocumentText(versions[0].text, pagekey);
+                    createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
+                        $('#revinf1').html(menus.left);
+                        $('#revinf2').html(menus.right);
+                    });
+                    imageLoaded=0;
+                    //	});
+                }
+            });
+        } else {
+            $.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+                $.getJSON(url+'texts/'+hastextin.id+'/xml',function(thetext){
+                        $('#transcriptinf').html('No edited versions: as loaded in database');
+                        loadTCDocumentText(thetext, pagekey);
+                        createTranscriptMenus(pageid, 0, -1).done(function (menus) {
+                                        $('#revinf1').html(menus.left);
+                                        $('#revinf2').html(menus.right);
+                        });
+                        imageLoaded=0;		
+                });
+            });
+        }
+    });
 }
 
 function setupMergely(text1, text2) {
@@ -922,67 +932,67 @@ function getUsers() {
 }
 //left and right will be revision ids for comparison; if 0 then compare to database; if -1 set to none
 function createTranscriptMenus (pageid, left, right) {
-		return $.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
-			 	//do the left first
-			var leftMenu='<select id="leftSelTranscript" onchange="javascript:doTranscriptVersions('+pageid+')">';
-			for (var i=0; i < versions.length; i++) {
-				var userInf=getUserInf(versions[i].user);
-				if (versions[i].id!=right) {
-					if (versions[i].id==left) {
-						var d = Date.parse(versions[i].create_date);
-						var x= moment(versions[i].create_date).format('LLL');
-						leftMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
-					}
-					else leftMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
-				}
-			}
-			//append database version
-			if (right!=0) {
-				if (left==0) leftMenu+='<option value="0" selected="selected">Version in database</option>' 
-				else  leftMenu+='<option value="0">Version in database</option>';
-			}
-			leftMenu+="</select>";
-			versions.left=leftMenu;
-			//now, let's build the right-hand menu
-			var rightMenu='<select  id="rightSelTranscript" onchange="javascript:doTranscriptVersions('+pageid+')">';
-			if (right==-1) rightMenu+='<option value="-1"  selected="selected">[Show this version only]</option>';
-			else  rightMenu+='<option value="-1">[Nothing]</option>';
-			for (var i=0; i < versions.length; i++) {
-				var userInf=getUserInf(versions[i].user);
-				if (versions[i].id!=left) {
-					if (versions[i].id==right) 
-						rightMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
-					else rightMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
-				}
-			}
-			if (left!=0) {
-				if (right==0) rightMenu+='<option value="0" selected="selected">Version in database</option>' 
-				else  rightMenu+='<option value="0">Version in database</option>';
-			}
-			rightMenu+="</select>";
-			versions.right=rightMenu;
-			//set values on various save buttons
-			if (right==-1) {
-				//just one to deal with...
-				$('#tcnt1').hide();
-				$('#tcnt3').hide();
-				$('#tcnt2').show();
-				$('#tcnt2').css('width', '100%');
-				$('#tcntSave').attr('value', pageid);
-			} else {
-				//got to set for both left and right
-				$('#tcnt1').show();
-				$('#tcnt2').width(0);
-				$('#tcnt1').css('width', '50%');
-				$('#tcnt3').show();
-				$('#tcnt1').css('width', '50%');
-				$('#tcnt2').hide();		
-				$('#tcntSaveLeft').attr('value', pageid);
-				$('#tcntSaveLeft').attr('data-version', left);
-				$('#tcntSaveRight').attr('value', pageid);
-				$('#tcntSaveRight').attr('data-version', right);
-			}
-		});
+    return $.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+        //do the left first
+        var leftMenu='<select id="leftSelTranscript" onchange="javascript:doTranscriptVersions('+pageid+')">';
+        for (var i=0; i < versions.length; i++) {
+            var userInf=getUserInf(versions[i].user);
+            if (versions[i].id!=right) {
+                if (versions[i].id==left) {
+                    var d = Date.parse(versions[i].create_date);
+                    var x= moment(versions[i].create_date).format('LLL');
+                    leftMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+                }
+                else leftMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+            }
+        }
+        //append database version
+        if (right!=0) {
+            if (left==0) leftMenu+='<option value="0" selected="selected">Version in database</option>' 
+                else  leftMenu+='<option value="0">Version in database</option>';
+        }
+        leftMenu+="</select>";
+        versions.left=leftMenu;
+        //now, let's build the right-hand menu
+        var rightMenu='<select  id="rightSelTranscript" onchange="javascript:doTranscriptVersions('+pageid+')">';
+        if (right==-1) rightMenu+='<option value="-1"  selected="selected">[Show this version only]</option>';
+        else  rightMenu+='<option value="-1">[Nothing]</option>';
+        for (var i=0; i < versions.length; i++) {
+            var userInf=getUserInf(versions[i].user);
+            if (versions[i].id!=left) {
+                if (versions[i].id==right) 
+                    rightMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+                else rightMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+            }
+        }
+        if (left!=0) {
+            if (right==0) rightMenu+='<option value="0" selected="selected">Version in database</option>' 
+                else  rightMenu+='<option value="0">Version in database</option>';
+        }
+        rightMenu+="</select>";
+        versions.right=rightMenu;
+        //set values on various save buttons
+        if (right==-1) {
+            //just one to deal with...
+            $('#tcnt1').hide();
+            $('#tcnt3').hide();
+            $('#tcnt2').show();
+            $('#tcnt2').css('width', '100%');
+            $('#tcntSave').attr('value', pageid);
+        } else {
+            //got to set for both left and right
+            $('#tcnt1').show();
+        $('#tcnt2').width(0);
+        $('#tcnt1').css('width', '50%');
+        $('#tcnt3').show();
+        $('#tcnt1').css('width', '50%');
+        $('#tcnt2').hide();		
+        $('#tcntSaveLeft').attr('value', pageid);
+        $('#tcntSaveLeft').attr('data-version', left);
+        $('#tcntSaveRight').attr('value', pageid);
+        $('#tcntSaveRight').attr('data-version', right);
+        }
+    });
 }
 
 //1: not comparing; 2: left compare; 3: right compare

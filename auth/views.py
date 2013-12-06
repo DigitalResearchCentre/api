@@ -77,9 +77,8 @@ def invite(request, *args, **kwargs):
         data['status'] = 'success'
 
     community = Community.objects.get(pk=community)
-    invitor = community.get_membership(
-        user=request.user, community_id=community.id,
-        role__name__in=('Leader', 'Co Leader'))
+    invitor = community.get_membership(user=request.user, 
+                                       role__name__in=('Leader', 'Co Leader'))
     # TODO: Co Leader can not invite leader
     code = uuid.uuid1().hex
     role = Group.objects.get(name=role_name)

@@ -1235,6 +1235,7 @@ class APIUser(User):
     def memberships(self):
         return self.membership_set.all()
 
+
 class Task(models.Model):
     ASSIGNED, IN_PROGRESS, SUBMITTED, COMPLETED = range(4)
     STATUS_CHOICES = (
