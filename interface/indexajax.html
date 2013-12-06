@@ -1,0 +1,1958 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+        <title>PR Example -- ajax</title>
+
+
+
+        <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="dynatree/jquery/jquery.js" type="text/javascript"></script>
+        <script src="dynatree/jquery/jquery-ui.custom.js" type="text/javascript"></script>
+        <link href="dynatree/src/skin/ui.dynatree.css" rel="stylesheet" type="text/css" id="skinSheet">
+        <script src="dynatree/dist/jquery.dynatree-1.2.4.js" type="text/javascript"></script>
+        <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+        <!-- removed jqueryui as this interferes with mergeley -->
+        <!-- script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script -->
+        <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+        <!-- script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script-->
+        <script src="jquery.corner.js" type="text/javascript"></script>
+        <script src="fontdetect.js" type="text/javascript"></script>
+        <script src="codemirror-3.13/lib/codemirror.js"></script>
+        <link rel="stylesheet" href="codemirror-3.13/lib/codemirror.css">
+        <script src="codemirror-3.13/mode/xml/xml.js"></script>
+        <script src="moment.min.js"></script>
+        <script src="jquery.cookie.js"></script>
+        <script type="text/javascript"
+            src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOf5NdCQ0GxTBjCX1kVtavpMo-G9u_2BU&sensor=false">
+        </script>
+        <script type="text/javascript" src="map.js"></script>
+        <script type="text/javascript" src="mergely-3.3.3/lib/mergely.js"></script>
+        <link type="text/css" rel="stylesheet" href="mergely-3.3.3/lib/mergely.css" />
+        <link href="TCeditor.css" rel="stylesheet" type="text/css"/>
+   
+   
+<script type="text/javascript">
+var curUser;
+var mintocwidth=200;
+var minheight=760;
+var url = "http://textualcommunities.usask.ca/api/"; 
+var urlstatic = "http://textualcommunities.usask.ca/media/tc/"; 
+//    var community="T25";   
+//    var community="JDP1";   
+var community="BD32";  
+//var community="EE";  
+var TCid="TCUsask";
+var communityID=0;
+var communityFont="";
+var editor=null;	
+var $iframe=null;
+var editorstring="";
+//in full application -- set next from params
+var docName="Hg";
+var pageName="2r";
+var currentDocId;
+var pwidth=0;
+var pheight=0;
+var search = location.search.substr(1);
+var imageMap = null;
+var login = null;
+if (search)  {
+    var params = search.split('&');
+    for (var i=0; i<params.length; i++) {
+        var param = params[i].split('=');
+        var key = param[0];
+        var value = param[1];
+        if (key == 'community') {
+            community = value;
+        }
+        if (key == 'login') {
+            login = value;
+        }
+    }
+}
+    
+function loadTexts (mycommunity) {
+    $.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
+        $.each(data, function(h, thiscommunity){ 
+            if (thiscommunity.abbr==mycommunity) {
+                communityID=thiscommunity.id;
+                var rootMenu="[";
+                var doccount=0;
+                $.getJSON(url+'communities/'+thiscommunity.id+'/docs/?page_size=0&format=json', function (docdata) {
+                    var numdocs=docdata.length;
+                    $.each(docdata, function(i, thisdoc) {
+                        doccount+=1;
+                        rootMenu+="{title:'"+thisdoc.name+" <span title=\"XML for this document\" onclick=javascript:doThisOne(\"" +
+                            thisdoc.id+"\")>gettext</span>', isLazy: true, url:'"+thisdoc.id+"'}";
+                        if (doccount==numdocs) {
+                            rootMenu+="]";
+                            makeTextMenu(rootMenu);
+                            var setWidth = $("#left").width();
+                            var wholeWidth=$('body').width()-6;
+                            $('#right').width(wholeWidth-setWidth);
+                            console.log('set width')
+                        } else {
+                            rootMenu+=",";
+                        }
+                    });
+                });
+            }
+        });
+    });
+}
+	
+	  			//check for default font
+function getDefaultFont(mycommunity) {
+	$.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
+		$.each(data, function(h, thiscommunity){ 
+			if (thiscommunity.abbr==mycommunity) {
+				var detective = new Detector();
+				if (detective.detect(thiscommunity.font)) communityFont=thiscommunity.font;
+				else  alert("Transcripts in this community should be viewed with "+thiscommunity.font+". You should add this font to your system. (You will need to reload this viewer)");
+				//test -- is it in the system?
+			}
+		});
+	}).error(function(jqXHR, textStatus, errorThrown) {
+    /* how can I find the value "page" had in the query? */
+    	alert("Error connecting to "+url+". Check your network connections.");
+  	});
+}
+	function doThisOne(which) {
+		alert(which);
+	}
+	
+	function loadPages (mycommunity) {
+		$.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
+			$.each(data, function(h, thiscommunity){ 
+				if (thiscommunity.abbr==mycommunity) {
+					var rootMenu="[";
+					var doccount=0;
+					$.getJSON(url+'communities/'+thiscommunity.id+'/docs/?page_size=0&format=json', function (docdata) {
+							var numdocs=docdata.length;
+							$.each(docdata, function(i, thisdoc) {
+							doccount+=1;
+							rootMenu+="{title:'"+thisdoc.name+"',isLazy: true, url:'"+thisdoc.id+"'}";
+							if (doccount==numdocs) {
+								rootMenu+="]";
+								makeDMenu(rootMenu);
+								 var setWidth = $("#left").width();
+								 var wholeWidth=$('body').width()-6;
+								  $('#right').width(wholeWidth-setWidth);
+								} else {rootMenu+=",";}
+							});
+					});
+				}
+			});
+		});
+	}
+	
+		function loadEntities (mycommunity) {
+		$.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
+			$.each(data, function(h, thiscommunity){ 
+				if (thiscommunity.abbr==mycommunity) {
+					var rootMenu="[";
+					var entcount=0;
+					$.getJSON(url+'communities/'+thiscommunity.id+'/entities/?page_size=0&format=json', function (entdata) {
+							var numents=entdata.length;
+							$.each(entdata, function(i, thisent) {
+							entcount+=1;
+							rootMenu+="{title:'"+thisent.name+"',isLazy: true, url:'"+thisent.id+"'}";
+							if (entcount==numents) {
+								rootMenu+="]";
+								makeEntMenu(rootMenu);
+								 var setWidth = $("#left").width();
+								 var wholeWidth=$('body').width()-6;
+								  $('#right').width(wholeWidth-setWidth);
+								} else {rootMenu+=",";}
+							});
+					});
+				}
+			});
+		});
+	}
+
+
+//if we have a page -- activate the menu, find and show this page
+function doLazyRead (node, editpage) {
+			currentDocId=node.data.url;
+			if (!node.childList) {
+				$.getJSON(url+'docs/'+node.data.url+'/has_parts?page_size=0&format=json',function(thisdoc){
+					node.setLazyNodeStatus(DTNodeStatus_Loading);
+					var children = "[";
+					var pagecount=0;
+					 $.each(thisdoc, function(i, pageurl) {
+						pagecount+=1;
+						children+="{title:'"+pageurl.name+"', pageid:'"+pageurl.id+"'}";
+						if (pagecount==thisdoc.length) {
+							children+="]";
+							node.setLazyNodeStatus(DTNodeStatus_Ok);
+							node.addChild(eval(children));
+							if (editpage) {
+								node.expand();
+								//now find the node for this page
+								$.each(node.getChildren(), function(h, thispage) {
+									if (thispage.data.title==editpage) {
+										imageLoaded=0;
+										loadTCDocIdText(thispage.data.pageid, thispage.data.key);
+									}
+								});
+							}
+						} else {
+							children+=","
+						}
+				  });
+			});
+		} else {
+			if (editpage) {
+					node.expand();
+					//now find the node for this page
+					$.each(node.getChildren(), function(h, thispage) {
+						if (thispage.data.title==editpage) {
+							imageLoaded=0;
+							loadTCDocIdText(thispage.data.pageid, thispage.data.key);
+						}
+					});
+				}
+		}
+}
+
+function createPrevInfo(entid, pageid, pline) {
+		$.getJSON(url+'entities/'+entid+'/has_text_of/'+pageid, function (pid) {
+			$.getJSON(url+'texts/'+pid.results[0].id+'/is_text_of', function (pppid) {
+				docstring=pppid.label+"="+pppid.name;
+				var elements = new Array();
+				elements.push(pid.results[0].element.slice(1, pid.results[0].element.indexOf(" ")));
+				if (pppid.has_parent) appendentstring(pppid.id, docstring, pline, pid.results[0].id, elements);
+			});
+		});	
+}
+
+function doPrevLazyReadEnt (node, editpage) {
+	var thisurl="";
+	if (node.data.entid) thisurl=url+'docs/'+node.data.pageid+'/has_entities/'+node.data.entid+'/?page_size=0&format=json';
+	else thisurl=url+'docs/'+node.data.pageid+'/has_entities/?page_size=0&format=json'
+	//if we already have this page -- don't add it again
+	if (editpage && node.bExpanded) return;
+	$.getJSON(thisurl,function(thisent){
+		var children = "[";
+		var endchildren="[";
+		var pagecount=0;
+		var textcount=0;
+		var entities=[];
+		entities[thisent.length-1]=undefined;
+		  $.each(thisent, function(i, entdetail) {
+		  	pagecount+=1;
+		  	if (entdetail.has_parts)
+		  		children+="{title:'"+entdetail.name+"', type:'entity', isLazy: true, label:'"+entdetail.label+"', name:'"+entdetail.name+"', pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
+		  	else {
+				var lastnode=node.getParent().childList[node.getParent().childList.length-1];
+				if (editpage=="" || (node==lastnode)) {
+					$.getJSON(url+'entities/'+entdetail.id+'/xml/'+node.data.pageid, function (linetext) {
+						//could be that these will be processed in various orders, so stick each in an array...
+						textcount+=1;
+						try {
+						var myline=linetext[0];
+						}
+						catch (e) {
+						var myline="(error; can not read this line)";
+						}
+						//strip out xml, quotation marks...
+						myline=myline.replace(/<[^>]*>/g, "");
+						myline=myline.replace(/</g, "");
+						myline=myline.replace(/"/g, "");
+						myline=myline.replace(/>/g, "");
+						myline=myline.replace(/\//g, "");
+						myline=myline.replace(/'/g, "");
+						myline=myline.replace(/(\r\n|\n|\r)/gm,"");
+					//	if we are looking for a particular page, do it this way, but only if this is the last node for the parent node in the dtree menu
+					//need to go up to the page and come down to the base
+						 var lastnode=node.getParent().childList[node.getParent().childList.length-1];
+						if (editpage!="") { 
+							if (i==thisent.length-1) 
+								entities[i]="{title:'"+entdetail.name+" "+myline+"', line: '"+myline+"', label:'"+entdetail.label+"', name:'"+entdetail.name+"', select: true, pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
+							else
+								entities[i]="{title:'"+entdetail.name+" "+myline+"', line: '"+myline+"', label:'"+entdetail.label+"', name:'"+entdetail.name+"', pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
+						} else {
+							entities[i]="{title:'"+entdetail.name+" "+myline+"', line: '"+myline+"', label:'"+entdetail.label+"', name:'"+entdetail.name+"', pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
+						}
+			//			if (editpage=="") {
+							if (textcount==thisent.length) {
+								//unpack our entitities array
+								for(var n = 0; n < textcount; n++) {
+									endchildren+=entities[n];
+									if (n<textcount-1) endchildren+=",";
+								}
+							}
+		//				}
+						if (textcount==thisent.length) {
+							if (editpage!="") endchildren+="]";
+							 else endchildren+="]";
+							node.addChild(eval(endchildren));
+							node.setLazyNodeStatus(DTNodeStatus_Ok);
+						}
+						//expand it, in initialization mode
+						if (editpage!="" && lastnode==node && textcount==thisent.length) {
+							node.expand();
+							//highlight this node; scroll to it
+							var pnode=node.childList[node.childList.length-1];
+							pnode.activate();
+							var activeLi = pnode.li;
+							$("#prevPageTree ul").animate({ // animate the scrolling to the node
+							  scrollTop: $(activeLi).offset().top - $('#prevPageTree ul').offset().top + $('#prevPageTree ul').scrollTop() - 150
+							}, 'slow');
+							//we can construct the entity trail with perfect reliability from the api.
+							createPrevInfo(pnode.data.entid, pnode.data.pageid, pnode.data.line);
+							return;
+						};
+					});
+		  		}
+		  	}
+		  	if (entdetail.has_parts)  {
+				if (pagecount==thisent.length) {
+					children+="]";
+					node.addChild(eval(children));
+					//if we are looking for a particular page -- expand this node and go around again, and again...
+					if (editpage) {
+						node.expand();
+						//do it now for each child...
+						 $.each(node.getChildren(), function(h, thisnode) {
+							doPrevLazyReadEnt (thisnode, editpage);
+						 });
+					 }
+				}	else children+=",";
+			}
+		  });
+	});
+	node.setLazyNodeStatus(DTNodeStatus_Ok);
+}
+
+function doPrevChoice () {
+	if ($('#pcnew').is(':checked')) {
+		$('.selectcont').attr("disabled", true);
+		$('.selectcont').attr("checked", false);
+		$('#prevInfo').html("");
+	}
+	if ($('#pccont').is(':checked')) {
+		$('#prevInfo').html("<p style='text-align:center'>Select continuing text</p>");
+		$('.selectcont').removeAttr("disabled");
+	}
+}
+
+function doSelectPrevious (which) {	
+	if ($("#pc"+which).is(':checked')) {
+		var entstring="";
+		for (var j=1; j<=which; j++) {
+			$("#pc"+j).attr("checked", true);
+		}
+		for (var j=1; j<=$('#pccont').attr('data-n'); j++) {	
+			if ($("#pc"+j).is(':checked')) {
+				if (entstring!="") entstring+=", ";
+				entstring+=$("#tdpc"+j).html();
+			}
+		}
+		$('#prevInfo').html("Continuing text selected: "+entstring);
+	} else {
+		results=sanityPrevious();
+		$('#prevInfo').html("Continuing text selected: "+results.entstring+results.warning);
+	}
+}
+
+function sanityPrevious() {
+	var entstring="";
+	var warning="";
+	var sanity=true;
+	var highestchecked=0;
+	var highestunchecked=0;
+	var elements=[];
+	for (var j=1; j<=$('#pccont').attr('data-n'); j++) {	
+		if ($("#pc"+j).is(':checked')) {
+			if (entstring!="") entstring+=", ";
+			entstring+=$("#tdpc"+j).html();
+			var myelement={'prev': $("#pc"+j).attr('title'), 'element':$("#td2pc"+j).attr('data-xml'), 'nval':$("#pc"+j).attr('data-n') };
+			elements.push(myelement);
+			highestchecked=j;
+		} else highestunchecked=j;
+	}
+	if (highestunchecked>0 && highestchecked>highestunchecked) {
+		sanity=false;
+		warning="<br/><b>You have chosen to continue a text from a previous page, without continuing all its ancestors.  This is very unusual (but not impossible). Are you sure?</b>";
+	}
+	return {
+		'entstring': entstring,
+		'warning': warning,
+		'sanity':sanity,
+		'elements':elements
+	}
+}
+
+function appenddocstring(ppid, docstring, pline, elements, entitystring) {
+	$.getJSON(url+'docs/'+ppid+'/parent?format=json', function (pppid) {
+		docstring=pppid.label+"="+pppid.name+":"+docstring;
+		if (!pppid.has_parent) {
+			//create the element chain for this selection
+			elements.reverse();
+			var elementarray=entitystring.split(":");
+			if (pline.length>53) pline=pline.slice(0,25)+'... '+pline.slice(pline.length-25);
+			var prevels="<form action='javascript:doNewPage()'><fieldset><input type='radio' id='pcnew' name='prevchoice' value='new' checked='true' onclick='javascript:doPrevChoice()'>Start new text<br>"
+			prevels+="<input type='radio' name='prevchoice' data-n='"+(elementarray.length-1)+"' id='pccont' value='continue' onclick='javascript:doPrevChoice()'>Continue text from this page<table style='width:615px; margin: 10px; font-family:"+communityFont+"'>";
+			var myels="";
+			for (var i=elementarray.length-1; i>0; i--) {
+				var entities="";
+				for (var j=0; j<=i; j++) {
+					//this is a hack, coz sometimes we get back an entity too many -- repeating the parent, that is
+					if  (j==0 && elementarray[1]==elementarray[0] && elementarray[1].lastIndexOf("entity", 0) === 0) {}
+					else { entities=entities+elementarray[j];
+							if (j<i) entities+=":";
+					}
+				}
+				if (i<elementarray.length-1) pline="";
+				var myel='&lt;'+elements[i-1]+' n="'+elementarray[i].slice(elementarray[i].indexOf("=")+1)+'"&gt;';
+				var thisel=elements[i-1];
+				var nval=elementarray[i].slice(elementarray[i].indexOf("=")+1);
+				myels='<tr><td><input type="checkbox" id="pc'+i+'" data-n="'+nval+'" class="selectcont" onclick="javascript:doSelectPrevious(\''+i+'\')" disabled title="urn:det:'+TCid+':'+community+':'+docstring+':'+entities+'">&nbsp;&nbsp;&nbsp;&nbsp;</td><td id="tdpc'+i+'">'+elementarray[i].replace(/=/g," ")+'</td><td data-xml="'+thisel+'" id="td2pc'+i+'">'+myel+pline+'</td></tr>'+myels;
+			}
+			prevels+=myels+"</table><input type='submit' value='Submit'></fieldset></form>";
+			$('#prevChosen').html("<p>"+prevels+"</p>");
+		}
+		else appenddocstring(pppid.id, docstring, pline, elements, entitystring);
+	});
+} 
+
+function doNewPage() {
+	//sanity check on what is chosen...
+	if ($('#pcnew').is(':checked')) {
+		$.getJSON(url+'communities/'+communityID+'/get_refsdecls?format=json', function (rds) {
+			$.each(rds.results, function(i, rd) {
+				if (rd.template!="<text/>") {
+					editor.setValue(rd.template);
+					$( "#new-transcript" ).dialog('close');
+				}
+			});
+		});
+	} else {
+		var results=sanityPrevious();
+		if (results.entstring=="") $('#nc').html("No text selected. If you press 'Confirm' a default new page will be made");
+		else 
+			$('#nc').html("Continuing text selected: "+results.entstring+results.warning);
+		 $( "#new-confirm" ).dialog({
+		  height: 300,
+		  width: 500,
+		  modal: true,
+		  autoOpen: false,
+		  title:"Confirm new page",
+		});
+		$( "#new-confirm" ).dialog('open');
+	}
+}
+
+function finishFindPrevious(docstring, pline, rootpageid, elements) {
+	$.getJSON(url+'texts/'+ rootpageid+'/is_text_in', function (pentid) {
+		var entitystring=docstring;
+		docstring=pentid.label+"="+pentid.name+"";
+		if (pentid.has_parent) appenddocstring (pentid.id, docstring, pline, elements, entitystring);
+		else $('#prevChosen').html("<p>You are looking at "+docstring+", "+pline+" </p>");
+	});
+}
+
+function appendentstring(ppid, docstring, pline, rootpageid, elements) {
+	$.getJSON(url+'entities/'+ppid+'/parent?format=json', function (pppid) {
+		docstring=pppid.label+"="+pppid.name+":"+docstring;
+		if (!pppid.has_parent) {
+			$.getJSON(url+'entities/'+ pppid.id+'/has_text_of', function (pid) {
+				if (pid.results.length!=0) {  //we might have top entity outside this document, in which case we don't look for it
+					elements.push(pid.results[0].element.slice(1, pid.results[0].element.indexOf(" "))); 
+					$.getJSON(url+'entities/'+ppid+'/parent?format=json', function (ppppid) {
+						docstring=ppppid.label+"="+pppid.name+":"+docstring;
+						finishFindPrevious(docstring, pline, rootpageid, elements);
+					});
+				} else finishFindPrevious(docstring, pline, rootpageid, elements); //top entity not in this document
+			});
+		}
+		else  {
+			$.getJSON(url+'entities/'+ pppid.id+'/has_text_of', function (pid) {
+				elements.push(pid.results[0].element.slice(1, pid.results[0].element.indexOf(" ")));
+				appendentstring(pppid.id, docstring, pline, rootpageid, elements);
+			});
+		}
+	});
+}
+function doPrevLazyRead (node, editpage) {
+			$.getJSON(url+'docs/'+node.data.url+'/has_parts?page_size=0&format=json',function(thisdoc){
+			  	node.setLazyNodeStatus(DTNodeStatus_Loading);
+			    var children = "[";
+				var pagecount=0;
+			     $.each(thisdoc, function(i, pageurl) {
+					pagecount+=1;
+					children+="{title:'"+pageurl.name+"', type:'document', name:'"+pageurl.name+"', hideCheckbox: true, label:'"+pageurl.label+"', isLazy: true, pageid:'"+pageurl.id+"'}";
+					if (pagecount==thisdoc.length) {
+						children+="]";
+						node.setLazyNodeStatus(DTNodeStatus_Ok);
+						node.addChild(eval(children));
+						if (editpage) {
+							node.expand();
+							//now find the node for this page
+							$.each(node.getChildren(), function(h, thisnode) {
+								if (thisnode.data.title==editpage) {
+									//here we call entities to unroll this page.  Note, likely problem if the page has columns.  Or is it..? 
+									doPrevLazyReadEnt (thisnode, editpage);
+								}
+							});
+						}
+					} else {
+						children+=","
+					}
+			  });
+	 	});
+}
+
+	
+function makeDMenu(rootMenu) {
+	$("#tree").dynatree({
+      children: eval(rootMenu),
+      onActivate: function(node) {
+			if ( node.data.pageid) {
+				loadTCDocIdText(node.data.pageid, node.data.key);
+			}
+		},
+      onLazyRead: function(node){
+      		doLazyRead(node, "")
+	    }
+     });
+    var containerheight=$(window).height();
+     if (containerheight<minheight) containerheight=minheight;
+     $( ".dynatree-container").height(containerheight-34);
+     //now
+       initTextDtree(docName, pageName);
+}
+
+function makeTextMenu(rootMenu) {
+	$("#texttree").dynatree({
+		children: eval(rootMenu),
+	  	onActivate: function(node) {
+	  		if ( node.data.lineid) {
+				var entityText="";
+				var numdocs=0;
+				$.getJSON(url+'entities/'+node.data.lineid+'/has_text_of/'+node.data.parentid+'?format=json',function(thisdoc){
+					var mynum=thisdoc.results[0].id;
+					$.getJSON(url+'texts/'+mynum+'/is_text_in?format=json',function(thispart){
+						if (thispart.depth==2) { alert("fixme")}
+						else {
+							$.getJSON(url+'docs/'+thispart.id+'/parent?format=json',function(thispart2){
+								if (thispart2.depth==2) {
+									$.getJSON(url+'docs/'+thispart2.id+'/parent?format=json',function(thispart3){
+										initTextDtree(thispart3.name, thispart2.name);
+									});
+								 }
+							});
+						}
+					});
+				});
+			}
+	  	},
+	  	onLazyRead: function(node) {
+	  		if (node.data.parentid) {
+	  			var thisurl=url+'docs/'+node.data.parentid+'/has_entities/'+node.data.url+'/?page_size=0&format=json';
+	  			var mydoc=node.data.parentid;
+	  		} else {
+	  			var thisurl=url+'docs/'+node.data.url+'/has_entities?page_size=0&format=json';
+	  			var mydoc=node.data.url;
+	  		}
+	  			$.getJSON(thisurl,function(thisdoc){
+	  			node.setLazyNodeStatus(DTNodeStatus_Loading);
+			    var children = "[";
+				var pagecount=0;
+				if (thisdoc.length!=0) {
+					 $.each(thisdoc, function(i, pageurl) {
+							pagecount+=1;
+							if (pageurl.has_parts) {
+								children+="{title:'"+pageurl.name+"', isLazy: true, url:'"+pageurl.id+"', parentid:'"+mydoc+"'}";
+							}  else {
+								children+="{title:'"+pageurl.name+"', lineid:'"+pageurl.id+"', parentid:'"+mydoc+"'}";
+							}	
+							if (pagecount==thisdoc.length) {
+								children+="]";
+								node.setLazyNodeStatus(DTNodeStatus_Ok);
+								node.addChild(eval(children));
+							} else {
+								children+=",";
+							}
+					 });
+				 } else node.setLazyNodeStatus(DTNodeStatus_Ok);
+	  		});
+	  	}
+     });
+     var containerheight=$(window).height();
+     if (containerheight<minheight) containerheight=minheight;
+     $( ".dynatree-container").height(containerheight-34);
+}
+
+function makeEntMenu(rootMenu) {
+	$("#entitytree").dynatree({
+      children: eval(rootMenu),
+      onActivate: function(node) {
+			if ( node.data.lineid) {
+				$('#showcollation').html("<br/><b>&nbsp;&nbsp;&nbsp;&nbsp;Loading in texts. Please wait.</b>"); 
+				var entityText="";
+				var numdocs=0;
+				$.getJSON(url+'entities/'+node.data.lineid+'/has_text_of?page_size=0&format=json',function(thisdoc){
+					 $.each(thisdoc, function(i, pageurl) {
+					 	//rewrite this to make it really recursive
+					 	//problem -- could be relic text from deleted document
+					 	$.getJSON(url+'texts/'+pageurl.id+'/is_text_in/', function (test) {
+							numdocs+=1;
+					 		$.getJSON(url+'texts/'+pageurl.id+'/xml',function(thispage){
+								var newpage=thispage.replace(/</g, "&lt;");
+								$.getJSON(url+'texts/'+pageurl.id+'/is_text_in?page_size=0&format=json',function(thistext){
+									var info=""+thistext.label+" "+thistext.name+": "+ newpage + "</p>";
+									$.getJSON(url+'docs/'+thistext.id+'/parent?page_size=0&format=json',function(thisparent){
+										info=""+thisparent.label+" "+thisparent.name+"</a>, "+info;
+										if (thisparent.has_parent) {
+											$.getJSON(url+'docs/'+thisparent.id+'/parent?page_size=0&format=json',function(grandparent){
+												info="<p><a href=\"javascript:initTextDtree('"+grandparent.name+"', '"+thisparent.name+"')\">"+grandparent.label+" "+grandparent.name+", "+info;
+												entityText+=info;
+	//											$('#showcollation').html(entityText); 
+												if (numdocs==thisdoc.length) {
+													$('#showcollation').html(entityText);
+												}
+											});
+										} else {
+											info="<p><a href=\"javascript:initTextDtree('"+thisparent.name+"', '"+thistext.name+"')\">"+info;
+											entityText+=info;
+											if (numdocs==thisdoc.length) {
+												$('#showcollation').html(entityText);
+											}
+										}
+									});
+								});
+							});
+						})
+						.fail(function() {
+								numdocs+=1;
+								if (numdocs==thisdoc.length) {
+								$('#showcollation').html(entityText); }
+						});
+					 });
+				});
+			}
+		},
+      onLazyRead: function(node){
+      		$.getJSON(url+'entities/'+node.data.url+'/has_parts?page_size=0&format=json',function(thisdoc){
+			  	node.setLazyNodeStatus(DTNodeStatus_Loading);
+			    var children = "[";
+				var pagecount=0;
+			     $.each(thisdoc, function(i, pageurl) {
+						pagecount+=1;
+						if (pageurl.has_parts) {
+							children+="{title:'"+pageurl.name+"', isLazy: true, url:'"+pageurl.id+"'}";
+						}  else {
+							children+="{title:'"+pageurl.name+"', lineid:'"+pageurl.id+"'}";
+						}	
+						if (pagecount==thisdoc.length) {
+							children+="]";
+							node.setLazyNodeStatus(DTNodeStatus_Ok);
+							node.addChild(eval(children));
+						} else {
+							children+=",";
+						}
+			     });
+	 	    });
+	    }
+     });
+    var containerheight=$(window).height();
+     if (containerheight<minheight) containerheight=minheight;
+     $( ".dynatree-container").height(containerheight-100);
+}
+
+function loadTCDocumentText (doctext, pagekey) {
+		//set up transcript menus
+		//need to put a catch in here, where it seems the event is fired twice (dunno why)
+		//fix so &#1234; entities display correctly -- might have to adjust if we ever get different patterns .. eg use $('<div/>').html('&amp;').text() 
+		var newtext=doctext.replace(/&([^;]*);/g,  function($0, $1) {
+			if ($1=="amp") return ("&amp;")
+			else return $('<div/>').html('&'+$1+';').text();
+			//return String.fromCharCode(parseInt($1, 10));
+		});
+		doctext=newtext;
+		var tree =$("#tree").dynatree("getTree");
+		var pnode=tree.getNodeByKey(pagekey);
+		if (editor && editor.getValue()!="") {
+			if (docName==pnode.getParent().data.title && pageName==pnode.data.title) return; //already got it
+		}
+		var tabindex=$("#tabs").tabs('option', 'selected');
+		if (tabindex==1) {
+			editorstring=doctext;
+			$('#tabs').tabs('select', 0);
+		} else {
+			//could be in mergely...
+			if (!editor) {
+				if ($('#mergely-resizer').length>0) $('#mergely-resizer').remove();
+				$('#transcripttext').html('<textarea id="code"></textarea>');
+				editor = CodeMirror.fromTextArea(document.getElementById("code"), {lineWrapping: true, lineNumbers: true});
+				if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+				editor.setSize($(window).width()-$('#left').width(), $("#transcripttext").parent().parent().height()-49);
+				editor.refresh();
+			}
+			editor.setValue(doctext);
+			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+			editor.refresh();
+		}	
+		pnode.activate();
+		var activeLi = pnode.li;
+		 tabindex=$("#tabs").tabs('option', 'selected');
+		 if (tabindex==0) {
+		 	if ($('#tree').is(':visible')) {
+				$('.dynatree-container').animate({ // animate the scrolling to the node
+				  scrollTop: $(activeLi).offset().top - $('.dynatree-container').offset().top + $('.dynatree-container').scrollTop()
+				}, 'slow');
+			}
+		}
+		$('#docid').html(pnode.getParent().data.title);
+		$('#ptitle').html(pnode.data.title);	
+		docName=pnode.getParent().data.title;
+		pageName=pnode.data.title;  
+		if ($('#previewdiv').hasClass('ui-dialog-content')) PreviewTranscript();
+		prevnode=pnode.getPrevSibling();
+		if 	(prevnode) {
+			$('#prevpage').html('<a class="pagelink" title="'+prevnode.data.title+'" href="javascript:loadTCDocIdText(\''+prevnode.data.pageid+'\',\''+prevnode.data.key+'\')">&lt;</a>');
+		} else $('#prevpage').html("");
+		nextnode=pnode.getNextSibling();
+		if 	(nextnode) {
+			$('#nextpage').html('<a  class="pagelink" title="'+nextnode.data.title+'" href="javascript:loadTCDocIdText(\''+nextnode.data.pageid+'\',\''+nextnode.data.key+'\')">></a>');
+		} else $('#nextpage').html(""); 
+}
+
+$(function() {
+	$( "#tabs" ).tabs({ active: 0 });
+	$("#tabs").on("tabsselect", function(e, tab) {
+		if (( tab.index==0) && !$('#info').is(':visible')) {
+			$("#showcollation").css({'display':'none'});
+			$("#info").css({'display':'block'});
+			$("#topright").css({'display':'block'});
+			$("#lowerright").css({'display':'block'});	
+		}
+		if (tab.index==1) {
+			$("#showcollation").css({'display':'block'});
+			$("#info").css({'display':'none'});
+			$("#topright").css({'display':'none'});
+			$("#lowerright").css({'display':'none'});
+		}
+    });
+});
+
+function initTextDtree(editdoc, editpage) {
+	//choose the document, find and initialize the node,then show the text etc for it
+	var tree =$("#tree").dynatree("getTree");
+	var root=tree.getRoot();
+	$.each(root.getChildren(), function(h, thisdoc){ 
+		if (thisdoc.data.title==editdoc) {
+			doLazyRead (thisdoc, editpage);
+		}
+	});
+}
+
+function initPrevDtree() {
+	var tree =$("#prevPageTree").dynatree("getTree");
+	tree.reload();
+	var root=tree.getRoot();
+	$.each(root.getChildren(), function(h, thisdoc){ 
+		if (thisdoc.data.title==docName) {
+			//if we have a previous page, pass it in.  
+			if ($('#prevpage a').length == 0) doPrevLazyRead(thisdoc, $('#ptitle').html());
+			else doPrevLazyRead(thisdoc, $('#prevpage a').attr("title"));
+		}
+	});
+}
+
+function hideTOC(){
+	var leftWidth=$('#left').width();
+	$('#left').hide();
+	var wholeWidth=$('body').width()-6;
+	$('#right').width(wholeWidth);
+	$('#openpanel').show();
+	$( "#right" ).css("left", '0px');
+	$( "#right" ).css("position", 'relative');
+	$( "#right" ).css("top", '-19px');
+	$( "#right" ).css( "maxWidth",wholeWidth);
+	$( "#right" ).css( "float", "left");
+	if ($('#splitright').attr('name')=="ishorizontal") {
+		$( "#topright" ).width(wholeWidth-12);
+	} else {
+		$( "#topright" ).width($( "#topright" ).width()+leftWidth/2);
+		$( "#lowerright" ).width($( "#lowerright" ).width()+leftWidth/2);
+//		$('#image').width($("#image").parent().width()-8);
+	}
+	$("#transcripttext").width($("#transcripttext").parent().parent().width());
+	if (editor) editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
+	else {
+			$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
+			$('#mergely-resizer').width($("#transcripttext").parent().width());
+			$('#compare').mergely('resize');
+		}
+}
+
+var imageLoaded=0;
+function loadTCDocIdText(pageid, pagekey) {
+	if (!imageLoaded) {
+		var imagecall='<script type="text/javascript"> \
+							var $imageMap = $(".image_map");\
+							var options = {\
+									zoom: 2 ,\
+									minZoom: 1,\
+									maxZoom: 5 \
+							};\
+							imageMap = new ImageMap($imageMap[0], "http://textualcommunities.usask.ca/api/docs/'+pageid+'/has_image/", options);';
+		$('#docimage').html(imagecall);
+		imageLoaded=1;
+	}
+	//this version for getting the current revision:
+	//test: is there a revision? if so... show it
+	//set up menus for showing revisions, etc
+		$.getJSON(url+'docs/'+pageid+'/?format=json',function(thetext) {
+			if (thetext.cur_rev) {
+				currentTranscript=thetext.cur_rev; //but what exactly is cur_rev???
+				//if we have several versions -- call up the revision system
+				//first, test how many revisions we have
+				$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+					if (versions.length==1) {
+						$.getJSON(url+'docs/'+pageid+'/cur_revision/?page_size=0&format=json',function(thetext){
+							$.getJSON(url+'users/'+thetext.user+'/?page_size=0&format=json',function(user) {
+								$('#transcriptinf').html('Only one edited version ('+thetext.create_date+', '+user.first_name+' '+user.last_name+').  <a href="javascript:compareToDb('+pageid+', '+thetext.id+')">Compare to database.</a>');
+								loadTCDocumentText(thetext.text, pagekey);
+								createTranscriptMenus(pageid, thetext.id, -1).done(function (menus) {
+									$('#revinf1').html(menus.left);
+									$('#revinf2').html(menus.right);
+								});
+								imageLoaded=0;
+							});
+						});
+					} else {
+						//we have more than one revision -- prepare compare view
+//						$.getJSON(url+'docs/'+pageid+'/cur_revision/?format=json',function(thetext){
+							$('#transcriptinf').html('Several versions.  Compare with each other, and the database.');
+							loadTCDocumentText(versions[0].text, pagekey);
+							createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
+									$('#revinf1').html(menus.left);
+									$('#revinf2').html(menus.right);
+								});
+							imageLoaded=0;
+//						});
+					}
+				});
+			}  else {
+				$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+					$.getJSON(url+'texts/'+hastextin.id+'/xml',function(thetext){
+						$('#transcriptinf').html('No edited versions: as loaded in database');
+						loadTCDocumentText(thetext, pagekey);
+						createTranscriptMenus(pageid, 0, -1).done(function (menus) {
+								$('#revinf1').html(menus.left);
+								$('#revinf2').html(menus.right);
+						});
+						imageLoaded=0;		
+					});
+				});
+			}
+		});
+}
+
+function setupMergely(text1, text2) {
+//get rid of codemirror instance, if there is one...
+	if (editor) {
+		var oldeditor=editor.getWrapperElement();
+		if (oldeditor.parentNode) {
+			oldeditor.parentNode.removeChild(oldeditor);
+			editor=null;
+		}
+	}
+//if there is a mergely, just write in new text
+	if ($('#mergely-resizer').length>0) {
+		if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+		$('#compare').mergely('lhs', text1);
+		$('#compare').mergely('rhs', text2);
+	}
+//alter html
+	$('#transcripttext').height($('#transcripttext').parent().height()-70)
+  	var newtext1=text1.replace(/\t/g, "");
+	var newtext2=text2.replace(/\t/g, "");
+	var newtext3=newtext1.replace(/  /g, "");
+	var newtext4=newtext2.replace(/  /g, "");
+	var newtext5=newtext3.replace(/&([^;]*);/g,  function($0, $1) {
+			if ($1=="amp") return ("&amp;")
+			else return $('<div/>').html('&'+$1+';').text();
+		});
+	var newtext6=newtext4.replace(/&([^;]*);/g,  function($0, $1) {
+			if ($1=="amp") return ("&amp;")
+			else return $('<div/>').html('&'+$1+';').text();
+		});
+
+	$('#transcripttext').html("<div id=\"mergely-resizer\"><div id=\"compare\"></div></div>");
+	$('#mergely-resizer').height($('#transcripttext').height());
+		 $('#compare').mergely({
+			height: "auto",
+			width: "auto",
+			cmsettings: { readOnly: false },
+			lhs: function(setValue) {
+				setValue(newtext5);
+			},
+			rhs: function(setValue) {
+				setValue(newtext6);
+			}
+		});
+}
+
+function getUserInf(user) {
+    var userinf={}
+    for (var i in users) {
+        if (users[i].id==user) {
+            userinf.first_name=users[i].first_name;
+            userinf.last_name=users[i].last_name;
+            return userinf;
+        }
+    }
+    userinf.first_name="Unknown";
+    userinf.last_name="Unknown";
+    return userinf;
+}
+
+var users;
+function getUsers() {
+	 return $.getJSON(url+'users/?page_size=0&format=json', function(allusers) {
+	 	users=allusers;
+	 });
+}
+//left and right will be revision ids for comparison; if 0 then compare to database; if -1 set to none
+function createTranscriptMenus (pageid, left, right) {
+		return $.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+			 	//do the left first
+			var leftMenu='<select id="leftSelTranscript" onchange="javascript:doTranscriptVersions('+pageid+')">';
+			for (var i=0; i < versions.length; i++) {
+				var userInf=getUserInf(versions[i].user);
+				if (versions[i].id!=right) {
+					if (versions[i].id==left) {
+						var d = Date.parse(versions[i].create_date);
+						var x= moment(versions[i].create_date).format('LLL');
+						leftMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+					}
+					else leftMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+				}
+			}
+			//append database version
+			if (right!=0) {
+				if (left==0) leftMenu+='<option value="0" selected="selected">Version in database</option>' 
+				else  leftMenu+='<option value="0">Version in database</option>';
+			}
+			leftMenu+="</select>";
+			versions.left=leftMenu;
+			//now, let's build the right-hand menu
+			var rightMenu='<select  id="rightSelTranscript" onchange="javascript:doTranscriptVersions('+pageid+')">';
+			if (right==-1) rightMenu+='<option value="-1"  selected="selected">[Show this version only]</option>';
+			else  rightMenu+='<option value="-1">[Nothing]</option>';
+			for (var i=0; i < versions.length; i++) {
+				var userInf=getUserInf(versions[i].user);
+				if (versions[i].id!=left) {
+					if (versions[i].id==right) 
+						rightMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+					else rightMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+				}
+			}
+			if (left!=0) {
+				if (right==0) rightMenu+='<option value="0" selected="selected">Version in database</option>' 
+				else  rightMenu+='<option value="0">Version in database</option>';
+			}
+			rightMenu+="</select>";
+			versions.right=rightMenu;
+			//set values on various save buttons
+			if (right==-1) {
+				//just one to deal with...
+				$('#tcnt1').hide();
+				$('#tcnt3').hide();
+				$('#tcnt2').show();
+				$('#tcnt2').css('width', '100%');
+				$('#tcntSave').attr('value', pageid);
+			} else {
+				//got to set for both left and right
+				$('#tcnt1').show();
+				$('#tcnt2').width(0);
+				$('#tcnt1').css('width', '50%');
+				$('#tcnt3').show();
+				$('#tcnt1').css('width', '50%');
+				$('#tcnt2').hide();		
+				$('#tcntSaveLeft').attr('value', pageid);
+				$('#tcntSaveLeft').attr('data-version', left);
+				$('#tcntSaveRight').attr('value', pageid);
+				$('#tcntSaveRight').attr('data-version', right);
+			}
+		});
+}
+
+//1: not comparing; 2: left compare; 3: right compare
+function SaveTranscript(which) {
+	if (which==1) {
+		var pageid=$('#tcntSave').attr('value');
+		return $.post(url+'docs/'+pageid+'/transcribe/', {
+				text: editor.getValue(),
+				user: curUser.id
+			}).success(function(result){
+				//redo the transcript menus here
+				//get the latest revision we have here
+				result.success=true;
+				$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+						createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
+							$('#revinf1').html(menus.left);
+							$('#revinf2').html(menus.right);
+					});
+				});
+			}).fail(function(xhr){
+					xhr.success=false;
+					alert(xhr.responseText);
+			});
+	} 
+	if (which==2) {
+		var pageid=$('#tcntSaveLeft').attr('value');
+		$.post(url+'docs/'+pageid+'/transcribe/', {
+				text: $('#compare').mergely('get', 'lhs'),
+				user: curUser.id
+			}).success(function(){
+				$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+						createTranscriptMenus(pageid, versions[0].id, $('#tcntSaveRight').attr('data-version')).done(function (menus) {
+							$('#revinf1').html(menus.left);
+							$('#revinf2').html(menus.right);
+					});
+				});
+			});fail(function(xhr){
+					alert(xhr.responseText);
+			});
+	}
+	if (which==3) {
+		var pageid=$('#tcntSaveRight').attr('value');
+		$.post(url+'docs/'+pageid+'/transcribe/', {
+				text: $('#compare').mergely('get', 'rhs'),
+				user: curUser.id
+			}).success(function(){
+				$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+						createTranscriptMenus(pageid, $('#tcntSaveLeft').attr('data-version'), versions[0].id).done(function (menus) {
+							$('#revinf1').html(menus.left);
+							$('#revinf2').html(menus.right);
+					});
+				});
+			});fail(function(xhr){
+					alert(xhr.responseText);
+			});
+	}
+}
+
+function commitTranscript () {
+	validateTranscript ().done (function (results) {
+		if (!results.success) return;
+		if (results.errorMessage!='') {
+			 doPreview(results.errorMessage, 'Commit');
+			 return;
+		}
+		//first save...
+		SaveTranscript(1).done (function(results) {
+			if (!results.success) return;
+			//go get the versions, get the current one
+			var pageid=$('#tcntSave').attr('value');
+			$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+				var revision_id=versions[0].id;
+				$.post(url+'revision/'+revision_id+'/commit/', {
+				}).success(function(){
+					alert('success');
+					//when we get here -- revise transcript menus and other housekeeping tasks
+				}).fail(function(xhr){
+						alert(xhr.responseText);
+				});
+			});
+		});
+	});
+}
+
+
+function validateTranscript () {
+	//fix needed... if starts <text><front ... append dummy body; or prepend dummy body if it starts <text><back
+	var myxml=editor.getValue();
+	return $.post(url+'communities/'+communityID+'/xmlvalidate/', {
+		xml: editor.getValue()
+	}).success(function(xhr){
+		//carry on silently
+		xhr.success=true;
+		if (xhr.status=="success") {xhr.errorMessage=''}
+		else {
+			xhr.errorMessage=xhr.error;
+		}
+	}).fail(function(xhr){
+		alert(xhr.responseText);
+		xhr.success=false;
+	}); 
+
+}
+
+function PreviewTranscript () {
+	  validateTranscript ().done (function (results) {
+		if (!results.success) return;
+		else doPreview(results.errorMessage, 'Preview');
+	});
+}
+
+function doPreview(errorMessage, title) {
+	//make a new window, put the text in it
+	//we must be in the editor!!!
+	var p=editor.getValue();
+	p1=p.replace('<body>','');
+	p2=p1.replace('</body>','');
+	p3=p2.replace('</text>','');
+	p4=p3.replace('<text>','');
+	p5=p4.replace(/(\r\n|\n|\r)/gm,"");
+	//get the css files
+				//if dialogue is visible -- then get its dimensions and use them now
+	if (pwidth==0)  {
+		pwidth=410;
+		pheight=710;
+	}
+	//changed.  Look for css and js file for the communities.  Only allow one css file (first one found)
+	$.getJSON(url+'communities/'+communityID+'/css/?page_size=0&format=json',function(cssinf) {
+		//got one? use it!
+		if (cssinf.length > 0) {
+			var csslink='<link id="csslink" href="'+urlstatic+cssinf[0].css+'" rel="stylesheet" type="text/css"/>\r';
+		//	var csslink='<link id="csslink" href="default.css" rel="stylesheet" type="text/css"/>\r';
+			//do the same for jscript
+			$.getJSON(url+'communities/'+communityID+'/js/?page_size=0&format=json',function(jsinf) {
+				if (jsinf.length > 0) {
+					var jslink=urlstatic+jsinf[0].js;
+		//			var jslink="default.js";
+					makePreview(jslink, p5, errorMessage, csslink, title);
+				} else {
+					$.getJSON(url+'communities/1/js/?page_size=0&format=json',function(jsinf) {
+						var jslink=urlstatic+jsinf[0].js;
+						makePreview(jslink, p5, errorMessage, csslink, title);
+					});
+				}
+			});
+		}
+		else {
+			//get the default...
+			$.getJSON(url+'communities/1/css/?page_size=0&format=json',function(cssinf) {
+				var csslink='<link id="csslink" href="'+urlstatic+cssinf[0].css+'" rel="stylesheet" type="text/css"/>\r';
+		//		var csslink='<link id="csslink" href="default.css" rel="stylesheet" type="text/css"/>\r';
+				//get the js
+				$.getJSON(url+'communities/'+communityID+'/js/?page_size=0&format=json',function(jsinf) {
+					if (jsinf.length > 0) {
+						var jslink=urlstatic+jsinf[0].js;
+						makePreview(jslink, p5, errorMessage, csslink, title);
+					} else {
+						$.getJSON(url+'communities/1/js/?page_size=0&format=json',function(jsinf) {
+							var jslink=urlstatic+jsinf[0].js;
+							makePreview(jslink, p5, errorMessage, csslink, title);
+						});
+					}
+				});
+			});
+		}
+	});
+}
+
+function makePreview(jslink, p4, errorMessage, csslink, title) {
+	if (errorMessage=="") {
+		p4=p4.replace(/<row/g, "<tr");
+		p4=p4.replace(/<\/row/g, "</tr");
+		p4=p4.replace(/<cell/g, "<td");
+		p4=p4.replace(/<\/cell/g, "</td");
+	}
+	if ($('#previewdiv').hasClass('ui-dialog-content'))  {
+		$iframe.remove();
+	}  	
+//		jslink="default.js";
+//		csslink='<link id="csslink" href="default.css" rel="stylesheet" type="text/css"/>\r';
+		$iframe = $('<iframe height="'+(pheight-10)+'" width="'+(pwidth-10)+'"></iframe>').load(function(){
+			var ifpreview = document.createElement( "div" );
+			ifpreview.id = "ifdiv";
+			if (csslink!="") $iframe.contents().find('head').append(csslink);
+			if (jslink!="") {
+				script1=document.createElement('script');
+				script1.src="http://code.jquery.com/jquery-1.10.2.min.js";
+				script1.type="text/javascript";
+				script=document.createElement('script');
+				script.src=jslink;
+				script.type="text/javascript";
+		//		$iframe.contents().find('head')[0].appendChild(script1);
+				$iframe.contents().find('head')[0].appendChild(script);
+		}
+			if (communityFont) $iframe.contents().find('body').css({"font-family": communityFont});
+			$iframe.contents().find('body')[0].appendChild(ifpreview);
+			if (errorMessage!="") $iframe.contents().find('body').html(errorMessage);
+			else  $iframe.contents().find('body').html(p4);
+		});
+		$( "#previewdiv" ).dialog( "option", "title", title+" "+docName+", "+pageName);
+		$('#previewdiv').append($iframe);
+		if ($('#previewdiv').hasClass('ui-dialog-content'))  {
+			return;
+		}
+		$( "#previewdiv").dialog({close: function( event, ui ) {}, resize: function( event, ui ) {} });
+		$( "#previewdiv" ).on( "dialogclose", function( event, ui ) {
+			pwidth=$( "#previewdiv" ).width();
+			pheight=$( "#previewdiv" ).height();
+			$( "#previewdiv" ).dialog('destroy');
+			$('#previewdiv').children().remove();
+		} );
+		$( "#previewdiv" ).on( "dialogresize", function( event, ui ) {
+			$('iframe').height(ui.size.height-10);
+			$('iframe').width(ui.size.width-10);
+			pheight=ui.size.height;
+			pwidth=ui.size.width;
+		} );
+		$( "#previewdiv" ).dialog( "option", "height", pheight );
+		$( "#previewdiv" ).dialog( "option", "width", pwidth );
+		return;
+}
+
+
+//compare a transcript to the database version
+function compareToDb(pageid, versionid) {
+	//get the database version
+		$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+				$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext){
+					//got db text.  Get the transcript...
+					$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+						$.each(versions, function(i, thisrevision) {
+							if (thisrevision.id==versionid) {
+								var mytext=thisrevision.text;
+								createTranscriptMenus(pageid, 0, versionid).done(function (menus) {
+									$('#revinf1').html(menus.left);
+									$('#revinf2').html(menus.right);
+									setupMergely(dbtext, mytext);
+								});
+							}
+						});
+					});
+				});
+		});
+}
+
+//we don't use it now -- leave it as one day it might help!
+function loadTCDocPartText(thisurl, mycommunity, document, documentpath) {
+	//get the community first
+	$.getJSON(thisurl+'communities/?format=json',  function (data) { 
+			$.each(data.results, function(h, thiscommunity){ 
+				if (thiscommunity.name==mycommunity) {
+					//get the doc we want
+					$.getJSON(url+'communities/'+thiscommunity.id+'/docs/?format=json', function (docdata) {
+						$.each(docdata.results, function(i, thisdoc) {
+							if (thisdoc.name==document)  {
+							//now start looking for the document path
+								$.getJSON(url+'docs/'+thisdoc.id+'/has_parts?page_size=0&format=json',function(docpages){
+									
+									 $.each(docpages, function(i, thispage) {
+									 	var this_path=thispage.label+"="+thispage.name;
+									 	if (this_path==documentpath) {
+									 		//got the page -- now chase the trail to get its text...
+									 		$.getJSON(url+'docs/'+thispage.id+'/has_text_in?format=json',function(hastextin){
+									 			$.getJSON(url+'texts/'+hastextin.id+'/xml',function(thetext){
+									 				loadTCDocumentText(thetext, "");
+									 			});
+											});
+										}
+									});
+								});
+							}
+						});
+					});
+				}
+			});
+	});
+}
+
+   
+function getPrecedingText() {
+	var rootMenu="[";
+	var doccount=0;
+	$.getJSON(url+'communities/'+communityID+'/docs/?page_size=0&format=json', function (docdata) {
+		var numdocs=docdata.length;
+		$.each(docdata, function(i, thisdoc) {
+			doccount+=1;
+			rootMenu+="{title:'"+thisdoc.name+"',hideCheckbox: true, isLazy: true, url:'"+thisdoc.id+"'}";
+			if (doccount==numdocs) {
+				rootMenu+="]";
+				makePrevPageMenu(rootMenu);
+			} else {rootMenu+=",";}
+		});
+	});
+}
+
+function makePrevPageMenu(rootMenu) {
+	$("#prevPageTree").dynatree({
+		children: eval(rootMenu),
+		classNames: {checkbox: "dynatree-radio"},
+		checkbox: true,
+		selectMode: 1,
+		onActivate: function(node) {
+		
+		},
+		onLazyRead: function(node) {
+			if (node.data.pageid) {
+				doPrevLazyReadEnt(node, "");
+			} else doPrevLazyRead(node, "")
+		},
+		onSelect: function(select, node) {
+			$('#prevChosen').html("<p style='text-align:center'><i>Fetching information about the text selected. Please wait.</i></p>");
+			$('#prevInfo').html("");
+			createPrevInfo(node.data.entid, node.data.pageid, node.data.line);
+		}
+	});
+	$("#prevPageTree").height(300);
+	initPrevDtree();
+}
+
+function cancelNP() {
+	$( "#new-confirm" ).dialog('close');
+}
+
+function confirmNP() {
+	var results=sanityPrevious();
+	if (results.entstring=="") {
+		//nothing selected, confirmed, just give us the template
+		$('#pcnew').attr('checked',true);
+		doNewPage();
+	} else {
+		$.getJSON(url+'communities/'+communityID+'/get_refsdecls?format=json', function (rds) {
+			$.each(rds.results, function(i, rd) {
+				if (rd.type=="1") {
+					var xmlDoc = $.parseXML( rd.template );
+					var $xml = $( xmlDoc );
+					$( "#new-transcript" ).dialog('close');
+					for (var i=0; i<results.elements.length; i++) {
+						//find first element correspoding in the the $xml
+						var $element=$xml.find( results.elements[i].element ).first();
+						$element.attr('prev',results.elements[i].prev);
+						$element.attr('n',results.elements[i].nval);
+					}
+					var xmlText = new XMLSerializer().serializeToString($xml[0]);
+ 					editor.setValue(xmlText);
+				}
+			});
+		});
+	}
+	$( "#new-confirm" ).dialog('close');
+}
+
+function NewTranscript(){
+	$.getJSON(url+'docs/'+currentDocId+'/has_entities?format=json&page_size=0', function (ents) {
+		if (ents.length==0) {
+			$.getJSON(url+'communities/'+communityID+'/get_refsdecls?format=json', function (rds) {
+				$.each(rds.results, function(i, rd) {
+					if (rd.template!="<text/>") {
+						editor.setValue(rd.template);
+						return
+					}
+				});
+			});
+		}  else {
+		//igo in serach of entities
+			var pageid=$('#tcntSave').attr('value');
+			var prevTreeDone=0;
+			if ($('#new-transcript').hasClass('ui-dialog-content')) {
+				prevTreeDone=1;
+			}  else {
+				 $( "#new-transcript" ).dialog({
+				  height: 700,
+				  width: 700,
+				  modal: true,
+				  autoOpen: false,
+				  title:"New page transcription",
+				});
+			}
+			$( "#new-transcript" ).dialog('open');
+			$('#prevChosen').html("<p style='text-align:center'><i>Fetching entities on previous pages.  Please wait.</i></p>");
+			$('#prevInfo').html("");
+			//now, if we already have the tree, then all we need do is refresh it...
+			if (!prevTreeDone)  getPrecedingText();
+			else initPrevDtree();
+		}
+	});
+}
+
+function doTranscriptVersions(pageid) {
+	var leftPage=$("#leftSelTranscript :selected").val();
+	var rightPage=$("#rightSelTranscript :selected").val();
+	loadTranscripts(pageid, leftPage, rightPage);
+}
+
+function loadTranscripts(pageid, leftPage, rightPage) {
+	//if rightPage is -1: just load the left 
+	if (rightPage==-1) {
+		if ($('#mergely-resizer').length>0) {
+			$('#mergely-resizer').remove();
+			$('#transcripttext').html('<textarea id="code"></textarea>');
+			editor = CodeMirror.fromTextArea(document.getElementById("code"), {lineWrapping: true, lineNumbers: true});
+			editor.setSize($(window).width()-$('#left').width(), $("#transcripttext").parent().parent().height()-49);
+			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+			editor.refresh();
+		}
+		if (leftPage==0) {
+			//get db
+			$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+				$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext) {editor.setValue(dbtext)});
+			});
+		} else {
+			$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+				$.each(versions, function(i, thisrevision) {
+					if (thisrevision.id==leftPage) {editor.setValue(thisrevision.text)}
+				});
+			});
+		}
+	} else {
+		if (leftPage==0) {
+			$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+				$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext) {
+					//rightpage MUST be a version..
+					$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+						$.each(versions, function(i, thisrevision) {
+							if (thisrevision.id==rightPage) {
+								setupMergely(dbtext, thisrevision.text);
+							}
+						});
+					});
+				});
+			});
+		} else {
+			//left page: a revision
+			$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+				$.each(versions, function(i, thisrevision) {
+					if (thisrevision.id==leftPage) {
+						//now get the rightpage -- can't be -1
+						if (rightPage==0) {
+							$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+								$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext) {
+									setupMergely(thisrevision.text, dbtext);
+								});
+							});
+						} else {
+							$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions2) {
+								$.each(versions2, function(i, thisrevision2) {
+									if (thisrevision2.id==rightPage) {
+										setupMergely(thisrevision.text, thisrevision2.text);
+									}	
+								});
+							});
+						}
+					}
+				});
+			});
+		}
+	}
+	createTranscriptMenus(pageid, leftPage, rightPage).done(function (menus) {
+			$('#revinf1').html(menus.left);
+			$('#revinf2').html(menus.right);
+	});
+}
+
+
+//topright: becomes left, lowerright goes to the right
+
+var saveWinSpecs = {};
+function splitvertical () {
+ 	if ($('#splitright').attr('name')=="ishorizontal") {
+ 		$("#splitright").attr("name", "isvertical" );
+		$('#split').attr('src', 'splithoriz.png');
+ 		$('#split').attr('title', 'Image and text above and below');
+ 		saveWinSpecs.toprightheight=$("#topright").height();
+ 		saveWinSpecs.lowerrightheight=$("#lowerright").height();		
+		var wholeWidth=$("#right").width();
+		$("#topright").width(wholeWidth/2 -8);
+		$("#lowerright").width(wholeWidth/2 - 10);
+		var rightheight=$('#right').height();
+		$("#right").css({'height': rightheight});
+		$("#topright").css({'height': rightheight-10});
+		$("#topright").css({'float':'left'});
+		$("#topright").css({'margin-right':'0px'});
+//		$('#image').height(rightheight-20);
+		$("#lowerright").css({'margin-right':'0px'});
+		$("#lowerright").css({'float':'left'});
+		$("#lowerright").css({'height': rightheight-10});
+		$( "#transcripttext").width($("#transcripttext").parent().width());
+		$( "#transcript").height($("#transcript").parent().height());
+		$( "#transcripttext").height($("#transcripttext").parent().height()-84);
+		$( "#topright" ).css("top", '-54px');
+		$( "#topright" ).css("maxHeight", '');
+		$( "#lowerright" ).css("top", '-54px');
+		$( "#transcript").css("position", "relative");
+		$( "#transcript").css("top", "12px");
+	//		$('#image').width($("#topright").width()-8);
+		if (editor)  {
+			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-49);
+			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+			editor.refresh();
+		}
+		else {
+			$('#mergely-resizer').height($("#transcripttext").parent().height()-49);
+			$('#mergely-resizer').width($("#transcripttext").parent().width());
+			$('#compare').mergely('resize');
+		}
+		$( "#topright" ).resizable( "destroy" );
+		$( "#topright").resizable({   
+			handles: 'e', 
+			resize: function(event, ui) {
+			ui.size.height = ui.originalSize.height;
+			}
+		 });
+		 $("#topright").off("resize", "");
+		 $("#topright").on("resize", function (event, ui) {
+			if ($('#left').is(':visible'))
+				var setWidth = $("#left").width();
+			else var setWidth = 0;
+			var wholeWidth=$('body').width()-6;
+			var leftWidth = $("#topright").width();
+			$('#lowerright').width(wholeWidth-setWidth - leftWidth -20);
+			$( "#transcripttext").width($("#transcripttext").parent().width()-5);
+			$( "#transcripttext").height($("#transcripttext").parent().height()-67);
+			$('#docimage').css( "minWidth", '200px');
+			$( "#topright").css( "minWidth", '200px');
+	//		$( "#topright").css("maxWidth", (wholeWidth-setWidth-230)+'px');
+			$( "#lowerright" ).css( "minWidth",'200px');
+	//		$( "#lowerright" ).css( "maxWidth", (wholeWidth-setWidth-220)+'px');
+	//		$('#image').width($('#image').parent().width());
+	//		$('#docimage').width($('#docimage').parent().parent().width());
+	});
+	} else {
+		$("#splitright").attr("name", "ishorizontal" );
+		$('#split').attr('src', 'splitvert.png');
+ 		$('#split').attr('title', 'Image and text side by side');
+ 		var proportion=(saveWinSpecs.toprightheight+saveWinSpecs.lowerrightheight)/$('#right').height();
+		var infdivheight=$("#info").height()+26;
+		saveWinSpecs.toprightwidth=$("#topright").width();
+ 		saveWinSpecs.lowerrightwidth=$("#lowerright").width();		
+ 		$("#topright").height(proportion*saveWinSpecs.toprightheight);
+ 		$( "#topright" ).css("top", '-'+infdivheight+'px');
+ 		$("#topright").width($("#right").width()-12);
+ 		$("#lowerright").width($("#right").width()-12);
+		$("#lowerright").height(proportion*saveWinSpecs.lowerrightheight+20);
+		$( "#transcripttext").width($("#transcripttext").parent().width());
+ //		$('#image').height($('#image').parent().height());
+ //		$('#image').width($('#image').parent().width());
+ //		$('#docimage').height($('#docimage').parent().parent().height());
+//		$('#docimage').width($('#docimage').parent().parent().width());
+		$("#topright").css({'float':''});
+ 		$("#lowerright").css({'float':''});
+ 		$( "#lowerright" ).css("top", '-'+infdivheight+'px');
+ 		$( "#transcript").css("top", "");
+ 		$( "#transcripttext").height($("#transcripttext").parent().height()-62);
+ 		if (editor)
+			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-44);
+		else {
+			$('#mergely-resizer').height($("#transcripttext").parent().height()-44);
+			$('#mergely-resizer').width($("#transcripttext").parent().width());
+			$('#compare').mergely('resize');
+		}
+		$("#topright").resizable( "destroy");
+		$("#topright").resizable({   
+			handles: 's', 
+			resize: function(event, ui) {
+			ui.size.height = ui.originalSize.height;
+			}
+		 });
+		 $("#topright").off("resize", "");
+		 $("#topright").on("resize", function (event, ui) {
+			if ($('#left').is(':visible'))
+				var setWidth = $("#left").width();
+			else var setWidth = 0;
+			var wholeWidth=$('body').width()-6;
+			var topHeight = ui.size.height;
+			var wholeHeight=$("#right").height()-6;
+	//		var imageDivHeight=$('#docimage').parent().parent().height();
+	//		$('#docimage').height(imageDivHeight);
+			$('#topright').height(topHeight);
+			$('#lowerright').height(wholeHeight-topHeight - 14);
+			$('#transcript').height(wholeHeight-topHeight- 16);
+			$( "#transcripttext").height($("#transcripttext").parent().parent().height()-62);
+			if (editor)
+				editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
+			else {
+				$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
+				$('#mergely-resizer').width($("#transcripttext").parent().width());
+				$('#compare').mergely('resize');
+			}
+		   	$('#topright').width(wholeWidth-setWidth-12);
+			$( "#topright").css( "minHeight", '200px');
+			$( "#topright").css("maxHeight", (wholeHeight-213)+'px');
+			$( "#lowerright" ).css( "minHeight",'200px');
+		});
+	}
+        var map = imageMap.map;
+        google.maps.event.trigger(map, 'resize');
+        map.setZoom(map.getZoom());
+}
+
+function showTOC(){
+	var wholeWidth=$('body').width()-6;
+	$('#left').show();
+	var leftwidth=$('#left').width();
+	$('#openpanel').hide();
+	$('#right').width(wholeWidth-leftwidth - 6);
+	$( "#right" ).css("left", '0px');
+	$( "#right" ).css("top", '0px');
+	$( "#closepanel" ).css("left", (leftwidth - 18)+'px');
+	if ($('#splitright').attr('name')=="ishorizontal") {
+		$( "#topright" ).width(wholeWidth-leftwidth - 18);
+	} else {
+		$( "#topright" ).width($( "#topright" ).width()-leftwidth/2 - 3);
+		$( "#lowerright" ).width($( "#lowerright" ).width()-leftwidth/2 - 3);
+//		$('#image').width($("#image").parent().width()-8);
+	}
+	$( "#transcripttext").width($("#transcripttext").parent().width()-5);
+	if (editor) editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
+	else {
+			$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
+			$('#mergely-resizer').width($("#transcripttext").parent().width());
+			$('#compare').mergely('resize');
+		}
+}
+
+function togglepageitem() {
+	if ($('#tree').is(':visible')) {
+		$("#tree").css({'display':'none'});
+		$("#texttree").css({'display':'block'});
+		$('#byitemb').removeAttr('href');
+		$('#bypageb').attr('href','javascript:togglepageitem()');
+		$('#bypageb').css({'cursor':'pointer', 'background-color':'#D2D2D2', 'color':'#999'});
+		$('#byitemb').css({'cursor':'default', 'background-color':'#999', 'color':'#fff'});
+		$('#bypageb').hover(function() {
+			  $('#bypageb').css({'background-color':'#BDBDBD', 'color':'#fff'}); 
+		   }, 
+		   function() {
+			   $('#bypageb').css({'background-color':'#D2D2D2', 'color':'#999'})
+		   })
+		$("#byitemb").off('mouseenter mouseleave');
+	} else {
+		$("#tree").css({'display':'block'});
+		$("#texttree").css({'display':'none'});
+		$('#bypageb').removeAttr('href');
+		$('#byitemb').attr('href','javascript:togglepageitem()');
+		$('#byitemb').css({'cursor':'pointer', 'background-color':'#D2D2D2', 'color':'#999'});
+		$('#bypageb').css({'cursor':'default', 'background-color':'#999', 'color':'#fff'});
+		$('#byitemb').hover(function() {
+			  $('#byitemb').css({'background-color':'#BDBDBD', 'color':'#fff'}); 
+		   }, 
+		   function() {
+			   $('#byitemb').css({'background-color':'#D2D2D2', 'color':'#999'})
+		   })
+		$('#bypageb').off('mouseenter mouseleave');
+	}
+}
+
+function toggleWordWrap() {
+	if ($('#wwonb').is('[href]')) {
+		editor.setOption("lineWrapping", true);
+		$('#wwonb').removeAttr('href');
+		$('#wwoffb').attr('href','javascript:toggleWordWrap()');
+		$('#wwoffb').css({'cursor':'pointer', 'background-color':'#D2D2D2', 'color':'#999'});
+		$('#wwonb').css({'cursor':'default', 'background-color':'#999', 'color':'#fff'});
+		$('#wwoffb').hover(function() {
+			  $('#wwoffb').css({'background-color':'#BDBDBD', 'color':'#fff'}); 
+		   }, 
+		   function() {
+			   $('#wwoffb').css({'background-color':'#D2D2D2', 'color':'#999'})
+		   })
+		$("#wwonb").off('mouseenter mouseleave');
+	} else {
+		editor.setOption("lineWrapping", false);
+		$('#wwoffb').removeAttr('href');
+		$('#wwonb').attr('href','javascript:toggleWordWrap()');
+		$('#wwonb').css({'cursor':'pointer', 'background-color':'#D2D2D2', 'color':'#999'});
+		$('#wwoffb').css({'cursor':'default', 'background-color':'#999', 'color':'#fff'});
+		$('#wwonb').hover(function() {
+			  $('#wwonb').css({'background-color':'#BDBDBD', 'color':'#fff'}); 
+		   }, 
+		   function() {
+			   $('#wwonb').css({'background-color':'#D2D2D2', 'color':'#999'})
+		   })
+		$('#wwoffb').off('mouseenter mouseleave');
+	}
+}
+
+function fliptextimage() {
+	editorstring = editor.getValue();
+	var oldeditor=editor.getWrapperElement();
+	oldeditor.parentNode.removeChild(oldeditor);
+	editor=null;
+	var infdivheight=$("#info").height()+26;
+	var origtop=$('#image').html();
+	var origbelow=$('#transcript').html();
+	var origtopheight=$('#topright').height();
+	var origbelowheight=$('#lowerright').height();
+	$('#image').html(origbelow);
+	$('#transcript').html(origtop);
+	$('#image').height(origbelowheight);
+	$('#transcript').height(origtopheight);
+	$('#topright').height(origbelowheight);
+	$('#lowerright').height(origtopheight);
+	$( "#transcripttext").width($("#transcripttext").parent().width()-5);
+	//have to refresh the editor each time...
+	editor = CodeMirror.fromTextArea(document.getElementById("code"), {lineWrapping: true,  lineNumbers: true});
+	editor.setValue(editorstring);
+	editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-44);
+}
+</script>
+
+</head>
+<body>
+<div id="container">
+	<a href="javascript:showTOC()"  id="openpanel" title="Open toc panel" style="display:none; position: relative; left:5px; top: 2px; z-index:2;"><img src="openpanel.png" height="16px" id="openpanelimg"></img></a>
+	<div id="left">
+		<a href="javascript:hideTOC()"  id="closepanel" title="Close toc panel"><img src="closepanel.png" height="16px" id="openpanelimg"></img></a>
+			<div id="tabs">
+				  <ul>
+					<li><a href="#bypage"><span>Documents</span></a></li>
+					<li><a href="#byentity"><span>Collations</span></a></li>
+				  </ul>
+				   <div id="bypage">
+				   		<p id="pbypage"><span id="pagebutton"><a id="bypageb">By Page</a></span><span id="itembutton"><a href="javascript:togglepageitem()" id="byitemb">By Item</a></span></a></p>
+						 <div id="tree"></div>
+						 <div id="texttree"></div>
+				   </div>
+				   <div id="byentity">
+						 <div id="entitytree"></div>
+				   </div>
+			</div>
+	</div>
+	<div id="right" style="position:relative; z-index:1;">
+            <div id="info"><p><span  id="pageinf">
+                        <span id="prevpage"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="docid"></span>; Folio <span id="ptitle"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="nextpage"></span></span><a id="splitright" name="ishorizontal" style="float: right; margin-right:10px" href="javascript:splitvertical()" title="Image and text side by side"><img id="split" src="splitvert.png"></a><!--a style="float: right; margin-right:10px" href="javascript:fliptextimage()" title="Transpose image and transcript"><img id="spin" src="spin.png"></a--></p></div>
+		<div id="topright">
+			 <div id="image">
+				 <div id="docimage" class="image_map">
+				</div>
+			</div>
+		</div>
+		<div id="lowerright">
+		    <div id="transcript">
+			<div id="transcriptHeader"><table width="100%"><tr><td class="revinf" id="revinf1"></td><td class="revinf2">Compare with:</td><td  class="revinf" id="revinf2"></td></tr></table></div>
+			<div id="transcripttext">
+			    <textarea id="code"></textarea>
+			</div>
+			<div id="transcriptcontrols">
+			    <table width="100%"><tr>
+                                <td class="tcnt" id="tcnt1">
+                                  <button id="tcntSaveLeft" class="btn save" value="0" data-version="0" title="Save left transcript page (not to database)" onclick="javascript:SaveTranscript(2)">Save</button></td>
+                                <td class="tcnt2" id="tcnt2">
+                                    <button id="tcntNew" class="btn new" title="New transcript page" onclick="javascript:NewTranscript()">New...</button>
+                                    <button id="tcntSave" class="btn save" value="0" title="Save transcript page (not to database)" 
+                                        onclick="javascript:SaveTranscript(1)">Save</button>
+                                    <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
+                                    <button class="btn commit" title="Parse and save to database"
+                                        onclick="javascript:commitTranscript()">Commit</button>
+                                    <button class="btn publish" onclick="javascript:publishTranscript()">Publish</button>
+                                    <span id="pww">&nbsp;&nbsp;&nbsp;<span id="wwoffbutton"><a id="wwoffb">Word Wrap Off</a></span><span id="wwonbutton"><a href="javascript:toggleWordWrap()" id="wwonb">Word Wrap On</a></span></span></td>
+                                  <td  class="tcnt" id="tcnt3">
+                                    <button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3)">Save</button>
+                                  </td>
+                            </tr></table>
+			</div>
+		    </div>
+		</div>
+		<div id="showcollation">
+			<h4>Click on an entity to see all texts of that entity</h4>
+		</div>
+	</div>
+		<div id="new-transcript" style="display:none">
+   			 <div id="prevPageTree"></div>
+   			 <div id="prevChosen"></div>
+   			 <div id="prevInfo"></div>
+		</div>
+		<div id="new-confirm" style="display:none">
+			<p id="nc"></p>
+			<fieldset style="text-align:center"><form><input type="button" onclick="javascript:confirmNP()" value="Confirm">&nbsp;&nbsp;&nbsp;&nbsp;<input type="button" onclick="javascript:cancelNP()" value="Cancel"></fieldset></form>
+		</div>
+</div>
+<div id="previewdiv" title="Preview"></div>
+<script type="text/javascript">
+    function init() {
+ 	editor = CodeMirror.fromTextArea(document.getElementById("code"),{lineWrapping: true, lineNumbers: true});
+  	var setWidth1 = $("#left").width();
+ 	var infdivheight=$("#info").height()+26;
+	var leftwidth=$('#left').width();
+  	var containerheight=$(window).height()-80;
+ 	var containerwidth=$(window).width();
+ 	if (containerheight<640) containerheight=640;
+ 	var toprightheight=containerheight*48/100;
+ 	var lowerrightheight=containerheight*48/100;
+ 	$( "#closepanel").css("left", (setWidth1 - 18)+'px');
+//     $( "#left").height(containerheight-18);
+     $( "#tree").height(containerheight-18);
+     $( "#texttree").height(containerheight-18);
+     $( "#entitytree").height(containerheight-2);
+     $( ".dynatree-container").height(containerheight-200);
+    $( "#left").resizable({ handles: 'e'});
+     $( "#topright" ).css("position", 'relative');
+	$( "#topright" ).css("top", '-'+infdivheight+'px');
+	$( "#docimage").css("top", '-5px');
+    $( "#docimage").css("position", 'relative');
+ 	$( "#topright" ).height(toprightheight+infdivheight/2+12);
+ //  	$( "#image").width($('#topright').width()-14);
+//    $( "#image").height($('#topright').height());
+   $( "#lowerright" ).css("position", 'relative');
+	$( "#lowerright" ).css("top", '-'+infdivheight+'px');
+	$( "#lowerright" ).height(containerheight-toprightheight+18);
+	$( "#right" ).height(containerheight+72);
+	$( "#transcripttext").height($("#transcripttext").parent().height()-60);
+	var rightsize=$("#right").width();
+	editor.setSize(containerwidth-leftwidth, $("#transcripttext").parent().parent().height()-60);
+	if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+	editor.refresh();
+	 $( "#topright").resizable({   
+    	handles: 's', 
+    	resize: function(event, ui) {
+        ui.size.width = ui.originalSize.width;
+		}
+	 });
+    $("#left ").on("resize", function (event, ui) {
+            var setWidth = $("#left").width();
+            var wholeWidth=$('body').width()-6;
+            $('#right').width(wholeWidth-setWidth);
+            $('#topright').width(wholeWidth-setWidth-12);
+            $( "#right" ).css( "minWidth", (mintocwidth)+'px');
+            $( "#left" ).css( "minWidth", (mintocwidth)+'px');
+            $( "#closepanel" ).css("left", (setWidth - 18)+'px');
+        });
+    $("#topright").on("resize", function (event, ui) {
+   		if ($('#left').is(':visible'))
+        	var setWidth = $("#left").width();
+        else var setWidth = 0;
+        var wholeWidth=$('body').width()-6;
+		var topHeight = $("#topright").height();
+		var wholeHeight=$("#right").height()-6;
+//		var imageDivHeight=$('#docimage').parent().parent().height();
+//		$('#docimage').height(imageDivHeight);
+		$('#lowerright').height(wholeHeight-topHeight - 14);
+		$('#transcript').height(wholeHeight-topHeight- 16);
+		$( "#transcripttext").height($("#transcripttext").parent().parent().height()-62);
+		if (editor) {
+			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
+			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+			editor.refresh();
+		}
+		else {
+			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+			$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
+			$('#mergely-resizer').width($("#transcripttext").parent().width());
+			$('#compare').mergely('resize');
+		}
+       $('#topright').width(wholeWidth-setWidth-12);
+ 		$( "#topright").css( "minHeight", '200px');
+ 		$( "#topright").css("maxHeight", (wholeHeight-213)+'px');
+		$( "#lowerright" ).css( "minHeight",'200px');
+	});
+
+    $(window).resize(function (event) {
+ //      alert("resizing");
+ 		var wholeWidth=$('body').width()-6;
+ 		var whichEl =event.target;
+ 		var topright=$('#topright')[0];
+ 		if (whichEl==topright) return;
+ 		if ($('#splitright').attr('name')=="ishorizontal") {
+ 	 		if ($('#left').is(':visible'))  {
+ 			//lots of calculating to do... 
+ 			var origleft=$("#left").width();
+ 			var origright=$("#right").width();
+ 			 $('#right').height(wholeheight-24);
+ //				 
+// 			$( "#transcripttext").height($("#transcripttext").parent().parent().height()-80);
+// 			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-80);
+ 			//window growing!
+ 			if (wholeWidth>=origleft+origright) {
+ 				//grow editing panel only
+				 $( "#right" ).css( "maxWidth", '');
+ 				 $('#right').width(wholeWidth-origleft);
+ 				 $('#topright').width(wholeWidth-origleft-12);
+ 				 $( "#topright").css( "maxHeight", "");
+ 				 var wholeheight=$(window).height()-6;
+ 				 if (wholeheight>minheight) {
+ 				 	 $('#left').height(wholeheight-12);
+  				 	 $( ".dynatree-container").height(wholeheight-26);
+	
+				 	 //have to test whether windows are vert or horiz
+					 var toprightheight= $('#topright').height();
+					 var infdivheight=$("#info").height()+12;
+					  $('#lowerright').height(wholeheight-toprightheight-18);
+					  //does the lowerright contain the image div?
+					  if ($('#docimage').parent().attr('id')=='transcript') {
+					  	 $('#docimage').height(wholeheight-toprightheight-infdivheight);
+					  }
+ 				 }
+ 			} else {
+ 				//steal size from left panel until it reaches min-width (100 px)
+ 				var subtract = (origleft+origright)-wholeWidth;
+ 				if ( (origleft-subtract)< mintocwidth) {
+ 					if (origleft>mintocwidth) {
+						subtract=mintocwidth+subtract-origleft;
+						 $('#left').width(mintocwidth);
+						 $( "#closepanel" ).css("left", 82+'px');
+						 $('#right').width(origright-subtract);
+					} else {
+						$('#right').width(origright-subtract );
+					}
+ 				} else {
+ 					//make left panel smaller
+ 					$('#left').width(origleft-subtract);
+ 					$( "#closepanel" ).css("left", (origleft-subtract-18)+'px');
+ 					$('#right').width(origright+subtract);
+ 				}
+ 			}
+ 		} else {
+ 			$( "#right" ).css( "maxWidth", '');
+ 			$('#right').width($('body').width()-6);
+ 		}
+	}
+ });
+
+
+            $.ajaxSetup({
+                error: function(jqXHR, exception) {
+                    if (jqXHR.status === 0) {
+                        alert('Error for '+this.url+': '+'No connection.\n Verify Network.');
+                    } else if (jqXHR.status == 404) {
+                        alert('Error for '+this.url+': '+'Requested page not found. [404]');
+                    } else if (jqXHR.status == 500) {
+                        alert('Error for '+this.url+': '+'Internal Server Error [500].');
+                    } else if (exception === 'parsererror') {
+                        alert('Error for '+this.url+': '+'Requested JSON parse failed.');
+                    } else if (exception === 'timeout') {
+                        alert('Error for '+this.url+': '+'Ajax request aborted.');
+                    } else {
+                        alert('Error for '+this.url+': '+'Uncaught Error.\n' + jqXHR.responseText);
+                    }
+                }
+            });
+
+
+            getDefaultFont(community);
+            loadPages(community);
+            loadTexts(community);
+            loadEntities(community);
+            getUsers();
+
+    }
+
+    $(document).ready(function(){
+        $('#tcnt1').hide();
+        $('#tcnt3').hide();
+        var $buttons = $('.btn.commit, .btn.publish, .btn.save, .btn.new');
+        $.ajax({
+            dataType: "json",
+            url: url + 'auth/',
+            success: function(user){
+                curUser = user;
+                $buttons.prop('disabled', false);
+                init();
+            },
+            error: function() {
+                if (login == 1)  {
+                    window.location = url + '/auth/login/?partner=1&next=' + window.location.href;
+                }else{
+                    $buttons.prop('disabled', true);
+                    init();
+                }
+            }
+        });
+    })
+</script>
+</body>
+</html> 
