@@ -807,7 +807,7 @@ function loadTCDocIdText(pageid, pagekey) {
         var $buttons = $('.btn.commit, .btn.publish, .btn.save, .btn.new');
         $buttons.prop('disabled', true);
         $.getJSON(
-            url + 'users/' + curUser.id + '/has_task/' + pageid + '/', 
+            url + 'users/' + curUser.id + '/can_edit/' + pageid + '/', 
             function(data) {
                 console.log(data);
                 $buttons.prop('disabled', false);
