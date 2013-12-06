@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.views.generic import (
     UpdateView, View, CreateView, DetailView, TemplateView, FormView)
-from api.models import Invitation, UserMapping, APIUser
+from api.models import Invitation, UserMapping, APIUser, Community
 
 
 def login(request, *args, **kwargs):
