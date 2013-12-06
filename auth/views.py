@@ -90,7 +90,7 @@ def invite(request, *args, **kwargs):
             user, created = User.objects.get_or_create(username=email)
             user.email = email
             user.save()
-        invitee, created = community.get_or_create__membership(
+        invitee, created = community.get_or_create_membership(
             user=user, role=role, community_id=community.id)
         if created:
             invitation = Invitation.objects.create(
