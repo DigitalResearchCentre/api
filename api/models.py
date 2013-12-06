@@ -137,7 +137,7 @@ class Community(models.Model):
         membership, created = Membership.objects.get_or_create(**kwargs)
         if created:
             membership.sync()
-        return membership
+        return (membership, created,)
 
     def get_membership(self, **kwargs):
         return self.membership_set.filter(**kwargs)
