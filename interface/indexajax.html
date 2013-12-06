@@ -84,7 +84,7 @@ function loadTexts (mycommunity) {
                     $.each(docdata, function(i, thisdoc) {
                         doccount+=1;
                         rootMenu+="{title:'"+thisdoc.name+" <span title=\"XML for this document\" onclick=javascript:doThisOne(\"" +
-                            thisdoc.id+"\")>gettext</span>', isLazy: true, url:'"+thisdoc.id+"'}";
+                            thisdoc.id+"\")>gettext<"+"/span>', isLazy: true, url:'"+thisdoc.id+"'}";
                         if (doccount==numdocs) {
                             rootMenu+="]";
                             makeTextMenu(rootMenu);
@@ -799,8 +799,7 @@ function loadTCDocIdText(pageid, pagekey) {
             + 'var options = {zoom: 2 , minZoom: 1, maxZoom: 5};'
             + 'imageMap = new ImageMap($imageMap[0], '
             +   '"http://textualcommunities.usask.ca/api/docs/'
-            +   pageid +'/has_image/", options);'
-            + '</script>';
+            +   pageid +'/has_image/", options);<' + '/script>';
             $('#docimage').html(imagecall);
             imageLoaded=1;
     }
