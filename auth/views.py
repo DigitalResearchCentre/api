@@ -76,6 +76,7 @@ def invite(request, *args, **kwargs):
     else:
         data['status'] = 'success'
 
+    community = Community.objects.get(pk=community)
     invitor = community.get_membership(
         user=request.user, community_id=community,
         role__name__in=('Leader', 'Co Leader'))
@@ -90,7 +91,7 @@ def invite(request, *args, **kwargs):
             user.email = email
             user.save()
         invitee, created = community.get_or_create__membership(
-            user=user, role=role, community_id=community)
+            user=user, role=role, community_id=community.id)
         if created:
             invitation = Invitation.objects.create(
                     invitor=invitor, invitee=invitee,
