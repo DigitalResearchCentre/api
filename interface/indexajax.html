@@ -809,8 +809,9 @@ function loadTCDocIdText(pageid, pagekey) {
         $.getJSON(
             url + 'users/' + curUser.id + '/can_edit/' + pageid + '/', 
             function(data) {
-                console.log(data);
-                $buttons.prop('disabled', false);
+                if (data.editable) {
+                    $buttons.prop('disabled', false);
+                }
             }
         );
     }
