@@ -138,6 +138,7 @@ urlpatterns = patterns(
     url(r'^memberships/(?P<pk>\d+)/$', MembershipDetail.as_view()),
     url(r'^memberships/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
+            {'func': 'tasks', 'serializer_class': TaskSerializer},
             {'func': 'has_task', 'func_args': '(?P<doc_pk>\d+)/'},
             {'func': 'assign'},
         ], extra={
