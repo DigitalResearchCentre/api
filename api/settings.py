@@ -125,6 +125,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
+
     'rest_framework',
     'corsheaders',
     'treebeard',
@@ -195,6 +196,8 @@ PARTNER_SESSION_KEY = '_tc_partner_pk'
 
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = '1025'
+
+BROKER_URL = 'django://'
 
 
 try:
