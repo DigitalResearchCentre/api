@@ -16,6 +16,7 @@ from api.views import (
     RefsDeclDetail, UserInfo, DocDetail, MembershipDetail, MembershipList,
     RoleDetail, TaskDetail,)
 from django.conf.urls.static import static
+from api.resource import v1_api
 
 admin.autodiscover()
 
@@ -173,7 +174,10 @@ urlpatterns = patterns(
     url(r'^auth/$', UserInfo.as_view()),
     url(r'^auth/', include('auth.urls', namespace='auth')),
     #url(r'^auth/', include('rest_framework.urls', namespace='rest_framework')),
-)
+    url('^activity/', include('actstream.urls')),
+) + v1_api.urls
+
+
 
 if settings.DEBUG:
     urlpatterns += static('/client', document_root=settings.CLIENT_ROOT)

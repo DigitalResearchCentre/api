@@ -385,6 +385,8 @@ class TextDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TextSerializer
 
 
+
+
 class TextList(generics.ListCreateAPIView):
     model = Text
     serializer_class = TextSerializer

@@ -1358,14 +1358,4 @@ class Invitation(models.Model):
         mail_msg.attach_alternative(html_template.render(context), 'text/html')
         mail_msg.send()
 
-class History(models.Model):
-    community = models.ForeignKey(Community)
-    user = models.ForeignKey(User)
-    action = models.TextField()
-    status = models.TextField()
-    created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
-
-
-
 
