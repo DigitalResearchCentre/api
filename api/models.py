@@ -8,6 +8,7 @@ import json
 import urllib
 import urllib2
 import feedparser
+from json_field import JSONField
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -19,6 +20,8 @@ from django.template import Template, Context, loader
 from django.core import files
 from django.core.urlresolvers import reverse
 from django.core.mail import EmailMultiAlternatives
+from django.contrib import contenttypes
+
 from PIL import Image
 from urlparse import urlsplit
 from treebeard.ns_tree import NS_Node
@@ -1357,5 +1360,36 @@ class Invitation(models.Model):
             subject, text_template.render(context), from_email, recipient_list)
         mail_msg.attach_alternative(html_template.render(context), 'text/html')
         mail_msg.send()
+
+class Action(models.Model):
+    actor_content_type = models.ForeignKey(
+        contenttypes.models.ContentType, related_name='actor')
+    actor_object_id = models.CharField(max_length=255)
+    actor = contenttypes.generic.GenericForeignKey(
+        'actor_content_type', 'actor_object_id')
+
+    verb = models.CharField(max_length=255)
+
+    target_content_type = models.ForeignKey(
+        contenttypes.models.ContentType, 
+        related_name='target', blank=True, null=True)
+    target_object_id = models.CharField(max_length=255, blank=True, null=True)
+    target = contenttypes.generic.GenericForeignKey(
+        'target_content_type', 'target_object_id')
+
+    action_object_content_type = models.ForeignKey(
+        contenttypes.models.ContentType,
+        related_name='action_object', blank=True, null=True)
+    action_object_object_id = models.CharField(max_length=255, blank=True,
+        null=True)
+    action_object = contenttypes.generic.GenericForeignKey(
+        'action_object_content_type', 'action_object_object_id')
+
+    data = JSONField(blank=True, null=True)
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-timestamp', )
 
 

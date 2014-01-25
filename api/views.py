@@ -19,6 +19,8 @@ from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+
+from actstream import action
 from api.models import (
     Community, Membership, Entity, Doc, Text, Revision, RefsDecl, Task,
     APIUser, Group, UserMapping, CommunityMapping, Partner, Invitation)
@@ -50,6 +52,7 @@ def api_root(request, format=None):
         'texts': reverse('text-list', request=request),
         'users': reverse('user-list', request=request),
     })
+
 
 class RelationView(
     mixins.ListModelMixin, generics.RetrieveAPIView
@@ -455,3 +458,6 @@ class TranscribeView(generics.CreateAPIView):
     model = Revision
     serializer_class = RevisionSerializer
     permission_classes = (permissions.AllowAny,)
+
+
+

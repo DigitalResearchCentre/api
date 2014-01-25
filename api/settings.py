@@ -129,7 +129,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'corsheaders',
     'treebeard',
-    'actstream',
+    'json_field',
     'south',
 
     'api',
@@ -144,7 +144,7 @@ AUTHENTICATION_BACKENDS = (
 
 REST_FRAMEWORK = {
     'FILTER_BACKEND': 'rest_framework.filters.DjangoFilterBackend',
-    'PAGINATE_BY': 10,
+    'PAGINATE_BY': 0,
     'PAGINATE_BY_PARAM': 'page_size',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',

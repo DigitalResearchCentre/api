@@ -1,11 +1,11 @@
 define([
   'jquery', 'underscore', 'urls', 'auth',
   './modal', './editdocrefsdecl', './editentityrefsdecl', './fileupload', 
-  './members', './invite', 'text!tmpl/communityedit.html'
+  './members', './management', './invite', 'text!tmpl/communityedit.html'
 ], function(
   $, _, urls, auth,
   ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, 
-  FileUploadView, MembersView, InviteView, tmpl
+  FileUploadView, MembersView, ManagementView, InviteView, tmpl
 ) {
   var mediaURL = urls.mediaURL;
 
@@ -304,6 +304,7 @@ define([
       'click .add-css': 'onAddCSSClick',
       'click .add-dtd': 'onAddDTDClick',
       'click .btn.members': 'onMembersClick',
+      'click .btn.management': 'onManagementClick',
       'click .invite': 'onInviteClick'
     },
     buttons: [
@@ -406,6 +407,9 @@ define([
     },
     onMembersClick: function() {
         return this.openSubView('Members', MembersView);
+    },
+    onManagementClick: function() {
+        return this.openSubView('Management', ManagementView);
     },
     onInviteClick: function() {
         return this.openSubView('Invite', InviteView);
