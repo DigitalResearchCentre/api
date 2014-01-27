@@ -2,33 +2,19 @@ from tastypie.resources import ModelResource
 from tastypie.authorization import DjangoAuthorization
 from tastypie.exceptions import Unauthorized
 from tastypie.api import Api
-from api.models import Text
+from api.models import Text, Text as Action
 
 class TextResource(ModelResource): 
     class Meta:
         queryset = Text.objects.all()
 
-
-# class ActionResource(ModelResource):
-    # class Meta:
-        # queryset = Action.objects.all()
-        # authorization = DjangoAuthorization()
-
-    # def action_test(self, request, doc=None, **kwargs):
-        # action.send(request.user, verb='test', action_object=request.user)
-        # return None
-
-    # def obj_create(self, bundle, **kwargs):
-        # data = bundle.data
-        # action_name = data.get('action')
-        # if action_name:
-            # f = getattr(self, 'action_%s' % action_name, None)
-            # if f:
-                # return f(bundle.request, **data)
-        # self.unauthorized_result(data)
+class ActionResource(ModelResource):
+    class Meta:
+        queryset = Action.objects.all()
+        authorization = DjangoAuthorization()
 
 v1_api = Api(api_name='v1')
-for cls in (TextResource, ):
+for cls in (TextResource, ActionResource):
     v1_api.register(cls())
 urls = v1_api.urls
 
