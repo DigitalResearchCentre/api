@@ -36,6 +36,7 @@ define([
     ],
     bodyTemplate: _.template(tmpl),
     initialize: function(options) {
+      this.options = options;
       return;
       var actions = this.actions = this.model.getActions();
       this.listenTo(actions, 'add', this.onActionAdd);
@@ -43,7 +44,6 @@ define([
         actions.fetch();
       }
       this._increaseWidth = 0;
-      this.options = options;
     },
     onTest: function() {
       var action = new Action();

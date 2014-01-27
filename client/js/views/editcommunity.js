@@ -268,20 +268,42 @@ define([
 
   var DeleteDocTextView = DeleteDocView.extend({
     onDeleteClick: function() {
-      var text = this.getSelectedDoc().getText()
-        , fail = _.bind(function(resp) {
-          this.$('.error').removeClass('hide').html(resp.responseText);
-        }, this)
-        , that = this
-      ;
+      var doc = this.getSelectedDoc(),
+      text = doc.getText(), 
+      fail = _.bind(function(resp) {
+        this.$('.error').removeClass('hide').html(resp.responseText);
+      }, this),
+      that = this;
+
       if (text.isNew()) {
         text.fetch().done(function() {
           text.destroy().done(function() {
+            doc._text = null;
             var $alert = that.$('.alert-success').removeClass('hide').show();
             that.$('.error').addClass('hide');
             _.delay(function() {$alert.hide(1000);}, 2000);
           }).fail(fail);
         }).fail(fail);
+      }else{
+        text.destroy().done(function() {
+          doc._text = null;
+          var $alert = that.$('.alert-success').removeClass('hide').show();
+          that.$('.error').addClass('hide');
+          _.delay(function() {$alert.hide(1000);}, 2000);
+        }).fail(fail);
+      }
+    },
+    onDocAdd: function(doc) {
+      var self = this,
+      args = arguments,
+      text = doc.getText();
+
+      if (text.isNew()) {
+        text.fetch().done(function(){
+          DeleteDocView.prototype.onDocAdd.apply(self, args);
+        });
+      }else{
+        DeleteDocView.prototype.onDocAdd.apply(self, arguments);
       }
     }
   });

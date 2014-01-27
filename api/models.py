@@ -8,7 +8,6 @@ import json
 import urllib
 import urllib2
 import feedparser
-from json_field import JSONField
 from collections import deque
 from django.db import models
 from django.db.models import Q
@@ -727,9 +726,7 @@ class Text(Node):
             bulk_data.append({'data': data, 'children': children})
         return bulk_data
 
-    @classmethod
-    def load_tei(self, xml, community):
-        tei_el = etree.XML(xml)
+    def load_tei(self, tei_el, community):
         nsmap = {
             'tei': 'http://www.tei-c.org/ns/1.0',
             # TODO: need update to something like:
@@ -739,8 +736,6 @@ class Text(Node):
         header_el = tei_el.xpath('/tei:TEI/tei:teiHeader', namespaces=nsmap)[0]
         text_el = tei_el.xpath('/tei:TEI/tei:text', namespaces=nsmap)[0]
 
-        text = Text.add_root(tag='text')
-        text = Text.objects.get(pk=text.pk)
         doc_name = header_el.xpath('//tei:sourceDesc/*/@det:document',
                                    namespaces=nsmap)[0]
         # TODO: should parse cref to get this
@@ -774,8 +769,8 @@ class Text(Node):
             i += 1
         doc = Doc.load_bulk([doc_root])[0]
         doc = Doc.objects.get(pk=doc.pk)
-        text.doc = doc
-        text.save()
+        self.doc = doc
+        self.save()
         community.docs.add(doc)
 
         refsdecl_el = header_el.xpath('//tei:refsDecl', namespaces=nsmap)[0]
@@ -804,7 +799,7 @@ class Text(Node):
                 text_refsdecl_el.append(el)
 
         RefsDecl.objects.create(
-            text=text, xml=etree.tostring(text_refsdecl_el),
+            text=self, xml=etree.tostring(text_refsdecl_el),
             template=entity_refsdecl.template)
 
         doc_xpath, entity_xpath = {}, {}
@@ -833,10 +828,8 @@ class Text(Node):
                 el.set('{%s}entity' % el.nsmap.get('det'), mp % path[length:])
 
         docs = list(doc.get_descendants())
-        text.load_bulk_el(text_el.getchildren(), docs=docs)
-        text = Text.objects.get(pk=text.pk)
-        Header.objects.create(xml=etree.tostring(header_el), text=text)
-        return text
+        self.load_bulk_el(text_el.getchildren(), docs=docs)
+        Header.objects.create(xml=etree.tostring(header_el), text=self)
 
     @classmethod
     def get_by_urn(cls, urn):
@@ -1360,36 +1353,5 @@ class Invitation(models.Model):
             subject, text_template.render(context), from_email, recipient_list)
         mail_msg.attach_alternative(html_template.render(context), 'text/html')
         mail_msg.send()
-
-class Action(models.Model):
-    actor_content_type = models.ForeignKey(
-        contenttypes.models.ContentType, related_name='actor')
-    actor_object_id = models.CharField(max_length=255)
-    actor = contenttypes.generic.GenericForeignKey(
-        'actor_content_type', 'actor_object_id')
-
-    verb = models.CharField(max_length=255)
-
-    target_content_type = models.ForeignKey(
-        contenttypes.models.ContentType, 
-        related_name='target', blank=True, null=True)
-    target_object_id = models.CharField(max_length=255, blank=True, null=True)
-    target = contenttypes.generic.GenericForeignKey(
-        'target_content_type', 'target_object_id')
-
-    action_object_content_type = models.ForeignKey(
-        contenttypes.models.ContentType,
-        related_name='action_object', blank=True, null=True)
-    action_object_object_id = models.CharField(max_length=255, blank=True,
-        null=True)
-    action_object = contenttypes.generic.GenericForeignKey(
-        'action_object_content_type', 'action_object_object_id')
-
-    data = JSONField(blank=True, null=True)
-
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ('-timestamp', )
 
 

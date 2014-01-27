@@ -19,6 +19,7 @@ from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from rest_framework.authentication import SessionAuthentication
 
 from actstream import action
 from api.models import (
@@ -28,9 +29,7 @@ from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, TaskSerializer,
     InvitationSerializer, MembershipSerializer, GroupSerializer,)
-
-from rest_framework.authentication import SessionAuthentication
-
+from api import tasks
 
 class UnsafeSessionAuthentication(SessionAuthentication):
 
@@ -267,45 +266,24 @@ class APIView(CreateModelMixin, RelationView):
 
     def _post_upload_tei(self, request, *args, **kwargs):
         f = request.FILES['xml']
-        try:
-            return self.get_response(Text.load_tei(f.read(), self.get_object()))
-        except RefsDecl.DoesNotExist, e:
-            return HttpResponse(json.dumps({'msg': str(e)}),
-                                content_type='application/json',
-                                status=404)
+        community = self.get_object()
+        result = tasks.add_text_file.delay(Text, f.read(), community)
+        action.send(request.user, verb='add text file', target=community,
+                    result=result.id)
+        return self.get_response({'status': result.status, 'id': result.id})
 
     def _post_upload_zip(self, request, *args, **kwargs):
         doc = self.get_object()
         zip_file = request.FILES['zip']
-        tmp_zip_path = os.path.join(
-            settings.MEDIA_ROOT, str(random.getrandbits(64)))
-        os.makedirs(tmp_zip_path, 0755)
-        try:
-            zip_file = zipfile.ZipFile(zip_file)
-            zip_file.extractall(tmp_zip_path)
-            file_lst = [
-                f for f in os.listdir(tmp_zip_path) if f[0] not in ('.', '_')]
-            content_folder = tmp_zip_path
-            if len(file_lst) == 1:
-                only_file = os.path.join(tmp_zip_path, file_lst[0])
-                if os.path.isdir(only_file):
-                    content_folder = only_file
-            for root, dirs, files in os.walk(content_folder):
-                for f in files:
-                    src = os.path.join(root, f)
-                    dst = os.path.join(root, f.lower())
-                    os.rename(src, dst)
-            doc.bind_files(content_folder)
-            return self.get_response(doc)
-        finally:
-            shutil.rmtree(tmp_zip_path)
+        result = tasks.add_image_zip.delay(doc, zip_file)
+        action.send(request.user, verb='add image zip', action_object=doc, 
+                    target=community, result=result.id)
+        return self.get_response({'status': result.status, 'id': result.id})
 
     def _post_add_refsdecl(self, request, *args, **kwargs):
         refsdecl = RefsDecl.objects.get(pk=self.kwargs['refsdecl_pk'])
         self.get_object().add(refsdecl)
         return refsdecl
-
-
 
 class CommunityDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Community
@@ -363,6 +341,18 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
     post_form = None
     put_form = None
 
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        community = obj.get_community()
+        result = tasks.delete_doc.delay(obj)
+        action.send(request.user, verb='delete document',
+                    action_object=request.user,
+                    target=community, result=result.id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+
+
 
 #    has_image = serializers.URLField(source='has_image')
 #    has_transcript = serializers.HyperlinkedRelatedField(
@@ -387,8 +377,14 @@ class TextDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Text
     serializer_class = TextSerializer
 
-
-
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        doc = obj.is_text_in()
+        community = doc.get_community()
+        result = tasks.delete_text.delay(obj)
+        action.send(request.user, verb='delete document text',
+                    target=community, result=result.id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class TextList(generics.ListCreateAPIView):
     model = Text

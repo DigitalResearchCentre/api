@@ -2,35 +2,82 @@ from tastypie.resources import ModelResource
 from tastypie.authorization import DjangoAuthorization
 from tastypie.exceptions import Unauthorized
 from tastypie.api import Api
-from api.models import Text, Action
+from api.models import Text
 
 class TextResource(ModelResource): 
     class Meta:
         queryset = Text.objects.all()
 
 
-class ActionResource(ModelResource):
-    class Meta:
-        queryset = Action.objects.all()
-        authorization = DjangoAuthorization()
+# class ActionResource(ModelResource):
+    # class Meta:
+        # queryset = Action.objects.all()
+        # authorization = DjangoAuthorization()
 
-    def action_test(self, request, data):
-        print data
-        return data
+    # def action_test(self, request, doc=None, **kwargs):
+        # action.send(request.user, verb='test', action_object=request.user)
+        # return None
 
-    def alter_deserialized_detail_data(self, request, data):
-        action = data.get('action')
-        if action:
-            f = getattr(self, 'action_%s' % action, None)
-            if not f:
-                self.unauthorized_result(data)
-            return f(request, data)
-        return data
+    # def obj_create(self, bundle, **kwargs):
+        # data = bundle.data
+        # action_name = data.get('action')
+        # if action_name:
+            # f = getattr(self, 'action_%s' % action_name, None)
+            # if f:
+                # return f(bundle.request, **data)
+        # self.unauthorized_result(data)
 
 v1_api = Api(api_name='v1')
-for cls in (TextResource, ActionResource):
+for cls in (TextResource, ):
     v1_api.register(cls())
 urls = v1_api.urls
+
+    # def create_action(self, actor, verb, **kwargs):
+        # action = Action(
+            # actor_content_type=ContentType.objects.get_for_model(actor),
+            # actor_object_id=actor.pk, verb=unicode(verb),)
+        # for opt in ('target', 'action_objects'):
+            # obj = kwargs.pop(opt, None)
+            # if obj is not None:
+                # setattr(action, '%s_object_id' % opt, obj.pk)
+                # setattr(action, '%s_object_type' % opt,
+                        # ContentType.objects.get_for_model(obj))
+        # if len(kwargs):
+            # action.data = kwargs
+        # action.save()
+        # return action
+
+
+# class Action(models.Model):
+    # actor_content_type = models.ForeignKey(
+        # contenttypes.models.ContentType, related_name='actor')
+    # actor_object_id = models.CharField(max_length=255)
+    # actor = contenttypes.generic.GenericForeignKey(
+        # 'actor_content_type', 'actor_object_id')
+
+    # verb = models.CharField(max_length=255)
+
+    # target_content_type = models.ForeignKey(
+        # contenttypes.models.ContentType, 
+        # related_name='target', blank=True, null=True)
+    # target_object_id = models.CharField(max_length=255, blank=True, null=True)
+    # target = contenttypes.generic.GenericForeignKey(
+        # 'target_content_type', 'target_object_id')
+
+    # action_object_content_type = models.ForeignKey(
+        # contenttypes.models.ContentType,
+        # related_name='action_object', blank=True, null=True)
+    # action_object_object_id = models.CharField(max_length=255, blank=True,
+        # null=True)
+    # action_object = contenttypes.generic.GenericForeignKey(
+        # 'action_object_content_type', 'action_object_object_id')
+
+    # data = JSONField(blank=True, null=True)
+
+    # timestamp = models.DateTimeField(auto_now_add=True)
+
+    # class Meta:
+        # ordering = ('-timestamp', )
 
 
 
