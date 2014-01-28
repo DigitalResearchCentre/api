@@ -186,10 +186,7 @@ LOGGING = {
     }
 }
 
-ACTSTREAM_SETTINGS = {
-    'USE_JSONFIELD': True,
-    'MODELS': ('auth.user', 'api.community', 'api.membership',)
-}
+
 TASTYPIE_DEFAULT_FORMATS = ['json', 'xml']
 LOGIN_REDIRECT_URL = '/auth/'
 FROM_EMAIL = 'noreply@textualcommunities.usask.ca'

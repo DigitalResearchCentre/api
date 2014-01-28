@@ -23,7 +23,7 @@ from rest_framework.authentication import SessionAuthentication
 
 from api.models import (
     Community, Membership, Entity, Doc, Text, Revision, RefsDecl, Task,
-    APIUser, Group, UserMapping, CommunityMapping, Partner, Invitation, Task as
+    APIUser, Group, UserMapping, CommunityMapping, Partner, Invitation, Task,
     Action)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
@@ -268,17 +268,18 @@ class APIView(CreateModelMixin, RelationView):
         f = request.FILES['xml']
         community = self.get_object()
         result = tasks.add_text_file.delay(Text, f.read(), community)
-        Action.create(user=request.user, community=community, 
-                      action='add text file', result=result.id)
+        Action.objects.create(
+            user=request.user, community=community, action='add text file',
+            key=result.id, data={'file': f.name})
         return self.get_response({'status': result.status, 'id': result.id})
 
     def _post_upload_zip(self, request, *args, **kwargs):
         doc = self.get_object()
         zip_file = request.FILES['zip']
         result = tasks.add_image_zip.delay(doc, zip_file)
-        Action.create(user=request.user, community=community, 
-                      action='add image zip', 
-                      action_object=doc, result=result.id)
+        Action.objects.create(
+            user=request.user, community=community, action='add image zip', 
+            key=result.id, data={'doc': doc.get_urn()})
         return self.get_response({'status': result.status, 'id': result.id})
 
     def _post_add_refsdecl(self, request, *args, **kwargs):
@@ -346,9 +347,9 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
         obj = self.get_object()
         community = obj.get_community()
         result = tasks.delete_doc.delay(obj)
-        Action.create(user=request.user, community=community, 
-                      action='delete document', 
-                      action_object=doc, result=result.id)
+        Action.objects.create(
+            user=request.user, community=community, action='delete document', 
+            key=result.id, data={'doc': doc.get_urn()})
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
@@ -383,9 +384,10 @@ class TextDetail(generics.RetrieveUpdateDestroyAPIView):
         doc = obj.is_text_in()
         community = doc.get_community()
         result = tasks.delete_text.delay(obj)
-        Action.create(user=request.user, community=community, 
-                      action='delete document text', 
-                      action_object=doc, result=result.id)
+        Action.objects.create(
+            user=request.user, community=community, 
+            action='delete document text', 
+            key=result.id, data={'doc': doc.get_urn()})
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class TextList(generics.ListCreateAPIView):

@@ -13,19 +13,22 @@ from django.db import models
 from django.db.models import Q
 from django.conf import settings
 from django.http import HttpResponse
-from django.contrib.auth.models import User, Group
 from django.utils.timezone import utc
 from django.template import Template, Context, loader
 from django.core import files
 from django.core.urlresolvers import reverse
 from django.core.mail import EmailMultiAlternatives
-from django.contrib import contenttypes
+from django.contrib.auth.models import User, Group
+from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.models import ContentType
+
 
 from PIL import Image
 from urlparse import urlsplit
 from treebeard.ns_tree import NS_Node
 from tiler.tiler import Tiler
 from lxml import etree
+from jsonfield import JSONField
 
 
 def get_first(qs):
@@ -1354,4 +1357,20 @@ class Invitation(models.Model):
         mail_msg.attach_alternative(html_template.render(context), 'text/html')
         mail_msg.send()
 
+class Action(models.Model):
+    community = models.ForeignKey(Community)
+    user = models.ForeignKey(User)
+
+    action = models.CharField(max_length=255, db_index=True)
+    description = models.TextField(blank=True, null=True)
+
+    data = JSONField(blank=True, null=True)
+
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    key = models.CharField(max_length=36, db_index=True)
+
+    class Meta:
+        ordering = ('-modified', )
 

@@ -13,45 +13,36 @@ define([
     },
     render: function () {
       var $span, $ul,
-      model = this.model;
+      model = this.model,
+      community = model.get('community'),
+      user = model.get('user');
+
       this.$el.html(
+        '<td><a href="'+community.resource_uri+'">'+community.name+'</a></td>'+ 
+        '<td><a href="'+ user.resource_uri +'">'+ user.username +'</a></td>' + 
         '<td>' + model.get('action') + '</td>' + 
-        '<td>' + model.get('user') + '</td>' + 
         '<td>' + model.get('created') + '</td>'
       );
       return this;
     },
   });
 
-  var Action = Backbone.Model.extend({
-    urlRoot: function() {
-      return 'http://localhost:8000/v1/action/';
-    }
-  });
   var ManagementView  = ModalView.extend({
     buttons: [
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-default", text: 'Close', event: 'onClose'},
-      {cls: "btn-primary", text: 'Test', event: 'onTest'},
     ],
     bodyTemplate: _.template(tmpl),
     initialize: function(options) {
       this.options = options;
-      return;
-      var actions = this.actions = this.model.getActions();
+      var actions = this.actions = this.model.getActions({
+        fields: 'user,community'
+      });
       this.listenTo(actions, 'add', this.onActionAdd);
       if (!actions.isFetched()) {
         actions.fetch();
       }
       this._increaseWidth = 0;
-    },
-    onTest: function() {
-      var action = new Action();
-      action.set({
-        action: 'test',
-        doc: '1'
-      });
-      action.save();
     },
     onActionAdd: function(action) {
       var view = new ActionRowView({
@@ -88,7 +79,7 @@ define([
     },
     render: function() {
       ModalView.prototype.render.apply(this, arguments);
-      //this.actions.each(this.onActionAdd, this);
+      this.actions.each(this.onActionAdd, this);
       return this;
     }
   });

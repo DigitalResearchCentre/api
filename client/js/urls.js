@@ -35,6 +35,7 @@ define([
         'css': '/css/',
         'schema': '/schema/',
         'invite': '/auth/invite/',
+        'action': '/v1/action/',
     };
 
     return {

@@ -174,7 +174,6 @@ urlpatterns = patterns(
     url(r'^auth/$', UserInfo.as_view()),
     url(r'^auth/', include('auth.urls', namespace='auth')),
     #url(r'^auth/', include('rest_framework.urls', namespace='rest_framework')),
-    ('^activity/', include('actstream.urls')),
 ) + v1_api.urls
 
 if settings.DEBUG:

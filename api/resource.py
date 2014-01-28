@@ -1,20 +1,49 @@
-from tastypie.resources import ModelResource
-from tastypie.authorization import DjangoAuthorization
-from tastypie.exceptions import Unauthorized
+from tastypie import fields
 from tastypie.api import Api
-from api.models import Text, Text as Action
+from tastypie.constants import ALL
+from tastypie.resources import ModelResource
+from tastypie.exceptions import Unauthorized
+from tastypie.authorization import DjangoAuthorization
+from django.contrib.auth.models import User
+from api.models import Text, Action, Community
 
 class TextResource(ModelResource): 
     class Meta:
         queryset = Text.objects.all()
 
+class UserResource(ModelResource):
+    class Meta:
+        queryset = User.objects.all()
+        excludes = ['password', ]
+
+class CommunityResource(ModelResource):
+    class Meta:
+        queryset = Community.objects.all()
+
+class DynamicToOneField(fields.ToOneField):
+    ID_AFFIX = '_id'
+
+    def dehydrate(self, bundle, **kwargs):
+        fields = bundle.request.GET.get('fields', '').split(',')
+        if self.attribute in fields:
+            return super(DynamicToOneField, self).dehydrate(bundle, **kwargs)
+        fk = getattr(bundle.obj, '%s%s' % (self.attribute, self.ID_AFFIX), None)
+        fk_resource = self.get_related_resource(None)
+        fake_obj = lambda: None
+        setattr(fake_obj, 'pk', fk)
+        return fk_resource.get_resource_uri(bundle_or_obj=fake_obj)
+
 class ActionResource(ModelResource):
+    user = DynamicToOneField(UserResource, 'user', full=True)
+    community = DynamicToOneField(CommunityResource, 'community', full=True)
+
     class Meta:
         queryset = Action.objects.all()
         authorization = DjangoAuthorization()
+        filtering = {'community': ALL}
 
 v1_api = Api(api_name='v1')
-for cls in (TextResource, ActionResource):
+for cls in (TextResource, ActionResource, UserResource, CommunityResource):
     v1_api.register(cls())
 urls = v1_api.urls
 
