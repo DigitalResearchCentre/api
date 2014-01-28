@@ -36,11 +36,20 @@ class DynamicToOneField(fields.ToOneField):
 class ActionResource(ModelResource):
     user = DynamicToOneField(UserResource, 'user', full=True)
     community = DynamicToOneField(CommunityResource, 'community', full=True)
+    status = fields.CharField('get_status')
 
     class Meta:
         queryset = Action.objects.all()
         authorization = DjangoAuthorization()
         filtering = {'community': ALL}
+
+    def get_object_list(self, request):
+        objects = super(ActionResource, self).get_object_list(request)
+        fields = request.GET.get('fields', '').split(',')
+        if fields:
+            objects = objects.select_related(*fields)
+        return objects
+
 
 v1_api = Api(api_name='v1')
 for cls in (TextResource, ActionResource, UserResource, CommunityResource):

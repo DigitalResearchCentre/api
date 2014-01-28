@@ -21,7 +21,8 @@ define([
         '<td><a href="'+community.resource_uri+'">'+community.name+'</a></td>'+ 
         '<td><a href="'+ user.resource_uri +'">'+ user.username +'</a></td>' + 
         '<td>' + model.get('action') + '</td>' + 
-        '<td>' + model.get('created') + '</td>'
+        '<td>' + model.get('created') + '</td>' +
+        '<td>' + model.get('status') + '</td>'
       );
       return this;
     },

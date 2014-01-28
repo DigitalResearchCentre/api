@@ -267,7 +267,7 @@ class APIView(CreateModelMixin, RelationView):
     def _post_upload_tei(self, request, *args, **kwargs):
         f = request.FILES['xml']
         community = self.get_object()
-        result = tasks.add_text_file.delay(Text, f.read(), community)
+        result = tasks.add_text_file.delay(f.read(), community)
         Action.objects.create(
             user=request.user, community=community, action='add text file',
             key=result.id, data={'file': f.name})

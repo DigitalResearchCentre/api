@@ -21,7 +21,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
-
+from celery.result import AsyncResult
 
 from PIL import Image
 from urlparse import urlsplit
@@ -1373,4 +1373,8 @@ class Action(models.Model):
 
     class Meta:
         ordering = ('-modified', )
+
+    def get_status(self):
+        result = AsyncResult(self.key)
+        return result.status
 

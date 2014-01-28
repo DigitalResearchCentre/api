@@ -4,6 +4,7 @@ from lxml import etree
 from mycelery import app
 from api.models import Text, RefsDecl
 
+
 @app.task(bind=True)
 def delete_text(self, text):
     text.delete()
