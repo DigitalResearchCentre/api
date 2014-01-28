@@ -129,7 +129,6 @@ INSTALLED_APPS = (
     'rest_framework',
     'corsheaders',
     'treebeard',
-    'actstream',
     'south',
 
     'api',
