@@ -1,23 +1,25 @@
+var LIB = '../lib/'
+
 var require = {
   paths: {
     jquery: [
       '//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min',
-      '../lib/jquery/jquery'
+      LIB + 'jquery/jquery'
     ],
-    backbone: '../lib/backbone-amd/backbone',
-    underscore: '../lib/underscore-amd/underscore',
-    text: '../lib/requirejs-text/text',
-    async: '../lib/requirejs-plugins/src/async',
-    json: '../lib/requirejs-plugins/src/json',
-    urijs: '../lib/uri.js/src',
-    bootstrap: '../lib/bootstrap/dist/js/bootstrap',
+    backbone: LIB + 'backbone-amd/backbone',
+    underscore: LIB + 'underscore-amd/underscore',
+    text: LIB + 'requirejs-text/text',
+    async: LIB + 'requirejs-plugins/src/async',
+    json: LIB + 'requirejs-plugins/src/json',
+    urijs: LIB + 'uri.js/src',
+    bootstrap: LIB + 'bootstrap/dist/js/bootstrap',
     'bootstrap-fileupload': 
-      '../lib/bootstrap-jasny/docs/assets/js/bootstrap-fileupload',
-    codemirror: '../lib/codemirror/lib/codemirror',
-    'jquery.cookie': '../lib/jquery.cookie/jquery.cookie',
-    'jquery-ui': '../lib/jquery-ui/ui/jquery-ui',
-    'codemirror-xml': '../lib/codemirror/mode/xml/xml',
-    'dynatree': '../lib/dynatree/dist/jquery.dynatree.min',
+      LIB + 'bootstrap-jasny/docs/assets/js/bootstrap-fileupload',
+    codemirror: LIB + 'codemirror/lib/codemirror',
+    'jquery.cookie': LIB + 'jquery.cookie/jquery.cookie',
+    'jquery-ui': LIB + 'jquery-ui/ui/jquery-ui',
+    'codemirror-xml': LIB + 'codemirror/mode/xml/xml',
+    'dynatree': LIB + 'dynatree/dist/jquery.dynatree.min',
     tmpl: '../tmpl'
   },
   shim: {
