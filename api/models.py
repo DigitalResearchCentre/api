@@ -1375,6 +1375,9 @@ class Action(models.Model):
         ordering = ('-modified', )
 
     def get_status(self):
-        result = AsyncResult(self.key)
-        return result.status
+        if self.key:
+            result = AsyncResult(self.key)
+            return result.status
+        else:
+            return 'SUCCESS'
 
