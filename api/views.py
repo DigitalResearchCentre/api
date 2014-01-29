@@ -175,13 +175,14 @@ class APIView(CreateModelMixin, RelationView):
         data.update({'doc': doc.pk})
         action = 'transcribe'
         user = request.user
+        community = doc.get_community()
         time = datetime.datetime.now() - datetime.timedelta(minutes=10)
         qs = Action.objects.filter(
             action=action, user=user, community=community, created__gt=time,
             data__contains=doc.get_urn)
         if not qs.exists():
             Action.objects.create(
-                user=user, community=doc.get_community(), 
+                user=user, community=community, 
                 action=action, data={'doc': doc.get_urn()})
         return self.create(data=data)
 
