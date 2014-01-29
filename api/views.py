@@ -5,6 +5,7 @@ import zipfile
 import json
 import urllib
 import urllib2
+import datetime
 from django.db import models
 from django.http import HttpResponse, Http404
 from django.conf import settings
@@ -169,8 +170,19 @@ class APIView(CreateModelMixin, RelationView):
     authentication_classes = (UnsafeSessionAuthentication,)
 
     def _post_transcribe(self, request, *args, **kwargs):
+        doc = Doc.objects.get(pk=self.kwargs['pk'])
         data = request.DATA.copy()
-        data.update({'doc': self.kwargs['pk']})
+        data.update({'doc': doc.pk})
+        action = 'transcribe'
+        user = request.user
+        time = datetime.datetime.now() - datetime.timedelta(minutes=10)
+        qs = Action.objects.filter(
+            action=action, user=user, community=community, created__gt=time,
+            data__contains=doc.get_urn)
+        if not qs.exists():
+            Action.objects.create(
+                user=user, community=doc.get_community(), 
+                action=action, data={'doc': doc.get_urn()})
         return self.create(data=data)
 
     @method_decorator(cache_control(private=True, max_age=3600))
