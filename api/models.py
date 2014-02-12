@@ -1377,6 +1377,8 @@ class Action(models.Model):
     def get_status(self):
         if self.key:
             result = AsyncResult(self.key)
+            if result.status == 'FAILURE':
+                return result.status + '\n' + str(result.traceback)
             return result.status
         else:
             return 'SUCCESS'

@@ -129,7 +129,6 @@ INSTALLED_APPS = (
     'rest_framework',
     'corsheaders',
     'treebeard',
-    'south',
 
     'api',
     'auth',
@@ -200,6 +199,7 @@ EMAIL_PORT = '1025'
 
 BROKER_URL = 'django://'
 
+CELERY_TRACK_STARTED = True
 
 try:
     from env import *

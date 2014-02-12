@@ -15,8 +15,10 @@ def delete_doc(self, doc):
 
 @app.task(bind=True)
 def add_text_file(self, xml, community):
+    print 'start add text file'
     text = Text.add_root(tag='text')
     tei_el = etree.XML(xml)
+    print 'got xml etree'
     text.load_tei(tei_el, community)
 
 @app.task(bind=True)

@@ -362,7 +362,7 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
         result = tasks.delete_doc.delay(obj)
         Action.objects.create(
             user=request.user, community=community, action='delete document', 
-            key=result.id, data={'doc': doc.get_urn()})
+            key=result.id, data={'doc': obj.get_urn()})
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
