@@ -189,7 +189,6 @@ class Membership(models.Model):
         except CommunityMapping.DoesNotExist:
             pass
 
-
 def get_last(qs):
     lst = list(qs.reverse()[:1])
     return lst[0] if lst else None

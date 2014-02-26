@@ -1,6 +1,5 @@
 import os
 import random
-import shutil
 import zipfile
 import json
 import urllib
@@ -289,7 +288,12 @@ class APIView(CreateModelMixin, RelationView):
     def _post_upload_zip(self, request, *args, **kwargs):
         doc = self.get_object()
         zip_file = request.FILES['zip']
-        result = tasks.add_image_zip.delay(doc, zip_file)
+        tmp_zip_path = os.path.join(
+            settings.MEDIA_ROOT, str(random.getrandbits(64)))
+        os.makedirs(tmp_zip_path, 0755)
+        zip_file = zipfile.ZipFile(zip_file)
+        zip_file.extractall(tmp_zip_path)
+        result = tasks.add_image_zip.delay(doc, tmp_zip_path)
         Action.objects.create(
             user=request.user, community=community, action='add image zip', 
             key=result.id, data={'doc': doc.get_urn()})
@@ -313,7 +317,7 @@ class CommunityList(generics.ListCreateAPIView):
     def create_liferay_community(self):
         url = settings.PARTNER_URL + 'add-organization'
         values = {
-            'parentOrganizationId': 11888,
+            'parentOrganizationId': 10718,
             'name': self.object.name,
             'comments': self.object.description
         }

@@ -1,5 +1,5 @@
 import os
-import zipfile
+import shutil
 from lxml import etree
 from mycelery import app
 from api.models import Text, RefsDecl
@@ -22,13 +22,8 @@ def add_text_file(self, xml, community):
     text.load_tei(tei_el, community)
 
 @app.task(bind=True)
-def add_image_zip(self, doc, zip_file):
-    tmp_zip_path = os.path.join(
-        settings.MEDIA_ROOT, str(random.getrandbits(64)))
-    os.makedirs(tmp_zip_path, 0755)
+def add_image_zip(self, doc, tmp_zip_path):
     try:
-        zip_file = zipfile.ZipFile(zip_file)
-        zip_file.extractall(tmp_zip_path)
         file_lst = [
             f for f in os.listdir(tmp_zip_path) if f[0] not in ('.', '_')]
         content_folder = tmp_zip_path
@@ -44,7 +39,6 @@ def add_image_zip(self, doc, zip_file):
         doc.bind_files(content_folder)
     finally:
         shutil.rmtree(tmp_zip_path)
-
 
 
 

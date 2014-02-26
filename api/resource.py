@@ -7,10 +7,6 @@ from tastypie.authorization import DjangoAuthorization
 from django.contrib.auth.models import User
 from api.models import Text, Action, Community
 
-class TextResource(ModelResource): 
-    class Meta:
-        queryset = Text.objects.all()
-
 class UserResource(ModelResource):
     class Meta:
         queryset = User.objects.all()
@@ -54,7 +50,19 @@ class ActionResource(ModelResource):
 v1_api = Api(api_name='v1')
 for cls in (TextResource, ActionResource, UserResource, CommunityResource):
     v1_api.register(cls())
-urls = v1_api.urls
+
+# for config in [
+    # {'name': 'TextResource'},
+# ]:
+    # type(config['name'], (ModelResource, ), {'Meta': type('Meta', (), {
+        # queryset: Text.objects.all()
+    # })})
+
+class TextResource(ModelResource): 
+    class Meta:
+        queryset = Text.objects.all()
+
+
 
     # def create_action(self, actor, verb, **kwargs):
         # action = Action(
