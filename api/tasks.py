@@ -1,5 +1,4 @@
-import os
-import shutil
+import os, shutil
 from lxml import etree
 from mycelery import app
 from api.models import Text, RefsDecl
@@ -39,6 +38,7 @@ def add_image_zip(self, doc, tmp_zip_path):
         doc.bind_files(content_folder)
     finally:
         shutil.rmtree(tmp_zip_path)
+
 
 
 

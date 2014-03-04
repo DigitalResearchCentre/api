@@ -22,6 +22,7 @@ from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from celery.result import AsyncResult
+from celery.utils.log import get_task_logger
 
 from PIL import Image
 from urlparse import urlsplit
@@ -30,6 +31,7 @@ from tiler.tiler import Tiler
 from lxml import etree
 from jsonfield import JSONField
 
+logger = get_task_logger(__name__)
 
 def get_first(qs):
     lst = list(qs[:1])
@@ -188,6 +190,7 @@ class Membership(models.Model):
             pass
         except CommunityMapping.DoesNotExist:
             pass
+
 
 def get_last(qs):
     lst = list(qs.reverse()[:1])
@@ -379,6 +382,10 @@ class Entity(DETNode):
             try:
                 entity = entity.get_children().get(label=label, name=name)
             except Entity.DoesNotExist:
+                logger.info(entity.label + ', ' + entity.name)
+                print entity.label, entity.name
+                logger.info(label + ', ' + name)
+                print label, name
                 entity = entity.add_child(label=label, name=name)
         return entity
 
@@ -1285,9 +1292,6 @@ class CommunityMapping(PartnerMapping):
 
     def get_friendly_url(self):
         url = settings.PARTNER_URL + 'get-group'
-        url = ('http://www.textualcommunities.usask.ca/' +
-               'textual-community-portlet/api/secure/jsonws/myorganization/' +
-               'get-group')
         values = {'groupId': self.mapping_id}
         data = urllib.urlencode(values)
         req = urllib2.Request(url, data)
