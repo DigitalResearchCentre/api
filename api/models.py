@@ -719,18 +719,19 @@ class Text(Node):
     def _el_to_bulk_data(cls, bulk_el, docs=[]):
         bulk_data = []
         for el in bulk_el:
+            data = {'text': el.text or '', 'tail': el.tail or '', }
             if el.tag == etree.Comment:
                 tag = '!--'
             else:
                 tag = el.xpath('local-name()')
-            data = {'tag': tag, 'text': el.text or '', 'tail': el.tail or '', }
+                try:
+                    entity_urn = el.attrib.pop('{%s}entity' % el.nsmap.get('det'))
+                    data['entity'] = Entity.get_or_create_by_urn(entity_urn)
+                except KeyError:
+                    pass
+            data['tag'] = tag
             if tag in ('pb', 'cb', 'lb') and docs:
                 data['doc'] = docs.pop(0)
-            try:
-                entity_urn = el.attrib.pop('{%s}entity' % el.nsmap.get('det'))
-                data['entity'] = Entity.get_or_create_by_urn(entity_urn)
-            except KeyError:
-                pass
             children = cls._el_to_bulk_data(el.getchildren(), docs=docs)
             bulk_data.append({'data': data, 'children': children})
         return bulk_data
