@@ -178,3 +178,4 @@ urlpatterns = patterns(
 
 if settings.DEBUG:
     urlpatterns += static('/client', document_root=settings.CLIENT_ROOT)
+

@@ -1,11 +1,80 @@
+from django.http import HttpResponse
+
 from tastypie import fields
 from tastypie.api import Api
-from tastypie.constants import ALL
 from tastypie.resources import ModelResource
 from tastypie.exceptions import Unauthorized
+from tastypie.constants import ALL, ALL_WITH_RELATIONS
 from tastypie.authorization import DjangoAuthorization
+from tastypie.authentication import SessionAuthentication
+
 from django.contrib.auth.models import User
-from api.models import Text, Action, Community
+from api.models import Text, Action, Community, Doc
+
+class DynamicToOneField(fields.ToOneField):
+    ID_AFFIX = '_id'
+
+    def __init__(self, to, attribute, **kwargs):
+        super(DynamicToOneField, self).__init__(to, attribute, 
+                                                full=True, **kwargs)
+
+    def dehydrate(self, bundle, **kwargs):
+        if self.attribute in bundle.request.GET.get('fields', '').split(','):
+            return super(DynamicToOneField, self).dehydrate(bundle, **kwargs)
+        fk = getattr(bundle.obj, '%s%s' % (self.attribute, self.ID_AFFIX), None)
+        if fk:
+            fk_resource = self.get_related_resource(None)
+            fake_obj = lambda: None
+            setattr(fake_obj, 'pk', fk)
+            return fk_resource.get_resource_uri(bundle_or_obj=fake_obj)
+
+class DynamicToManyField(fields.ToManyField):
+    pass
+
+class DynamicModelResource(ModelResource):
+    FIELDS_PARAM_NAME = 'fields'
+
+    def __init__(self, *args, **kwargs):
+        super(DynamicModelResource, self).__init__(*args, **kwargs)
+        self.dynamic_fields = {}
+        for field_name, field_object in self.fields.items():
+            if isinstance(field_object, DynamicToManyField):
+                self.dynamic_fields[field_name] = self.fields.pop(field_name)
+
+    def get_object_list(self, request):
+        objects = super(DynamicModelResource, self).get_object_list(request)
+        fs = request.GET.get(self.FIELDS_PARAM_NAME, '').split(',')
+        if fs:
+            objects = objects.select_related(*fs)
+            for field_name, field_object in self.dynamic_fields.items():
+                if field_name in fs:
+                    if isinstance(field_object, DynamicToOneField):
+                        field_object.full = True
+                    if field_name not in self.fields:
+                        self.fields[field_name] = field_object
+                else:
+                    if isinstance(field_object, DynamicToOneField):
+                        field_object.full = False
+                    if field_name in self.fields:
+                        self.fields.pop(field_name)
+        return objects
+
+class APIResource(DynamicModelResource):
+    class Meta:
+        authentication = SessionAuthentication()
+        authorization = DjangoAuthorization()
+        always_return_data = True
+
+    def is_authenticated(self, request):
+        auth_result = self._meta.authentication.is_authenticated(request)
+
+        if isinstance(auth_result, HttpResponse):
+            raise ImmediateHttpResponse(response=auth_result)
+
+        if not auth_result is True and request.method != 'GET':
+            raise ImmediateHttpResponse(response=http.HttpUnauthorized())
+        return auth_result
+
 
 class TextResource(ModelResource): 
     class Meta:
@@ -20,22 +89,9 @@ class CommunityResource(ModelResource):
     class Meta:
         queryset = Community.objects.all()
 
-class DynamicToOneField(fields.ToOneField):
-    ID_AFFIX = '_id'
-
-    def dehydrate(self, bundle, **kwargs):
-        fields = bundle.request.GET.get('fields', '').split(',')
-        if self.attribute in fields:
-            return super(DynamicToOneField, self).dehydrate(bundle, **kwargs)
-        fk = getattr(bundle.obj, '%s%s' % (self.attribute, self.ID_AFFIX), None)
-        fk_resource = self.get_related_resource(None)
-        fake_obj = lambda: None
-        setattr(fake_obj, 'pk', fk)
-        return fk_resource.get_resource_uri(bundle_or_obj=fake_obj)
-
 class ActionResource(ModelResource):
-    user = DynamicToOneField(UserResource, 'user', full=True)
-    community = DynamicToOneField(CommunityResource, 'community', full=True)
+    user = DynamicToOneField(UserResource, 'user')
+    community = DynamicToOneField(CommunityResource, 'community')
     status = fields.CharField('get_status')
 
     class Meta:
@@ -51,8 +107,14 @@ class ActionResource(ModelResource):
         return objects
 
 
+class DocResource(APIResource):
+    class Meta:
+        queryset = Doc.objects.all()
+
 v1_api = Api(api_name='v1')
-for cls in (TextResource, ActionResource, UserResource, CommunityResource):
+for cls in (
+    TextResource, ActionResource, UserResource, CommunityResource, DocResource
+):
     v1_api.register(cls())
 urls = v1_api.urls
 
