@@ -1,10 +1,11 @@
 define([
   'jquery', 'underscore', 'urls', 'auth',
-  './modal', './editdocrefsdecl', './editentityrefsdecl', './fileupload', 
+  './modal', './editdocrefsdecl', './editentityrefsdecl', './editpages',
+  './fileupload', 
   './members', './management', './invite', 'text!tmpl/communityedit.html'
 ], function(
   $, _, urls, auth,
-  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, 
+  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, EditPagesView,
   FileUploadView, MembersView, ManagementView, InviteView, tmpl
 ) {
   var mediaURL = urls.mediaURL;
@@ -316,6 +317,7 @@ define([
     events: {
       'click .add-text-file': 'onAddTextFileClick',
       'click .btn.add-image-zip': 'onAddImageZipClick',
+      'click .btn.edit-pages': 'onEditPagesClick',
       'click .get-doc-xml': 'onGetDocXMLClick',
       'click .rename-doc': 'onRenameDocClick',
       'click .delete-doc': 'onDeleteDocClick',
@@ -391,6 +393,9 @@ define([
     },
     onAddImageZipClick: function() {
         return this.openSubView('ImageZipUpload', ImageZipUploadView);
+    },
+    onEditPagesClick: function() {
+        return this.openSubView('EditPages', EditPagesView);
     },
     onGetDocXMLClick: function() {
         return this.openSubView('GetDocXML', GetDocXMLView);
