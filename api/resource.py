@@ -111,6 +111,9 @@ class DocResource(APIResource):
     class Meta:
         queryset = Doc.objects.all()
 
+    def get_object_list(self, request):
+        parent = request.GET.get('parent')
+
 v1_api = Api(api_name='v1')
 for cls in (
     TextResource, ActionResource, UserResource, CommunityResource, DocResource

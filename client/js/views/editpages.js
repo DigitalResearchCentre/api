@@ -1,28 +1,8 @@
 define([
     'jquery', 'underscore', 'backbone', './modal', 'urls',
-    'text!tmpl/members.html', 'dynatree'
+    'text!tmpl/members.html', 
 ], function($, _, Backbone, ModalView, urls, tmpl) {
     'use strict';
-
-    function initTree($tree) {
-        $tree.children('ul').attr('role', 'tree').
-            find('ul').attr('role', 'group');
-        $tree.find('li:has(ul)').addClass('parent_li').attr('role', 'treeitem').
-            find(' > span').attr('title', 'Collapse this branch').
-            on('click', function (e) { 
-            var children = $(this).parent('li.parent_li').find(' > ul > li');
-            if (children.is(':visible')) {
-                children.hide('fast');
-                $(this).attr('title', 'Expand this branch').find(' > i').
-                    addClass('icon-plus-sign').removeClass('icon-minus-sign');
-            } else {
-                children.show('fast');
-                $(this).attr('title', 'Collapse this branch').find(' > i').
-                    addClass('icon-minus-sign').removeClass('icon-plus-sign');
-            }
-            e.stopPropagation();
-        });
-    }
 
     var AssignTaskView = ModalView.extend({
         buttons: [
@@ -44,45 +24,8 @@ define([
             var $tree = this.$('.assign-task-tree'),
             expand = {};
 
-            $tree.dynatree({
-                checkbox: true,
-                selectMode: 3,
-                initAjax: {url: this.url},
-                onExpand: function(flag, node) {
-                    if (flag) {
-                        expand[node.data.key] = flag;
-                    }else{
-                        delete expand[node.data.key];
-                    }
-                },
-                onDblClick: function(node, event) {
-                    node.toggleSelect();
-                },
-                onKeydown: function(node, event) {
-                    if( event.which === 32 ) {
-                        node.toggleSelect();
-                        return false;
-                    }
-                }
-            });
-
             return this;
         },
-        onAssign: function() {
-            var 
-            $tree = this.$('.assign-task-tree'),
-            selNodes = $tree.dynatree("getSelectedNodes"),
-            selKeys = $.map(selNodes, function(node){
-                return node.data.key;
-            });
-            $.post(this.url, {'docs': selKeys}).done(_.bind(function(data){
-                $tree.dynatree({children: data});
-                this.$('.error').addClass('hide');
-                this.$('.alert-success').removeClass('hide').show();
-            }, this)).fail(_.bind(function(resp) {
-                this.$('.error').removeClass('hide').html(resp.responseText);
-            }, this));
-        }
     });
 
     var MembershipRowView = Backbone.View.extend({
@@ -185,7 +128,7 @@ define([
         }
     });
 
-    var MembersView = ModalView.extend({
+    var PagesView = ModalView.extend({
         buttons: [
             {cls: "btn-default", text: 'Back', event: 'onBack'},
             {cls: "btn-default", text: 'Close', event: 'onClose'}
@@ -235,33 +178,6 @@ define([
             this.revertWidth();
             ModalView.prototype.onClose.apply(this, arguments);
         },
-        viewTask: function (task) {
-            var doc = task.getDoc();
-            var parent = doc.getParent();
-            var community = this.model;
-            var url = urls.get(['community:friendly_url', {pk: community.id}]);
-            $.get(url, function(friendlyURL) {
-                if (parent.isNew()) {
-                    parent.fetch().done(function() {
-                        var url = friendlyURL + '/viewer?' 
-                            + 'docName=' + parent.get('name') 
-                            + '&pageName=' + doc.get('name');
-                        window.parent.location = url;
-                    });
-                }else{
-                    var url = friendlyURL + '/viewer?' 
-                        + 'docName=' + parent.get('name') 
-                        + '&pageName=' + doc.get('name');
-                    window.parent.location = url;
-                }
-            });
-
-            /*
-            (new TaskView({
-                model: task, onBack: _.bind(this.onBack, this)
-            })).render();
-            */
-        },
         render: function() {
             ModalView.prototype.render.apply(this, arguments);
             this.memberships.each(this.onMembershipAdd, this);
@@ -269,5 +185,5 @@ define([
         }
     });
 
-    return MembersView;  
+    return PagesView;  
 });
