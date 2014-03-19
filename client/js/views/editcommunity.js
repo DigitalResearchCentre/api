@@ -1,11 +1,13 @@
 define([
   'jquery', 'underscore', 'urls', 'auth',
-  './modal', './editdocrefsdecl', './editentityrefsdecl', './editpages',
+  './modal', './editdoc',
+  './editdocrefsdecl', './editentityrefsdecl', './editpages',
   './fileupload', 
   './members', './management', './invite', 'text!tmpl/communityedit.html'
 ], function(
   $, _, urls, auth,
-  ModalView, EditDocRefsDeclView, EditEntityRefsDeclView, EditPagesView,
+  ModalView, EditDocView,
+  EditDocRefsDeclView, EditEntityRefsDeclView, EditPagesView,
   FileUploadView, MembersView, ManagementView, InviteView, tmpl
 ) {
   var mediaURL = urls.mediaURL;
@@ -90,40 +92,6 @@ define([
     },
     getDefault: function() {
       return this.model.getDefaultDTD();
-    }
-  });
-
-  var EditDocView = ModalView.extend({
-    bodyTemplate: function() {
-      return _.template($('#edit-doc-tmpl').html());
-    },
-    events: {
-      'change .doc-dropdown': 'onDocChange'
-    },
-    initialize: function(options) {
-        this.options = options;
-        var docs = this.docs = this.model.getDocs();
-        this.listenTo(docs, 'add', this.onDocAdd);
-        if (!docs.isFetched()) {
-            this.docs.fetch();
-        }
-    },
-    getSelectedDoc: function() {
-      return this.docs.get(this.$('.doc-dropdown').val());
-    },
-    onDocAdd: function(doc) {
-      var $docs = this.$('.doc-dropdown');
-      $docs.append($('<option/>').val(doc.id).text(doc.get('name')));
-      if ($('option', $docs).length === 1) {
-        this.onDocChange();
-      }
-    },
-    onDocChange: function() {
-    },
-    render: function() {
-      ModalView.prototype.render.apply(this, arguments);
-      this.docs.each(this.onDocAdd, this);
-      return this;
     }
   });
 

@@ -1,189 +1,244 @@
 define([
-    'jquery', 'underscore', 'backbone', './modal', 'urls',
-    'text!tmpl/members.html', 
-], function($, _, Backbone, ModalView, urls, tmpl) {
-    'use strict';
+  'jquery', 'underscore', 'backbone',
+  './editdoc', 'urijs/URI', 'env',
+  'text!tmpl/pages.html', 
+], function($, _, Backbone, EditDocView, URI, env, tmpl) {
+  'use strict';
 
-    var AssignTaskView = ModalView.extend({
-        buttons: [
-            {cls: "btn-default", text: 'Assign Task', event: 'onAssign'},
-            {cls: "btn-default", text: 'Back', event: 'onBack'},
-            {cls: "btn-default", text: 'Close', event: 'onClose'}
-        ],
-        bodyTemplate: _.template(
-            '<div class="error alert alert-block alert-warning hide"></div>' +
-            '<div class="alert alert-success fade in hide">Success !</div>' +
-            '<div class="assign-task-tree"></div>'),
-        initialize: function(options){
-            this.url = urls.get(
-                ['membership:assign', {pk: this.model.id}], {format: 'json'});
-            this.onBack = options.onBack;
-        },
-        render: function () {
-            ModalView.prototype.render.apply(this, arguments);
-            var $tree = this.$('.assign-task-tree'),
-            expand = {};
+  var BackboneModel = Backbone.Model;
+  var Collection = Backbone.Collection.extend({
+    initialize: function(models, options) {
+      _.defaults(this, {urlArgs: {}});
+      if (options && options.urlArgs) {
+        _.extend(this.urlArgs, options.urlArgs);
+      }
+    },
+    url: function() {
+      var url = _.result(this.model.prototype, 'urlRoot')
+        , urlArgs = _.result(this, 'urlArgs')
+      ;
+      return url && URI(url).setSearch(urlArgs).normalize().toString() || null;
+    },
+    parse: function(data) {
+      // TODO: parse meta offset
+      if ( data && data.meta ) {
+        this.meta = data.meta;
+      }
+      return data && data.objects || data;
+    },
+    hasNext: function() {
+      var meta = this.meta;
+      return meta && meta.next;
+    },
+    isFetched: function () {
+      return this._fetched;
+    },
+    fetch: function() {
+      this._fetched = true;
+      // TODO: what if fetch fail ?
+      return BackboneModel.prototype.fetch.apply(this, arguments);
+    },
+    retrieve: function() {
+      if (!this.isFetched()) {
+        return $.when(this.fetch()).then(function(){
+          return this;
+        });
+      }
+      return $.Deferred().resolve(this);
+    }
+  });
 
-            return this;
-        },
-    });
+  var getIdFromUri = function(uri) {
+    uri = new URI(uri);
+    return uri.segment(-1) || uri.segment(-2);
+  };
 
-    var MembershipRowView = Backbone.View.extend({
-        tagName: 'tr',
-        initialize: function (options) {
-            this.onBack = options.onBack;
-            this.tasks = this.model.getTasks();
-            this.listenTo(this.tasks, 'add', this.onTaskAdd);
-            this.options = options;
-        },
-        render: function () {
-            var $span, $ul,
-            model = this.model;
-            this.$el.html(
-                '<td>' + model.get('name') + '</td>' + 
-                '<td>' + model.get('create_date') + '</td>' + 
-                '<td class="assigned"><span> 0 tasks</span><ul></ul></td>' + 
-                '<td class="in-progress"><span> 0 tasks</span><ul></ul></td>' + 
-                '<td class="submitted"><span> 0 tasks</span><ul></ul></td>' +
-                '<td class="completed"><span> 0 tasks</span><ul></ul></td>' +
-                '<td><button class="btn btn-primary assign">assign</button></td>'
-            );
-            this.tasks.each(this.onTaskAdd, this);
-            this.tasks.fetch();
-            this.$('td>ul').addClass('folder folder-close');
-            this.$('td>span').
-                addClass('btn glyphicon glyphicon-folder-close').
-                click(_.bind(this.onToggleClick, this));
-            this.$('td>.btn.assign').click(_.bind(this.onAssignClick, this));
-            return this;
-        },
-        onAssignClick: function(event){
-            var view = new AssignTaskView({
-                model: this.model, 
-                onBack: _.bind(this.onBack, this)
-            });
-            return view.render();
-        },
-        onToggleClick: function (event){
-            var $el = $(event.target);
-            $el.toggleClass('glyphicon-folder-close glyphicon-folder-open');
-            $el.siblings('ul').toggleClass('folder-open folder-close');
-        },
-        onTaskAdd: function (task) {
-            var cls, $td, $ul, $a,
-            doc = task.getDoc(),
-            status = task.status;
-
-            switch (task.get('status')) {
-                case status.ASSIGNED:
-                    cls = 'assigned';
-                break;
-                case status.IN_PROGRESS:
-                    cls = 'in-progress';
-                break;
-                case status.SUBMITTED:
-                    cls = 'submitted';
-                break;
-                case status.COMPLETED:
-                    cls = 'completed';
-                break;
-                default:
-                    return;
-            }
-            $td = this.$('.' + cls);
-            $ul = $td.children('ul');
-            $a = $('<a href="#task=' + task.id + '">'+doc.get('name')+'</a>');
-            doc.getUrn().done(function(urn){
-                var name = [];
-                _.each(urn.split(':'), function (parts) {
-                    parts = parts.split('=');
-                    if (parts.length > 1) {
-                        name.push(parts[1]);
-                    }
-                });
-                $a.text(name.join(':'));
-            });
-            $a.click(_.bind(function () {
-                this.options.viewTask(task);
-            }, this));
-            this.listenTo(doc, 'change', function () {
-                $a.text(doc.get('name'));
-            });
-            doc.fetch();
-            $ul.append($('<li></li>').append($a));
-            $td.children('span').text(' ' + $ul.children().length + ' tasks');
-            this.options.autoResize();
+  var Model = BackboneModel.extend({
+    url: function() {
+      var url = this.get( 'resource_uri' )
+      ;
+      if (!url) {
+        url = BackboneModel.prototype.url.apply(this, arguments);
+      }
+      if (url) {
+        url = new URI(url).setSearch(_.result(this, 'urlArgs'));
+        url = url.normalize().toString();
+      }
+      return url || null;
+    },
+    equal: function(m) {
+      return this.constructor.equal(this, m);
+    },
+    isFetched: function () {
+      return this._fetched;
+    },
+    fetch: function() {
+      this._fetched = true;
+      return BackboneModel.prototype.fetch.apply(this, arguments);
+    },
+    retrieve: function() {
+      if (!this.isFetched() && !this.isNew()) {
+        return $.when(this.fetch()).then(function(){
+          return this;
+        });
+      }
+      return $.Deferred().resolve(this);
+    },
+  }, {
+    Collection: Collection,
+    Models: {},
+    equal: function(m1, m2) {
+      return (m1 === m2) || (
+        m1 && m2 && (
+          (m1.cid && (m1.cid === m2.cid)) || (m1.id && (m1.id === m2.id))));
+    },
+    cache: function() { 
+      return this._cache || (this._cache = new Collection());
+    },
+    get: function(id, nofetch) {
+      if (_.isArray(id)) {
+        if (nofetch) {
+          return _.map(id, function(id){return this.get(id, nofetch);}, this);
         }
-    });
+        return $.when.apply($, _.map(id, this.get, this));
+      }
 
-    var TaskView = ModalView.extend({
-        buttons: [
-            {cls: "btn-default", text: 'Back', event: 'onBack'},
-            {cls: "btn-default", text: 'Close', event: 'onClose'}
-        ],
-        bodyTemplate: _.template('<textarea></textarea>'),
-        render: function () {
-            var doc = this.model.getDoc();
-            this.$('textarea').val(doc.get('name'));
+      var cache = this.cache()
+        , model = cache.get(id)
+      ;
+      if (model) {
+        if (nofetch) {
+          return model;
         }
-    });
-
-    var PagesView = ModalView.extend({
-        buttons: [
-            {cls: "btn-default", text: 'Back', event: 'onBack'},
-            {cls: "btn-default", text: 'Close', event: 'onClose'}
-        ],
-        bodyTemplate: _.template(tmpl),
-        initialize: function(options) {
-            var memberships = this.memberships = this.model.getMemberships();
-            this.listenTo(memberships, 'add', this.onMembershipAdd);
-            if (!memberships.isFetched()) {
-                memberships.fetch();
-            }
-            this._increaseWidth = 0;
-            this.options = options;
-        },
-        onMembershipAdd: function(membership) {
-            var view = new MembershipRowView({
-                model: membership, 
-                onBack: _.bind(this.render, this),
-                autoResize: _.bind(this.autoResize, this),
-                viewTask: _.bind(this.viewTask, this)
-            });
-            this.$('.members').append(view.render().$el);
-            this.autoResize();
-        },
-        autoResize: function () {
-            var
-            $panel = this.$('.modal-body>.panel'),
-            $table = $('.table', $panel),
-            $dialog = this.$('.modal-dialog'),
-            diff = $table.width() - $panel.width();
-
-            if (diff > 0) {
-                this._increaseWidth += diff;
-                $dialog.width($dialog.width() + diff);
-            }
-        },
-        revertWidth: function () {
-            var $dialog = this.$('.modal-dialog');
-            $dialog.width($dialog.width() - this._increaseWidth);
-            this._increaseWidth = 0;
-        },
-        onBack: function () {
-            this.revertWidth();
-            ModalView.prototype.onBack.apply(this, arguments);
-        },
-        onClose: function () {
-            this.revertWidth();
-            ModalView.prototype.onClose.apply(this, arguments);
-        },
-        render: function() {
-            ModalView.prototype.render.apply(this, arguments);
-            this.memberships.each(this.onMembershipAdd, this);
-            return this;
+        return $.when(model);
+      }else{
+        model = new this({id: id});
+        if (nofetch) {
+          return model;
         }
-    });
+        return $.when(model.fetch()).then(function() {return model;});
+      }
+    },
+    extend: function() {
+      var child = BackboneModel.extend.apply(this, arguments);
+      child.Collection = Collection.extend({
+        model: child
+      });
+      _.defaults(child, {relations: {}});
+      _.each(child.relations, function(opts, name){
+        if (opts.reverse) {
+          opts.model.relations[opts.reverse] = {
+            type: 'one',
+            model: child,
+            rel: name,
+          };
+        }
+      });
+      return child;
+    },
+  });
 
-    return PagesView;  
+  var Page = Model.extend({
+    urlRoot: env.restBase + '/v1/doc/',
+    urlArgs: {fields: 'text'},
+  });
+
+  var PageRowView = Backbone.View.extend({
+    tagName: 'tr',
+    initialize: function (options) {
+      this.onBack = options.onBack;
+      this.options = options;
+    },
+    render: function () {
+      var $span, $ul,
+      model = this.model;
+      this.$el.html(
+        '<td>' + model.get('name') + '</td>' + 
+        '<td>' + model.get('facs') + '</td>' + 
+        '<td>' + model.get('rend') + '</td>'
+      );
+      return this;
+    },
+  });
+
+  var PagesView = EditDocView.extend({
+    buttons: [
+      {cls: "btn-default", text: 'Back', event: 'onBack'},
+      {cls: "btn-default", text: 'Close', event: 'onClose'}
+    ],
+    bodyTemplate: _.template(tmpl),
+    initialize: function(options) {
+      EditDocView.prototype.initialize.apply(this, arguments);
+      this._increaseWidth = 0;
+      this.options = options;
+    },
+    onPageAdd: function(page) {
+      var view = new PageRowView({
+        model: page, 
+        onBack: _.bind(this.render, this),
+        autoResize: _.bind(this.autoResize, this),
+      });
+      if (!this.pageviews) {
+        this.pageviews = [];
+      }
+      this.pageviews.push(view);
+      this.$('.pages').append(view.render().$el);
+      this.autoResize();
+    },
+    autoResize: function () {
+      var $panel = this.$('.modal-body>.panel')
+        , $table = $('.table', $panel)
+        , $dialog = this.$('.modal-dialog')
+        , diff = $table.width() - $panel.width()
+      ;
+
+      if (diff > 0) {
+        this._increaseWidth += diff;
+        $dialog.width($dialog.width() + diff);
+      }
+    },
+    onDocChange: function() {
+      var doc = this.getSelectedDoc();
+      if (this.pages) {
+        this.stopListening(this.pages);
+      }
+      _.each(this.pageviews, function(view) {
+        view.remove();
+      });
+      if (doc) {
+        this.pages = new Page.Collection({
+          urlArgs: _.extend({
+            parent: doc.id, _.result(Page.prototype, 'urlArgs')}),
+        });
+        this.listenTo(this.pages, 'add', this.onPageAdd);
+        this.pages.retrieve();
+      }
+    },
+    revertWidth: function () {
+      var $dialog = this.$('.modal-dialog');
+      $dialog.width($dialog.width() - this._increaseWidth);
+      this._increaseWidth = 0;
+    },
+    onBack: function () {
+      this.revertWidth();
+      EditDocView.prototype.onBack.apply(this, arguments);
+    },
+    onClose: function () {
+      this.revertWidth();
+      EditDocView.prototype.onClose.apply(this, arguments);
+    },
+    render: function() {
+      EditDocView.prototype.render.apply(this, arguments);
+      var doc = this.getSelectedDoc();
+      if (doc) {
+      }
+      console.log('doc');
+      console.log(doc);
+
+      //this.memberships.each(this.onPageAdd, this);
+      return this;
+    }
+  });
+
+  return PagesView;  
 });

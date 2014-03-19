@@ -108,11 +108,19 @@ class ActionResource(ModelResource):
 
 
 class DocResource(APIResource):
+
     class Meta:
         queryset = Doc.objects.all()
 
-    def get_object_list(self, request):
-        parent = request.GET.get('parent')
+    def apply_filters(self, request, filters):
+        objects = super(DocResource, self).apply_filters(request, filters)
+        parent_pk = request.GET.get('parent', '')
+        if parent_pk:
+            parent = Doc.objects.get(pk=parent_pk)
+            objects = objects.filter(
+                tree_id=parent.tree_id, depth=parent.depth+1, 
+                lft__gt=parent.lft, rgt__lt=parent.rgt)
+        return objects
 
 v1_api = Api(api_name='v1')
 for cls in (
