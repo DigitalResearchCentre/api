@@ -150,6 +150,15 @@ define([
       'click .btn.save': 'onSaveClick',
     },
     initialize: function (options) {
+      var page = this.model
+        , $el = this.$el
+      ;
+      if (!page.isNew()) {
+        $el.attr('data-id', page.id);
+      }
+      this.listenTo(page, 'change:id', function (page) {
+        $el.attr('data-id', page.id);
+      });
       this.onBack = options.onBack;
       this.options = options;
     },
@@ -182,20 +191,29 @@ define([
       ;
       if (!model.isNew()) {
         $dfd = model.destroy();
+      }else{
+        $dfd.resolve();
       }
       $dfd.done(function(){self.remove();});
     },
-    onSaveClick: function () {
-      var name = this.$('input.attr.name').val();
-      if (!name) {
-        return;
+    onSaveClick: function (event) {
+      var data = {
+          name: this.$('input.attr.name').val(),
+          facs: this.$('input.attr.facs').val(),
+          rend: this.$('input.attr.rend').val(),
+        }
+        , model = this.model
+      ;
+      if (model.isNew()) {
+        var tr = _.find(this.$el.prevAll(), function (tr) {
+          return !!$(tr).data('id');
+        });
+        if (tr) {
+          data.prev = $(tr).data('id');
+        }
       }
-      this.model.save({
-        name: this.$('input.attr.name').val(),
-        facs: this.$('input.attr.facs').val(),
-        rend: this.$('input.attr.rend').val(),
-      }, {patch: true});
-    }
+      model.save(data, {patch: !model.isNew()});
+    },
   });
 
   var PagesView = EditDocView.extend({
@@ -203,9 +221,15 @@ define([
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-default", text: 'Close', event: 'onClose'}
     ],
-    events: {
-      'click th .btn.append': 'onAppendNewClick',
-      'click td .btn.append': 'onAppendClick',
+    events: function () {
+      var events = EditDocView.prototype.events;
+      if (_.isFunction(events)) {
+        events = events.apply(this);
+      }
+      return _.defaults({
+        'click th .btn.append': 'onAppendNewClick',
+        'click td .btn.append': 'onAppendClick',
+      }, events);
     },
     bodyTemplate: _.template(tmpl),
     initialize: function(options) {
@@ -215,21 +239,21 @@ define([
     },
     onAppendNewClick: function(event) {
       var doc = this.getSelectedDoc()
-        , page = new Page({parent: doc.id, index: 0})
+        , page = new Page({parent: doc.id})
         , view = this.onPageAdd(page)
       ;
       this.$('.pages').prepend(view.$el);
     },
     onAppendClick: function(event) {
       var doc = this.getSelectedDoc()
-        , $tr = $(event.target).closest('tr')
-        , page = new Page({parent: doc.id, index: $tr.index()+1})
+        , page = new Page({parent: doc.id})
         , view = this.onPageAdd(page)
       ;
-      $tr.after(view.$el);
+      $(event.target).closest('tr').after(view.$el);
     },
-    onPageAdd: function(page, append) {
+    onPageAdd: function(page) {
       var view = new PageRowView({
+        parent: this,
         model: page, 
         onBack: _.bind(this.render, this),
         autoResize: _.bind(this.autoResize, this),
@@ -267,7 +291,6 @@ define([
           urlArgs: _.extend({parent: doc.id}, 
                             _.result(Page.prototype, 'urlArgs')),
         }))();
-        console.log(this.pages.urlArgs);
         this.listenTo(this.pages, 'add', this.onPageAdd);
         this.pages.retrieve();
       }

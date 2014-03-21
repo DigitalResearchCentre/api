@@ -41,3 +41,4 @@ define([
   return (new AuthUser());
 });
 
+

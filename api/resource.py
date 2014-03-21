@@ -99,6 +99,10 @@ class ActionResource(ModelResource):
 class DocResource(APIResource):
     facs = DynamicCharField()
     rend = DynamicCharField()
+    lft = fields.IntegerField(attribute='lft', readonly=True, null=True)
+    rgt = fields.IntegerField(attribute='rgt', readonly=True, null=True)
+    depth = fields.IntegerField(attribute='depth', readonly=True, null=True)
+    tree_id = fields.IntegerField(attribute='tree_id', readonly=True, null=True)
 
     class Meta(APIResource.Meta):
         queryset = Doc.objects.all()
@@ -123,26 +127,83 @@ class DocResource(APIResource):
         if text:
             return text.get_attr_value('rend')
 
+    def is_valid(self, bundle):
+        valid = super(DocResource, self).is_valid(bundle)
+        if not valid:
+            errors = bundle.errors[self._meta.resource_name]
+        else:
+            errors = {}
+        data = bundle.data
+        parent_pk = data.get('parent')
+        if not parent_pk:
+            msg = 'is required attribute if parent is not given'
+            for field in ['rgt', 'lft', 'depth', 'tree_id']:
+                if not field in data:
+                    errors[field] = '%s %s' % (field, msg)
+        elif not Doc.objects.filter(pk=parent_pk).exists():
+            errors['parent'] = 'parent %s not exists' % parent_pk
+        if errors:
+            bundle.errors[self._meta.resource_name] = errors
+            return False
+        return True
+
+    def save_related(self, bundle):
+        super(DocResource, self).save_related(bundle)
+        # TODO: following code should not belong to save_related
+        #   Maybe need add a pre_save
+        data = bundle.data
+        parent_pk = data.get('parent')
+        prev_pk = data.get('prev')
+        if parent_pk and not data.get('lft'):
+            parent = Doc.objects.get(pk=parent_pk)
+            parent_text = parent.has_text_in()
+            body = parent_text.get_children().get(tag='body')
+            obj = bundle.obj
+            # TODO: hard code label
+            if prev_pk:
+                prev = Doc.objects.get(pk=prev_pk)
+                obj = prev.add_sibling(pos='right',
+                                       name=obj.name, label='Folio')
+                text = prev.has_text_in()
+                next_text = text.next()
+            else:
+                next_page = parent.get_first_child()
+                if next_page:
+                    obj = next_page.add_sibling(pos='left', 
+                                                name=obj.name, label='Folio')
+                else:
+                    obj = parent.add_child(name=obj.name, label='Folio')
+                next_text = body.get_first_child()
+            if next_text:
+                # TODO: entity ?
+                next_text.add_sibling(pos='left', tag='pb', doc=obj)
+            else:
+                text = body.add_child(tag='pb', doc=obj)
+            bundle.obj = obj
+
     def save(self, bundle, **kwargs):
-        print bundle.data
         bundle = super(DocResource, self).save(bundle, **kwargs)
         text = bundle.obj.has_text_in()
         data = bundle.data
         if text:
-            try:
-                facs = text.attr_set.get(name='facs')
-                if facs.value != data.get('facs'):
-                    facs.value = data.get('facs')
-                    facs.save()
-            except Attr.DoesNotExist:
-                pass
-            try:
-                rend = text.attr_set.get(name='rend')
-                if rend.value != data.get('rend'):
-                    rend.value = data.get('rend')
-                    rend.save()
-            except Attr.DoesNotExist:
-                pass
+            facs = data.get('facs')
+            rend = data.get('rend')
+            if facs:
+                try:
+                    facs_attr = text.attr_set.get(name='facs')
+                except Attr.DoesNotExist:
+                    facs_attr = Attr(text=text, name='facs')
+                if facs_attr.value != facs:
+                    facs_attr.value = facs
+                    facs_attr.save()
+            if rend:
+                try:
+                    rend_attr = text.attr_set.get(name='rend')
+                except Attr.DoesNotExist:
+                    rend_attr = Attr(text=text, name='rend')
+                if rend_attr.value != rend:
+                    rend_attr.value = rend
+                    rend_attr.save()
         return bundle
 
 v1_api = Api(api_name='v1')
