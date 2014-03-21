@@ -140,25 +140,62 @@ define([
 
   var Page = Model.extend({
     urlRoot: env.restBase + '/v1/doc/',
-    urlArgs: {fields: 'text'},
+    urlArgs: {fields: 'facs,rend'},
   });
 
   var PageRowView = Backbone.View.extend({
     tagName: 'tr',
+    events: {
+      'click .btn.remove': 'onRemoveClick',
+      'click .btn.save': 'onSaveClick',
+    },
     initialize: function (options) {
       this.onBack = options.onBack;
       this.options = options;
     },
     render: function () {
-      var $span, $ul,
-      model = this.model;
+      var $span, $ul
+        , model = this.model
+      ;
       this.$el.html(
-        '<td>' + model.get('name') + '</td>' + 
-        '<td>' + model.get('facs') + '</td>' + 
-        '<td>' + model.get('rend') + '</td>'
+        '<td><input type="text" class="form-control attr name" ' + 
+          'value="' + (model.get('name') || '')+ 
+        '"/></td>' + 
+        '<td><input type="text" class="form-control attr facs" ' + 
+          'value="' + (model.get('facs') || '') +
+        '"/></td>' + 
+        '<td><input type="text" class="form-control attr rend" ' + 
+          'value="' + (model.get('rend') || '') +
+        '"/></td>' + 
+        '<td>' + 
+          '<span class="glyphicon glyphicon-floppy-disk btn save"></span>' +
+          '<span class="glyphicon glyphicon-plus-sign btn append"></span>' +
+          '<span class="glyphicon glyphicon-minus-sign btn remove"></span>' +
+        '</td>'
       );
       return this;
     },
+    onRemoveClick: function () {
+      var $dfd = $.Deferred()
+        , self = this
+        , model = this.model
+      ;
+      if (!model.isNew()) {
+        $dfd = model.destroy();
+      }
+      $dfd.done(function(){self.remove();});
+    },
+    onSaveClick: function () {
+      var name = this.$('input.attr.name').val();
+      if (!name) {
+        return;
+      }
+      this.model.save({
+        name: this.$('input.attr.name').val(),
+        facs: this.$('input.attr.facs').val(),
+        rend: this.$('input.attr.rend').val(),
+      }, {patch: true});
+    }
   });
 
   var PagesView = EditDocView.extend({
@@ -166,13 +203,32 @@ define([
       {cls: "btn-default", text: 'Back', event: 'onBack'},
       {cls: "btn-default", text: 'Close', event: 'onClose'}
     ],
+    events: {
+      'click th .btn.append': 'onAppendNewClick',
+      'click td .btn.append': 'onAppendClick',
+    },
     bodyTemplate: _.template(tmpl),
     initialize: function(options) {
       EditDocView.prototype.initialize.apply(this, arguments);
       this._increaseWidth = 0;
       this.options = options;
     },
-    onPageAdd: function(page) {
+    onAppendNewClick: function(event) {
+      var doc = this.getSelectedDoc()
+        , page = new Page({parent: doc.id, index: 0})
+        , view = this.onPageAdd(page)
+      ;
+      this.$('.pages').prepend(view.$el);
+    },
+    onAppendClick: function(event) {
+      var doc = this.getSelectedDoc()
+        , $tr = $(event.target).closest('tr')
+        , page = new Page({parent: doc.id, index: $tr.index()+1})
+        , view = this.onPageAdd(page)
+      ;
+      $tr.after(view.$el);
+    },
+    onPageAdd: function(page, append) {
       var view = new PageRowView({
         model: page, 
         onBack: _.bind(this.render, this),
@@ -184,6 +240,7 @@ define([
       this.pageviews.push(view);
       this.$('.pages').append(view.render().$el);
       this.autoResize();
+      return view;
     },
     autoResize: function () {
       var $panel = this.$('.modal-body>.panel')
@@ -206,10 +263,11 @@ define([
         view.remove();
       });
       if (doc) {
-        this.pages = new Page.Collection({
-          urlArgs: _.extend({
-            parent: doc.id, _.result(Page.prototype, 'urlArgs')}),
-        });
+        this.pages = new (Page.Collection.extend({
+          urlArgs: _.extend({parent: doc.id}, 
+                            _.result(Page.prototype, 'urlArgs')),
+        }))();
+        console.log(this.pages.urlArgs);
         this.listenTo(this.pages, 'add', this.onPageAdd);
         this.pages.retrieve();
       }

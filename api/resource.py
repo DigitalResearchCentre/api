@@ -9,26 +9,18 @@ from tastypie.authorization import DjangoAuthorization
 from tastypie.authentication import SessionAuthentication
 
 from django.contrib.auth.models import User
-from api.models import Text, Action, Community, Doc
+from api.models import Text, Action, Community, Doc, Attr
 
-class DynamicToOneField(fields.ToOneField):
-    ID_AFFIX = '_id'
+class DynamicField(object):
+    pass
 
-    def __init__(self, to, attribute, **kwargs):
-        super(DynamicToOneField, self).__init__(to, attribute, 
-                                                full=True, **kwargs)
+class DynamicToOneField(DynamicField, fields.ToOneField):
+    pass
 
-    def dehydrate(self, bundle, **kwargs):
-        if self.attribute in bundle.request.GET.get('fields', '').split(','):
-            return super(DynamicToOneField, self).dehydrate(bundle, **kwargs)
-        fk = getattr(bundle.obj, '%s%s' % (self.attribute, self.ID_AFFIX), None)
-        if fk:
-            fk_resource = self.get_related_resource(None)
-            fake_obj = lambda: None
-            setattr(fake_obj, 'pk', fk)
-            return fk_resource.get_resource_uri(bundle_or_obj=fake_obj)
+class DynamicCharField(DynamicField, fields.CharField):
+    pass
 
-class DynamicToManyField(fields.ToManyField):
+class DynamicToManyField(DynamicField, fields.ToManyField):
     pass
 
 class DynamicModelResource(ModelResource):
@@ -38,7 +30,7 @@ class DynamicModelResource(ModelResource):
         super(DynamicModelResource, self).__init__(*args, **kwargs)
         self.dynamic_fields = {}
         for field_name, field_object in self.fields.items():
-            if isinstance(field_object, DynamicToManyField):
+            if isinstance(field_object, DynamicField):
                 self.dynamic_fields[field_name] = self.fields.pop(field_name)
 
     def get_object_list(self, request):
@@ -48,13 +40,9 @@ class DynamicModelResource(ModelResource):
             objects = objects.select_related(*fs)
             for field_name, field_object in self.dynamic_fields.items():
                 if field_name in fs:
-                    if isinstance(field_object, DynamicToOneField):
-                        field_object.full = True
                     if field_name not in self.fields:
                         self.fields[field_name] = field_object
                 else:
-                    if isinstance(field_object, DynamicToOneField):
-                        field_object.full = False
                     if field_name in self.fields:
                         self.fields.pop(field_name)
         return objects
@@ -77,6 +65,7 @@ class APIResource(DynamicModelResource):
 
 
 class TextResource(ModelResource): 
+
     class Meta:
         queryset = Text.objects.all()
 
@@ -90,8 +79,8 @@ class CommunityResource(ModelResource):
         queryset = Community.objects.all()
 
 class ActionResource(ModelResource):
-    user = DynamicToOneField(UserResource, 'user')
-    community = DynamicToOneField(CommunityResource, 'community')
+    user = DynamicToOneField(UserResource, 'user', full=True)
+    community = DynamicToOneField(CommunityResource, 'community', full=True)
     status = fields.CharField('get_status')
 
     class Meta:
@@ -108,8 +97,10 @@ class ActionResource(ModelResource):
 
 
 class DocResource(APIResource):
+    facs = DynamicCharField()
+    rend = DynamicCharField()
 
-    class Meta:
+    class Meta(APIResource.Meta):
         queryset = Doc.objects.all()
 
     def apply_filters(self, request, filters):
@@ -121,6 +112,38 @@ class DocResource(APIResource):
                 tree_id=parent.tree_id, depth=parent.depth+1, 
                 lft__gt=parent.lft, rgt__lt=parent.rgt)
         return objects
+
+    def dehydrate_facs(self, bundle):
+        text = bundle.obj.has_text_in()
+        if text:
+            return text.get_attr_value('facs')
+
+    def dehydrate_rend(self, bundle):
+        text = bundle.obj.has_text_in()
+        if text:
+            return text.get_attr_value('rend')
+
+    def save(self, bundle, **kwargs):
+        print bundle.data
+        bundle = super(DocResource, self).save(bundle, **kwargs)
+        text = bundle.obj.has_text_in()
+        data = bundle.data
+        if text:
+            try:
+                facs = text.attr_set.get(name='facs')
+                if facs.value != data.get('facs'):
+                    facs.value = data.get('facs')
+                    facs.save()
+            except Attr.DoesNotExist:
+                pass
+            try:
+                rend = text.attr_set.get(name='rend')
+                if rend.value != data.get('rend'):
+                    rend.value = data.get('rend')
+                    rend.save()
+            except Attr.DoesNotExist:
+                pass
+        return bundle
 
 v1_api = Api(api_name='v1')
 for cls in (
