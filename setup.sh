@@ -6,10 +6,10 @@ if [ ! -d venv ]; then
     virtualenv venv
 fi
 
-[[ "$VIRTUAL_ENV" == ""  ]];. venv/bin/activate
-pip install -U pil MySQL-python django django-treebeard django-cors-headers djangorestframework django-filter celery defusedxml django-tastypie jsonfield django-activity-stream lxml feedparser --allow-unverified PIL 
+[[ "$VIRTUAL_ENV" == "" ]];. venv/bin/activate
+pip install -U pil MySQL-python django django-treebeard django-cors-headers djangorestframework django-filter celery defusedxml django-tastypie jsonfield django-activity-stream lxml feedparser --allow-external PIL --allow-unverified PIL 
 
-#celery worker --app=api -l info
+# celery worker --app=mycelery -l info
 
 # useradd -M celery
 # usermod -L celery
