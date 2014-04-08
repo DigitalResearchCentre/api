@@ -494,7 +494,9 @@ class Doc(DETNode):
                     if not os.path.isfile(path):
                         continue
                 with open(path, 'r') as f:
-                    with self.ImageFile(f, rend=rend.split(',')) as img:
+                    if rend:
+                        rend = rend.split(',')
+                    with self.ImageFile(f, rend=rend) as img:
                         try:
                             pb.tilerimage.delete()
                         except TilerImage.DoesNotExist:
