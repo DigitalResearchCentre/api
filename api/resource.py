@@ -63,6 +63,15 @@ class APIResource(DynamicModelResource):
             raise ImmediateHttpResponse(response=http.HttpUnauthorized())
         return auth_result
 
+class SearchResource(APIResource):
+    class Meta:
+        resource_name = 'search'
+
+    def get_object_list(self, bundle, **kwargs):
+        urn = bundle.request.GET.get('urn', None)
+        if not urn:
+            raise BadRequest('Missing query parameter')
+        urn.split(':')
 
 class TextResource(ModelResource): 
 

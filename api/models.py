@@ -153,6 +153,19 @@ class Community(models.Model):
     def get_root_community(cls):
         return cls.objects.get(abbr='TC')
 
+class Availability(models.Model):
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    group = models.ForeignKey(Group)
+
+
+def check_perm(perm):
+    perms = obj.get_perms()
+    user
+
+
 
 class Membership(models.Model):
     user = models.ForeignKey(User)
