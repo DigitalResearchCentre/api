@@ -70,8 +70,47 @@ class SearchResource(APIResource):
     def get_object_list(self, bundle, **kwargs):
         urn = bundle.request.GET.get('urn', None)
         if not urn:
-            raise BadRequest('Missing query parameter')
-        urn.split(':')
+            raise BadRequest('Missing urn parameter')
+        # urn format: urn:det:TCUSASK:CommunityName...
+        regex = r'^urn:det:(?P<org>\w+):(?P<community>\w+)(:(?P<det>.+))?'
+        m = re.match(regex, urn)
+        if not m:
+            raise BadRequest('bad urn format')
+        community = Community.objects.get(abbr=m.group('community'))
+        value_pairs = re.findall(r'(?:(\w+)=([^:=]+)(?::|$))', m.group('det'))
+        obj = None
+        doc = None
+        entity = None
+        # document=Hg:Folio=13r:entity=book1:line=13
+        data = {'document': None, 'entity': None}
+        type = None
+        for label, name in value_pairs:
+            if label == 'document':
+                type = label
+                qs = community.docs
+            elif label == 'entity':
+                type = label
+                qs = community.entities
+            else:
+                qs = obj.get_children()
+            obj = qs.get(name=name, label=label)
+            if type in data:
+                data[type] = obj
+        doc = data['document']
+        entity = data['entity']
+        if doc and entity:
+            doc_text = doc.has_text_in()
+            q = Q(tree_id=doc_text.tree_id, rgt__gt=doc_text.lft)
+            bound = doc._get_texts_bound()
+            if bound is not None:
+                q &= Q(lft__lt=bound.lft)
+            text = get_last(entity.has_text_of().filter(q))
+
+
+
+
+
+
 
 class TextResource(ModelResource): 
 
