@@ -1265,13 +1265,12 @@ class Task(models.Model):
         (SUBMITTED, 'submitted'),
         (COMPLETED, 'completed'),
     )
-    doc = models.ForeignKey(Doc)
+    doc = models.ForeignKey(Doc, editable=False)
     membership = models.ForeignKey(Membership)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ASSIGNED)
 
     class Meta:
         unique_together = ('doc', 'membership', )
-
 
 class Partner(models.Model):
     name = models.CharField(max_length=80, unique=True, db_index=True)
