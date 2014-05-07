@@ -178,7 +178,7 @@ urlpatterns = patterns(
 
 if settings.DEBUG:
     urlpatterns += static('/client', 
-                          document_root=settings.ROOT_PATH + '../client')
+                          document_root=settings.ROOT_PATH + '/../client')
     urlpatterns += static('/interface',
-                          document_root=settings.ROOT_PATH + '../interface')
+                          document_root=settings.ROOT_PATH + '/../interface')
 
