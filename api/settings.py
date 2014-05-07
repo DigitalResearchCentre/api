@@ -180,12 +180,13 @@ TASTYPIE_DEFAULT_FORMATS = ['json', 'xml']
 ############################## custom settings ##############################
 DATABASES = {
    'default': {
-       'ENGINE': 'django.db.backends.mysql',
+       'ENGINE': 'mysql.connector.django',
        'NAME': 'drc',
        'USER': 'drc',
        'PASSWORD': 'drc',
-       'HOST': '',
-       'PORT': '',
+       'OPTIONS': {
+          'autocommit': True,
+        },
    }
 }
 
