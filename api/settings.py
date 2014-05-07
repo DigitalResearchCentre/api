@@ -1,4 +1,5 @@
-# Django settings for api project.
+import os
+ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -55,16 +56,6 @@ MEDIA_ROOT = ''
 # trailing slash.
 # Examples: "http://example.com/media/", "http://media.example.com/"
 MEDIA_URL = ''
-
-# Absolute path to the directory static files should be collected to.
-# Don't put anything in this directory yourself; store your static files
-# in apps' "static/" subdirectories and in STATICFILES_DIRS.
-# Example: "/var/www/example.com/static/"
-STATIC_ROOT = ''
-
-# URL prefix for static files.
-# Example: "http://example.com/static/", "http://static.example.com/"
-STATIC_URL = '/static/'
 
 # Additional locations of static files
 STATICFILES_DIRS = (
@@ -184,8 +175,25 @@ LOGGING = {
     }
 }
 
-
 TASTYPIE_DEFAULT_FORMATS = ['json', 'xml']
+
+############################## custom settings ##############################
+DATABASES = {
+   'default': {
+       'ENGINE': 'django.db.backends.mysql',
+       'NAME': 'drc',
+       'USER': 'drc',
+       'PASSWORD': 'drc',
+       'HOST': '',
+       'PORT': '',
+   }
+}
+
+BASE_URL = 'http://localhost:8000/'
+
+STATIC_ROOT = os.path.join(ROOT_PATH, 'static')
+STATIC_URL = '/static/'
+
 LOGIN_REDIRECT_URL = '/auth/'
 FROM_EMAIL = 'noreply@textualcommunities.usask.ca'
 PARTNER_BASE = 'http://localhost:8080'

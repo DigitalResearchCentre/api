@@ -33,6 +33,6 @@
     "jquery-ui": "~1.10.3"
   },
   "resolutions": {
-    "jquery": "2.0.3"
+    "jquery": "2.1.1"
   }
 }

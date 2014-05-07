@@ -177,7 +177,8 @@ urlpatterns = patterns(
 ) + v1_api.urls
 
 if settings.DEBUG:
-    urlpatterns += static('/client', document_root=settings.CLIENT_ROOT)
-    urlpatterns += static('/interface', document_root=settings.CLIENT_ROOT +
-                          '../interface')
+    urlpatterns += static('/client', 
+                          document_root=settings.ROOT_PATH + '../client')
+    urlpatterns += static('/interface',
+                          document_root=settings.ROOT_PATH + '../interface')
 
