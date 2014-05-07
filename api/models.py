@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("default", category=PendingDeprecationWarning)
+
 import math
 import os
 import StringIO

@@ -5,6 +5,7 @@ cd $ROOT_DIR
 
 # pre-requirements: 
 #   python 
+#   mysql
 #   rabbitmq    http://www.rabbitmq.com/download.html
 #   bower       http://bower.io/
 
