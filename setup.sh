@@ -33,7 +33,8 @@ if [ ! -d venv ]; then
 fi
 
 [[ "$VIRTUAL_ENV" == "" ]];. venv/bin/activate
-pip install -U pip Pillow django django-treebeard django-cors-headers djangorestframework django-filter celery defusedxml django-tastypie jsonfield django-activity-stream lxml feedparser mysql-connector-python
+pip install -U pip 
+pip install -U Pillow django django-treebeard django-cors-headers djangorestframework django-filter celery defusedxml django-tastypie jsonfield django-activity-stream lxml feedparser mysql-connector-python --allow-external mysql-connector-python
 
 cd client
 bower install
