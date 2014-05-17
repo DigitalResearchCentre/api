@@ -44,7 +44,6 @@ bower install
 
 # CREATE DATABASE api CHARACTER SET utf8 COLLATE utf8_bin;
 # celery worker --app=mycelery -l info
-CREATE USER 'api'@'localhost' IDENTIFIED BY 'api';
-GRANT ALL ON api.* TO 'api'@'localhost';
-
-mysql -u api -p api < setup/db2.sql
+# CREATE USER 'api'@'localhost' IDENTIFIED BY 'api';
+# GRANT ALL ON api.* TO 'api'@'localhost';
+# mysql -u api -p api < setup/db2.sql
