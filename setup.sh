@@ -42,5 +42,5 @@ ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip insta
 cd client
 bower install
 
-# CREATE DATABASE grubstreet CHARACTER SET utf8 COLLATE utf8_bin;
+# CREATE DATABASE api CHARACTER SET utf8 COLLATE utf8_bin;
 # celery worker --app=mycelery -l info

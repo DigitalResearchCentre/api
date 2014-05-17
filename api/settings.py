@@ -172,9 +172,9 @@ TASTYPIE_DEFAULT_FORMATS = ['json', 'xml']
 DATABASES = {
    'default': {
        'ENGINE': 'django.db.backends.mysql',
-       'NAME': 'drc',
-       'USER': 'drc',
-       'PASSWORD': 'drc',
+       'NAME': 'api',
+       'USER': 'api',
+       'PASSWORD': 'api',
    }
 }
 
