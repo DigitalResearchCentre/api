@@ -4,11 +4,11 @@
   <title>Textual Communities</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="lib/codemirror/lib/codemirror.css">
+  <link rel="stylesheet" href="bower_components/codemirror/lib/codemirror.css">
   <link rel="stylesheet" media="screen"
-    href="lib/bootstrap/dist/css/bootstrap.css"/>
+    href="bower_components/bootstrap/dist/css/bootstrap.css"/>
   <link rel="stylesheet" media="screen"
-    href="lib/dynatree/src/skin/ui.dynatree.css"/>
+    href="bower_components/dynatree/src/skin/ui.dynatree.css"/>
 
   <!--[if lt IE 9]>
   <script src="lib/bootstrap/assets/js/html5shiv.js"></script>
@@ -169,7 +169,7 @@
     </div>
 
   <script src="js/config.js" type="text/javascript"></script>
-  <script data-main="js/profile" src="lib/requirejs/require.js"></script>
+  <script data-main="js/profile" src="bower_components/requirejs/require.js"></script>
 
   <script type="text/template" id="community-form-tmpl">
     <form role="form" class="form-horizontal">
@@ -334,6 +334,21 @@
     </form>
   </script>
   <script type="text/template" id="user-info-tmpl">
+    <nav class="navbar navbar-default" role="navigation">
+      <div class="container-fluid">
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <div class="navbar-header">
+            <a class="navbar-brand home-link" href="#">Home</a>
+          </div>
+          <ul class="nav navbar-nav navbar-right">
+            <li class="signout">
+              <button type="button" class="btn btn-default navbar-btn signout">Sign Out</button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
     <div class="panel panel-default">
       <div class="panel-heading">
         Welcome, <%- first_name %> <%- last_name %>

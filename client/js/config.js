@@ -1,10 +1,10 @@
-var LIB = '../lib/'
+var LIB = '../bower_components/'
 
 var require = {
   paths: {
     jquery: [
+      LIB + 'jquery/dist/jquery.min',
       '//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min',
-      LIB + 'jquery/jquery'
     ],
     backbone: LIB + 'backbone-amd/backbone',
     underscore: LIB + 'underscore-amd/underscore',

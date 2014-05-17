@@ -35,13 +35,12 @@ fi
 
 [[ "$VIRTUAL_ENV" == "" ]];. venv/bin/activate
 pip install -U pip 
-pip install -U django django-treebeard django-cors-headers djangorestframework django-filter celery defusedxml django-tastypie jsonfield django-activity-stream feedparser mysql-connector-python --allow-external mysql-connector-python
+pip install -U django django-treebeard django-cors-headers djangorestframework django-filter celery==3.1.9 defusedxml django-tastypie jsonfield django-activity-stream feedparser MySQL-python
+#mysql-connector-python --allow-external mysql-connector-python
 ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install -U Pillow lxml
 
 cd client
 bower install
 
+# CREATE DATABASE grubstreet CHARACTER SET utf8 COLLATE utf8_bin;
 # celery worker --app=mycelery -l info
-
-# useradd -M celery
-# usermod -L celery

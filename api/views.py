@@ -346,7 +346,10 @@ class CommunityList(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         response = self.create(request, *args, **kwargs)
         if hasattr(self, 'object') and self.object:
-            self.create_liferay_community()
+            try:
+                self.create_liferay_community()
+            except Exception:
+                pass
             self.object.add_membership(
                 user=request.user, community=self.object,
                 role=Group.objects.get(name='Leader'))

@@ -39,6 +39,8 @@ require([
     },
     onCommunityLinkClick: function(){
         var community = this.model.getCommunity();
+        window.location = urls.restBase + 'interface/indexajax.html?community=' + community.get('abbr');
+        return;
         var url = urls.get(['community:friendly_url', {pk: community.id}]);
         $.get(url, function(friendlyURL) {
           window.parent.location = friendlyURL + '/viewer';
@@ -70,7 +72,8 @@ require([
   var ProfileView = Backbone.View.extend({
     el: '#app',
     events: {
-      'click .create-community-btn': 'onCreateCommunity'
+      'click .create-community-btn': 'onCreateCommunity',
+      'click .home-link': 'onHomeLinkClick',
     },
     template: _.template($('#user-info-tmpl').html()),
     initialize: function() {
@@ -80,6 +83,9 @@ require([
       if (!memberships.isFetched()) {
         memberships.fetch();
       }
+    },
+    onHomeLinkClick: function(){
+      window.location = urls.homeURL;
     },
     onMembershipAdd: function(membership) {
       var $memberships = this.$('.membership-list');
@@ -115,7 +121,7 @@ require([
 
   if (!auth.isLogin()) {
     auth.login().fail(function() {
-        window.location = urls.loginURL; 
+        window.location = urls.homeURL; 
     });
   } 
   auth.on('login', function() {

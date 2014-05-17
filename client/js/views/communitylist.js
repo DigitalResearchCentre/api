@@ -31,6 +31,8 @@ define([
     onCommunityAdd: function($ul, community) {
       var $a = $('<a href="#"/>').text(community.get('name'));
       $a.click(_.bind(function() {
+        window.location = urls.restBase + 'interface/indexajax.html?community=' + community.get('abbr');
+        return;
         var url = urls.get(['community:friendly_url', {pk: community.id}]);
         $.get(url, function(friendlyURL) {
           window.parent.location = friendlyURL;

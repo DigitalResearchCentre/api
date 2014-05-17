@@ -48,15 +48,6 @@ USE_L10N = True
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
-# Absolute filesystem path to the directory that will hold user-uploaded files.
-# Example: "/var/www/example.com/media/"
-MEDIA_ROOT = ''
-
-# URL that handles the media served from MEDIA_ROOT. Make sure to use a
-# trailing slash.
-# Examples: "http://example.com/media/", "http://media.example.com/"
-MEDIA_URL = ''
-
 # Additional locations of static files
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
@@ -180,20 +171,20 @@ TASTYPIE_DEFAULT_FORMATS = ['json', 'xml']
 ############################## custom settings ##############################
 DATABASES = {
    'default': {
-       'ENGINE': 'mysql.connector.django',
+       'ENGINE': 'django.db.backends.mysql',
        'NAME': 'drc',
        'USER': 'drc',
        'PASSWORD': 'drc',
-       'OPTIONS': {
-          'autocommit': True,
-        },
    }
 }
 
 BASE_URL = 'http://localhost:8000/'
 
-STATIC_ROOT = os.path.join(ROOT_PATH, 'static')
+STATIC_ROOT = os.path.join(ROOT_PATH, '..', 'static')
 STATIC_URL = '/static/'
+MEDIA_ROOT = os.path.join(ROOT_PATH, '..', 'static', 'media')
+MEDIA_URL = '/static/media/'
+
 
 LOGIN_REDIRECT_URL = '/auth/'
 FROM_EMAIL = 'noreply@textualcommunities.usask.ca'

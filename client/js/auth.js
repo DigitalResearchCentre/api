@@ -1,6 +1,6 @@
 define([
-  'underscore', 'jquery', 'models', 'jquery.cookie'
-], function(_, $, models){
+  'underscore', 'jquery', 'models', 'env', 'jquery.cookie'
+], function(_, $, models, env){
   var User = models.User;
   
   var AuthUser = User.extend({
@@ -19,7 +19,7 @@ define([
       return !!this.id;
     },
     login: function(args) {
-      return this.fetch(args).done(function() {
+      return this.fetch(args).always(function() {
         var csrftoken = $.cookie('csrftoken');
         $.ajaxSetup({
           crossDomain: false,
@@ -31,6 +31,13 @@ define([
           },
           dataType: 'json'
         });
+      });
+    },
+    logout: function() {
+      var self = this;
+      $.get(env.logoutURL).done(function(){
+        self.trigger('logout');
+        window.location.reload();
       });
     },
     getUser: function() {
