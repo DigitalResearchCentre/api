@@ -38,7 +38,7 @@ var mintocwidth=200;
 var minheight=760;
 var url = "http://localhost:8000/"; 
 //var urlstatic = "http://textualcommunities.usask.ca/media/tc/"; 
-var urlstatic = url + "/static/media/"; 
+var urlstatic = url + "static/media/"; 
 //    var community="T25";   
 //    var community="JDP1";   
 var community="BD32";  
@@ -799,7 +799,7 @@ function loadTCDocIdText(pageid, pagekey) {
             + 'var $imageMap = $(".image_map");'
             + 'var options = {zoom: 2 , minZoom: 1, maxZoom: 5};'
             + 'imageMap = new ImageMap($imageMap[0], '
-            +   '"http://textualcommunities.usask.ca/api/docs/'
+            +   '"http://localhost:8000/docs/'
             +   pageid +'/has_image/", options);<' + '/script>';
             $('#docimage').html(imagecall);
             imageLoaded=1;

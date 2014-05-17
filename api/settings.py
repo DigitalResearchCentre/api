@@ -180,9 +180,9 @@ DATABASES = {
 
 BASE_URL = 'http://localhost:8000/'
 
-STATIC_ROOT = os.path.join(ROOT_PATH, '..', 'static')
+STATIC_ROOT = os.path.join(ROOT_PATH, 'static')
 STATIC_URL = '/static/'
-MEDIA_ROOT = os.path.join(ROOT_PATH, '..', 'static', 'media')
+MEDIA_ROOT = os.path.join(ROOT_PATH, 'static', 'media')
 MEDIA_URL = '/static/media/'
 
 

@@ -3,8 +3,8 @@ define([], function(){
     , restBase = hostURL
   ;
   return {
-    mediaURL: '',
     restBase: restBase,
+    mediaURL: restBase + 'static/media/',
     clientBase: restBase + 'client/',
     homeURL: restBase + 'client/index.html',
     loginURL: restBase+ 'auth/login/',
