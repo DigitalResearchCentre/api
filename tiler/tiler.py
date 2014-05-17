@@ -16,7 +16,8 @@ class Tiler:
         while width > size or height > size:
             width /= 2.0
             height /= 2.0
-        return img.resize((width, height), Image.ANTIALIAS)
+        r = img.resize((int(width), int(height)), Image.ANTIALIAS)
+        return r
 
     def create_tile(self, image, zoom, x, y):
         image = Image.open(image)
