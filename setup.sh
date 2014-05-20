@@ -5,6 +5,7 @@ cd $ROOT_DIR
 
 # pre-requirements: 
 #   python 
+#   libjpeg
 #   mysql
 #   rabbitmq    http://www.rabbitmq.com/download.html
 #   bower       http://bower.io/
@@ -42,8 +43,10 @@ ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip insta
 cd client
 bower install
 
-# CREATE DATABASE api CHARACTER SET utf8 COLLATE utf8_bin;
 # celery worker --app=mycelery -l info
+
+# first time database setup
+# CREATE DATABASE api CHARACTER SET utf8 COLLATE utf8_bin;
 # CREATE USER 'api'@'localhost' IDENTIFIED BY 'api';
 # GRANT ALL ON api.* TO 'api'@'localhost';
 # mysql -u api -p api < setup/db2.sql
