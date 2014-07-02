@@ -23,6 +23,7 @@ admin.autodiscover()
 urlpatterns = patterns(
     '',
     url(r'^$', api_root),
+    url(r'^regularize/', include('regularize.urls')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^communities/$', CommunityList.as_view(), name='community-list'),
     url(r'^communities/(?P<pk>\d+)/$', CommunityDetail.as_view()),

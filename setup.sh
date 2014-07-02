@@ -36,7 +36,7 @@ fi
 
 [[ "$VIRTUAL_ENV" == "" ]];. venv/bin/activate
 pip install -U pip 
-pip install -U django django-treebeard django-cors-headers djangorestframework django-filter celery==3.1.9 defusedxml django-tastypie jsonfield django-activity-stream feedparser 
+pip install -U django django-treebeard django-cors-headers djangorestframework django-filter jsonpickle httplib2 celery==3.1.9 defusedxml django-tastypie jsonfield django-activity-stream feedparser 
 #mysql-connector-python --allow-external mysql-connector-python
 ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install -U Pillow lxml MySQL-python
 

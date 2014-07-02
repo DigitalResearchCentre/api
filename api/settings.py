@@ -205,6 +205,9 @@ CELERY_TRACK_STARTED = True
 #PARTNER_API = PARTNER_BASE + '/textual-community-portlet/api'
 #PARTNER_URL = PARTNER_API + '/secure/jsonws/myorganization/'
 
+COLLATEX_ENDPOINT = 'http://localhost:7369/'
+COLLATE_URL = COLLATEX_ENDPOINT + 'collate'
+
 try:
     from env import *
 except ImportError, e:
