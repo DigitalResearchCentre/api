@@ -14,8 +14,23 @@ from api.models import Text, Action, Community, Doc, Attr
 class DynamicField(object):
     pass
 
-class DynamicToOneField(DynamicField, fields.ToOneField):
-    pass
+class DynamicToOneField(fields.ToOneField):
+    ID_AFFIX = '_id'
+
+    def __init__(self, to, attribute, **kwargs):
+        super(DynamicToOneField, self).__init__(to, attribute, 
+                                                full=True, **kwargs)
+
+    def dehydrate(self, bundle, **kwargs):
+        if self.attribute in bundle.request.GET.get('fields', '').split(','):
+            return super(DynamicToOneField, self).dehydrate(bundle, **kwargs)
+        fk = getattr(bundle.obj, '%s%s' % (self.attribute, self.ID_AFFIX), None)
+        if fk:
+            fk_resource = self.get_related_resource(None)
+            fake_obj = lambda: None
+            setattr(fake_obj, 'pk', fk)
+            return fk_resource.get_resource_uri(bundle_or_obj=fake_obj)
+
 
 class DynamicCharField(DynamicField, fields.CharField):
     pass
@@ -30,7 +45,7 @@ class DynamicModelResource(ModelResource):
         super(DynamicModelResource, self).__init__(*args, **kwargs)
         self.dynamic_fields = {}
         for field_name, field_object in self.fields.items():
-            if isinstance(field_object, DynamicField):
+            if isinstance(field_object, DynamicToManyField):
                 self.dynamic_fields[field_name] = self.fields.pop(field_name)
 
     def get_object_list(self, request):
@@ -40,18 +55,36 @@ class DynamicModelResource(ModelResource):
             objects = objects.select_related(*fs)
             for field_name, field_object in self.dynamic_fields.items():
                 if field_name in fs:
+                    if isinstance(field_object, DynamicToOneField):
+                        field_object.full = True
                     if field_name not in self.fields:
                         self.fields[field_name] = field_object
                 else:
+                    if isinstance(field_object, DynamicToOneField):
+                        field_object.full = False
                     if field_name in self.fields:
                         self.fields.pop(field_name)
         return objects
+
 
 class APIResource(DynamicModelResource):
     class Meta:
         authentication = SessionAuthentication()
         authorization = DjangoAuthorization()
         always_return_data = True
+
+    def prepend_urls(self):
+        base = ('(?P<resource_name>%s)/(?P<pk>\w[\w/-]*)/' %
+                self._meta.resource_name) + '%s' + trailing_slash()
+        urls = []
+        for api in self.detail_apis():
+            if isinstance(api, str):
+                view = api
+            urls.append(url(r'^%s$' % (base % api), self.wrap_view(view)))
+        return urls
+
+    def detail_apis(self):
+        return []
 
     def is_authenticated(self, request):
         auth_result = self._meta.authentication.is_authenticated(request)
@@ -154,6 +187,9 @@ class DocResource(APIResource):
 
     class Meta(APIResource.Meta):
         queryset = Doc.objects.all()
+
+    def detail_apis(self):
+        return ['has_text_in']
 
     def apply_filters(self, request, filters):
         objects = super(DocResource, self).apply_filters(request, filters)
