@@ -20,6 +20,8 @@ require([
         var model = this.model;
         this.community = model.getCommunity();
         this.role = model.getRole();
+        this.tasks = this.model.getTasks();
+        this.listenTo(this.tasks, 'add', this.onTaskAdd);
 
         this.listenTo(model, 'remove', this.remove);
         this.listenTo(model, 'view:onAdminClick', this.onAdminClick);
@@ -50,8 +52,64 @@ require([
         this.$el.html(this.template());
         this.community.fetch();
         this.role.fetch();
+        this.tasks.each(this.onTaskAdd, this);
+        this.tasks.fetch();
+        this.$('td>ul').addClass('folder folder-close');
+        this.$('td>span').
+          addClass('btn glyphicon glyphicon-folder-close').
+          click(_.bind(this.onToggleClick, this));
+
         this.onChange();
         return this;
+    },
+    onToggleClick: function (event){
+      var $el = $(event.target);
+      $el.toggleClass('glyphicon-folder-close glyphicon-folder-open');
+      $el.siblings('ul').toggleClass('folder-open folder-close');
+    },
+    onTaskAdd: function (task) {
+      var cls, $td, $ul, $a,
+      doc = task.getDoc(),
+      status = task.status;
+
+      switch (task.get('status')) {
+        case status.ASSIGNED:
+          cls = 'assigned';
+          break;
+        case status.IN_PROGRESS:
+          cls = 'in-progress';
+          break;
+        case status.SUBMITTED:
+          cls = 'submitted';
+          break;
+        case status.COMPLETED:
+          cls = 'completed';
+          break;
+        default:
+          return;
+      }
+      $td = this.$('.' + cls);
+      $ul = $td.children('ul');
+      $a = $('<a href="#task=' + task.id + '">'+doc.get('name')+'</a>');
+      doc.getUrn().done(function(urn){
+        var name = [];
+        _.each(urn.split(':'), function (parts) {
+          parts = parts.split('=');
+          if (parts.length > 1) {
+            name.push(parts[1]);
+          }
+        });
+        $a.text(name.join(':'));
+      });
+      $a.click(_.bind(function () {
+        this.options.viewTask(task);
+      }, this));
+      this.listenTo(doc, 'change', function () {
+        $a.text(doc.get('name'));
+      });
+      doc.fetch();
+      $ul.append($('<li></li>').append($a));
+      $td.children('span').text(' ' + $ul.children().length + ' tasks');
     },
     onChange: function () {
         var $el = this.$el,

@@ -73,19 +73,6 @@ class APIResource(DynamicModelResource):
         authorization = DjangoAuthorization()
         always_return_data = True
 
-    def prepend_urls(self):
-        base = ('(?P<resource_name>%s)/(?P<pk>\w[\w/-]*)/' %
-                self._meta.resource_name) + '%s' + trailing_slash()
-        urls = []
-        for api in self.detail_apis():
-            if isinstance(api, str):
-                view = api
-            urls.append(url(r'^%s$' % (base % api), self.wrap_view(view)))
-        return urls
-
-    def detail_apis(self):
-        return []
-
     def is_authenticated(self, request):
         auth_result = self._meta.authentication.is_authenticated(request)
 
@@ -145,8 +132,8 @@ class SearchResource(APIResource):
 
 
 
-class TextResource(ModelResource): 
-
+class TextResource(APIResource): 
+    doc = DynamicToOneField('api.resource.DocResource', 'doc', null=True)
     class Meta:
         queryset = Text.objects.all()
 
@@ -155,13 +142,21 @@ class UserResource(ModelResource):
         queryset = User.objects.all()
         excludes = ['password', ]
 
-class CommunityResource(ModelResource):
+class CommunityResource(APIResource):
+    docs = NestedField('docs')
+
     class Meta:
         queryset = Community.objects.all()
 
+    @property
+    def detail_url(self):
+        return r'^(?P<resource_name>%s)/(?P<%s>.*?)/$' % (
+            self._meta.resource_name, self._meta.detail_uri_name,)
+
+
 class ActionResource(ModelResource):
-    user = DynamicToOneField(UserResource, 'user', full=True)
-    community = DynamicToOneField(CommunityResource, 'community', full=True)
+    user = DynamicToOneField(UserResource, 'user')
+    community = DynamicToOneField(CommunityResource, 'community')
     status = fields.CharField('get_status')
 
     class Meta:
@@ -176,7 +171,6 @@ class ActionResource(ModelResource):
             objects = objects.select_related(*fields)
         return objects
 
-
 class DocResource(APIResource):
     facs = DynamicCharField()
     rend = DynamicCharField()
@@ -187,9 +181,6 @@ class DocResource(APIResource):
 
     class Meta(APIResource.Meta):
         queryset = Doc.objects.all()
-
-    def detail_apis(self):
-        return ['has_text_in']
 
     def apply_filters(self, request, filters):
         objects = super(DocResource, self).apply_filters(request, filters)
