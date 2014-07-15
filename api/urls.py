@@ -95,6 +95,7 @@ urlpatterns = patterns(
             {'func': 'prev'},
             {'func': 'parent'},
             {'func': 'has_parts'},
+            {'func': 'witnesses'},
             {'func': 'xml'},
             {'func': 'xml', 'func_args': '(?P<doc_pk>\d+)/'},
             {'func': 'has_text_of', 'serializer_class': TextSerializer},

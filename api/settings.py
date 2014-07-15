@@ -53,6 +53,7 @@ STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    os.path.join(ROOT_PATH, '..', 'client'),
 )
 
 # List of finder classes that know how to find static files in
@@ -82,7 +83,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'api.middleware.QueryLogMiddleware',
+    #'api.middleware.QueryLogMiddleware',
     'api.middleware.PartnerMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -114,6 +115,7 @@ INSTALLED_APPS = (
 
     'api',
     'auth',
+    'regularize',
     'mycelery',
 )
 

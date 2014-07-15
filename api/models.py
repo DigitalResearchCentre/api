@@ -348,6 +348,17 @@ class Entity(DETNode):
                 result.append(text.xml())
         return result
 
+    def witnesses(self):
+        urn = self.get_urn()
+        witnesses = []
+        for text in self.has_text_of():
+            root = etree.XML(text.xml())
+            witnesses.append({
+                'id': str(text.id),
+                'content': etree.tostring(root, method='text', encoding='UTF-8')
+            })
+        return witnesses
+
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)
 

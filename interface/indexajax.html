@@ -597,6 +597,7 @@ function makeEntMenu(rootMenu) {
 				var entityText="";
 				var numdocs=0;
 				$.getJSON(url+'entities/'+node.data.lineid+'/has_text_of?page_size=0&format=json',function(thisdoc){
+                                  console.log(node.data.lineid);
 					 $.each(thisdoc, function(i, pageurl) {
 					 	//rewrite this to make it really recursive
 					 	//problem -- could be relic text from deleted document

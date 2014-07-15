@@ -143,7 +143,13 @@ class UserResource(ModelResource):
         excludes = ['password', ]
 
 class CommunityResource(APIResource):
-    docs = NestedField('docs')
+
+    # if full=False, display url
+    # otherwise ToMany or whatever Field
+    # what url should display ?
+    # this two is better, because texts/?doc=1 may not always work
+    # docs/1/texts
+    # docs/1/has_text_in
 
     class Meta:
         queryset = Community.objects.all()

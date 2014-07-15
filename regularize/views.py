@@ -14,6 +14,8 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 
 from models import Rule, RuleSet, Modification, Alignment
+from lxml import etree
+from api.models import Entity
 
 @login_required
 def regularization(request):
@@ -49,7 +51,6 @@ def regularization(request):
         request.session['images'] = images
         if request.session.get('selectedWitnesses'):
             jdata = json.loads(request.session.pop('selectedWitnesses'))
-            #print jdata
             witnesses = jdata['witnesses']
             request.session['selectedWitnesses'] = json.dumps(jdata)
             allWitnesses = False
@@ -68,12 +69,16 @@ def regularization(request):
             request.session['images'] = images
         else:
             allWitnesses = True
-            witData = getWitnessData(urn)
-            witnesses = json.loads(witData[0])
-            witnesses = checkDuplicateWitnesses(witnesses['witnesses'])
+            entity_id = request.GET.get('entity', '')
+            witnesses = []
+            images = []
+            images = json.dumps(images)
+            #witData = getWitnessData(urn)
+            #witnesses = json.loads(witData[0])
+            #witnesses = checkDuplicateWitnesses(witnesses['witnesses'])
             request.session['data'] = witnesses
-            request.session['images'] = witData[1]
-            images = witData[1]
+            #request.session['images'] = witData[1]
+            #images = witData[1]
             
         ruleSets = json.loads(getRuleSets(username, urn))
         ruleSetName = 'default'
@@ -93,17 +98,23 @@ def regularization(request):
                 if rs['name'] == "default":
                     ruleSet = rs
 
-    witnesses = json.dumps({'witnesses': witnesses})
+    #witnesses = json.dumps({'witnesses': witnesses})
     ruleSet = json.dumps({'ruleSet': ruleSet})
     request.session['urn'] = urn
 
-    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-    send = httplib2.Http()
-    print witnesses
-    response, content = send.request(settings.COLLATE_URL, 'POST', 
-                                     witnesses, headers)
-    print witnesses
-    return render_to_response('jsRegularize/collate_interface.html', {"userName" : username, "urn" : urn, "witnessesTokens" : content, "witnessesLines": witnesses, "ruleSetName": ruleSetName, "ruleSet": ruleSet, "position": 0, "images": images, "returnUrl": returnUrl, "isAllWitnesses": allWitnesses}, context_instance=RequestContext(request))
+    print ruleSet
+    return render_to_response('regularize/collate_interface.html', {
+        "userName" : username, 
+        "urn" : 'entity=1:doc=2', 
+        "witnessesTokens" : '{"table": []}', 
+        "witnessesLines": '[[]]', 
+        "ruleSetName": ruleSetName, 
+        "ruleSet": ruleSet, 
+        "position": 0,
+        "images": images, 
+        "returnUrl": returnUrl,
+        "isAllWitnesses": allWitnesses
+    }, context_instance=RequestContext(request))
 
 def checkDuplicateWitnesses(witnesses):
     w1Num = 0
@@ -137,20 +148,16 @@ def getWitnessData(urn):
     documentInfo = json.loads(content)
 
     length = len(documentInfo['hastextof'])
-    #print length
     numberLength = 0
     for witness in documentInfo['hastextof']:
         if(number == length):
             break
         numberLength = numberLength + 1
-        #print numberLength
         url = urlText + str(witness) + "/"
         response, content = send.request(url, 'GET')
         text = json.loads(content)
-        #print content
 
         url = urlDet + str(text['istextin']) + "/"
-        # #print url
         try:
             response, content = send.request(url, 'GET')
             det = json.loads(content)
@@ -159,7 +166,6 @@ def getWitnessData(urn):
                 jdata = jdata + ','
                 jdata2 = jdata2 + ','
             #jdata = jdata + '{"urn": ' + jsonpickle.encode(det['urn']) + ','
-            #print det['urn']
             
             _id = det['urn'].split("document=")[1]
             _id = "".join(_id)
@@ -168,10 +174,8 @@ def getWitnessData(urn):
             #jdata = jdata + '"id": ' + jsonpickle.encode(_id) + ','
             jdata = jdata + '{"id": ' + jsonpickle.encode(_id) + ','
             jdata2 = jdata2 + '{"id": ' + jsonpickle.encode(_id) + ','
-            # print _id
 
             #jdata = jdata + '"img": ' + jsonpickle.encode(det['img']) + ','
-            # print det['img']
 
             x = text['xml'].split("\n")
             x = "".join(x)
@@ -211,10 +215,8 @@ def getWitnessData(urn):
             x = parser.unescape(x)
             jdata = jdata + '"content": ' + jsonpickle.encode(x) + '}'
             jdata2 = jdata2 + '"url": ' + jsonpickle.encode(det['img']) + '}'
-            # print x
 
             number = number + 1
-            #print text['istextin']
         except ValueError:
             print "valueError: " + str(text['istextin'])
 
@@ -224,7 +226,6 @@ def getWitnessData(urn):
     dataList = []
     dataList.append(jdata)
     dataList.append(jdata2)
-    #pprint.pprint(jdata)
 
     return dataList
 
@@ -310,7 +311,6 @@ def getRuleSets(userName, urn):
                 jdata = jdata + ']}'
                 ruleSetNum = ruleSetNum + 1
         jdata = jdata + ']}'
-        #print jdata
         return jdata
 
 @csrf_exempt
@@ -348,7 +348,6 @@ def postNewRule(request):
     if request.is_ajax():
         if request.method == 'POST':
             jdata = json.loads(request.raw_post_data)
-            print jdata
 
             # if jdata['rules'][0]['scope'] == 'this_place':
             #     filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
@@ -400,7 +399,6 @@ def changeRules(request):
     if request.is_ajax():
        if request.method == 'POST':
            jdata = json.loads(request.raw_post_data)
-           print jdata
 
            filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName'])
@@ -428,7 +426,6 @@ def changeRules(request):
                         modifiedRule.modifications.add(m)
                         
                         modify = modification['modifications'][-1]['modification_type']
-                        print modify
                         if modify != 'delete':
                             modify = modify.split("modify(")
                             modify = "".join(modify)
@@ -461,19 +458,28 @@ def changeRules(request):
                         
     return HttpResponse("OK")
 
+def collate(request):
+    data = request.GET.get('data')
+    send = httplib2.Http()
+    response, content = send.request(
+        settings.COLLATE_URL, 'POST', data.encode('utf-8'), {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json'
+        },
+    )
+    return HttpResponse(content, content_type='application/json')
+
 @csrf_exempt
 def postRecollate(request):
     if request.is_ajax():
        if request.method == 'POST':
            request.session['recollate'] = request.raw_post_data
-           #print request.raw_post_data
            
     return HttpResponse("OK")
 
 def sendRecollate(request):
     if request.session.get('recollate'):
         jdata = request.session.pop('recollate')
-        #print jdata
         #jdata2 = json.loads(jdata)
         
     url = 'http://127.0.0.1:8080/collatex-web-0.9.1-RC2/api/collate'
@@ -481,14 +487,11 @@ def sendRecollate(request):
 
     send = httplib2.Http()
     response, content = send.request(url, 'POST', jdata, headers)
-    #print response
-    #print content
 
     return HttpResponse(content, mimetype="application/json")
 
 def getBaseTokens(request):
     #jdata = getTestData()
-    #print jdata
     
     if request.session.get('data'):
         jdata = request.session.pop('data')
@@ -507,7 +510,6 @@ def getBaseTokens(request):
 
     send = httplib2.Http()
     response, content = send.request(url, 'POST', jdata, headers)
-    #print content
     return HttpResponse(content, mimetype="application/json")
 
 def getTestData():
@@ -533,7 +535,6 @@ def postNewAlign(request):
     if request.is_ajax():
         if request.method == 'POST':
             jdata = json.loads(request.raw_post_data)
-            #print jdata
 
             filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName'])
@@ -541,7 +542,6 @@ def postNewAlign(request):
             if filteredRuleSet and filteredRuleSet.count() == 1:
                 for newAlign in jdata['alignments']:
                     found = False
-                    print newAlign
                     for align in filteredRuleSet[0].alignments.all():
                         if (align.appliesTo == jdata['urn'] and align.appliesTo == \
                             newAlign['appliesTo'] and align.witnessId == \
@@ -552,11 +552,9 @@ def postNewAlign(request):
                             newAlign['position'] and align.position == \
                             newAlign['token'] and align.context == \
                             newAlign['context']):
-                            print "hereFound"
                             found = True
                         
                     if not found:
-                        print "here"
                         m = Modification()
                         m.userId = jdata['userName']
                         m.modification_type = newAlign['modifications'][0]\
@@ -574,7 +572,6 @@ def postNewAlign(request):
                         a.context = newAlign['context']
                         a.position = newAlign['position']
                         a.save()
-                        print a.witnessId
                         a.modifications.add(m)
                         filteredRuleSet[0].alignments.add(a)
             else:
@@ -587,7 +584,6 @@ def changeAligns(request):
     if request.is_ajax():
        if request.method == 'POST':
            jdata = json.loads(request.raw_post_data)
-           print jdata
 
            filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName'])
@@ -610,7 +606,6 @@ def changeAligns(request):
                            for modificationIn in modifications:
                                if(number == len(modifications) and modificationIn.modification_type != \
                                   'delete'):
-                                   print "here"
                                    m = Modification()
                                    m.userId = jdata['userName']
                                    m.modification_type = modification['modifications'][-1]\
@@ -627,7 +622,6 @@ def deleteRuleSet(request):
     if request.is_ajax():
        if request.method == 'POST':
            jdata = json.loads(request.raw_post_data)
-           print jdata
 
            filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName']).delete()
