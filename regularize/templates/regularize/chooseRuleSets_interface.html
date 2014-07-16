@@ -1,8 +1,29 @@
+{% load staticfiles %}
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <html> <head>
 <title>Choose Rule Sets</title>
 <script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" 
+  src="{% static "bower_components/uri.js/src/uri.js" %}"></script>
+
+<script type="text/javascript" 
+  src="{% static "bower_components/underscore-amd/underscore.js" %}"></script>
+
 <script type="text/javascript">
+  var API_ENDPOINT = 'http://localhost:8000/'
+    , REGULARIZE_URL = API_ENDPOINT + 'regularize/'
+  ;
+  var env = {
+    API_ENDPOINT: API_ENDPOINT,
+    REGULARIZE_URL: REGULARIZE_URL,
+    COLLATE_URL: 'http://localhost:8000/' + 'collate/',
+  };
+
+  var uri = URI()
+    , entity = uri.query(true).entity
+  ;
+
+
   var userName = "{{ userName }}";
   var urn = "{{ urn }}";
   var returnUrl = "{{ returnUrl }}";
@@ -174,11 +195,11 @@
     //console.log(deleteData);
     
     $.ajax({
-      url: "http://127.0.0.1:8000/regularization/deleteRuleSet/",
+      url: env.REGULARIZE_URL + "deleteRuleSet/",
       dataType: 'json',
       type: 'POST',
       async: false,
-      data: JSON.stringify(deleteData),
+      data: {data: JSON.stringify(deleteData)},
       success: function(data){
       }});
     
@@ -195,7 +216,6 @@
     }
     else
     {
-      
       witnessData.ruleSetName = document.getElementById("name").value;
       witnessData.ruleSet = [];
       sendJSON();
@@ -207,15 +227,15 @@
     witnessData.userName = userName;
     witnessData.urn = urn;
     $.ajax({
-      url: "http://127.0.0.1:8000/regularization/postSelectedRuleSets/",
+      url: env.REGULARIZE_URL + "postSelectedRuleSets/",
       dataType: 'json',
       type: 'POST',
       async: false,
-      data: JSON.stringify(witnessData),
+      data: {data: JSON.stringify(witnessData)},
       success: function(data){
       }});
 
-    window.location.href = "http://127.0.0.1:8000/regularization/?urn=" + urn + "&username=" + userName + "&page=" + returnUrl;
+    window.location.href = env.REGULARIZE_URL + "?entity=" + entity + "&page=" + returnUrl;
   }
 </script>
 </head>

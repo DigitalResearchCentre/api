@@ -49,7 +49,7 @@ def regularization(request):
         request.session['selectedRuleSet'] = json.dumps(jdata)
         ruleSetName = jdata['ruleSetName']
         ruleSet = jdata['ruleSet']
-        images = request.session.pop('images')
+        images = [] # request.session.pop('images')
         request.session['images'] = images
         if request.session.get('selectedWitnesses'):
             jdata = json.loads(request.session.pop('selectedWitnesses'))
@@ -239,7 +239,7 @@ def chooseRuleSetsInterface(request):
     entity = Entity.objects.get(pk=entity_id)
     urn = entity.get_urn()
     username = request.user.username
-    ruleSets = getRuleSets(userName, urn)
+    ruleSets = getRuleSets(username, urn)
     
     return render_to_response('regularize/chooseRuleSets_interface.html', {"urn" : urn, "ruleSetData": ruleSets, "returnUrl": returnUrl, 'userName': username}, context_instance=RequestContext(request))
 

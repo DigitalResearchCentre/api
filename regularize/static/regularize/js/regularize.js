@@ -270,7 +270,7 @@ function load(witnesses, tokens)
   
   if(isAllWitnesses == "True")
   {
-    document.getElementById("chooseTextsLabel").innerHTML = "all  ";
+    $('#chooseTextsLabel').text('all ');
   }
   else
   {
