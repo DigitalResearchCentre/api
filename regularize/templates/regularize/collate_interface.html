@@ -13,15 +13,29 @@
   src="{% static "bower_components/backbone-amd/backbone.js" %}"></script>
 
 <script type="text/javascript">
- var userName = "{{ userName }}";
-var urn = "{{ urn }}";
-var ruleSetName = "{{ ruleSetName }}";
-var returnUrl = "{{ returnUrl }}";
-var isAllWitnesses = "{{ isAllWitnesses }}"
-var witnessDataTokens = {{ witnessesTokens | safe }};
-var witnessDataLines = {{ witnessesLines | safe}};
-var ruleSet = {{ ruleSet | safe }};
-var allImages = {{ images | safe }};
+  var userName = "{{ userName }}";
+  var urn = "{{ urn }}";
+  var ruleSetName = "{{ ruleSetName }}";
+  var returnUrl = "{{ returnUrl }}";
+  var isAllWitnesses = "{{ isAllWitnesses }}"
+  var witnessDataTokens;
+  var witnessDataLines;
+  var ruleSet = (("{{ ruleSet }}")).replace(/&(l|g|quo)t;/g, function(a,b)
+  {
+    return {
+      l : '<',
+      g : '>',
+      quo : '"'
+    }[b];
+  });
+  var allImages = (("{{ images }}")).replace(/&(l|g|quo)t;/g, function(a,b)
+  {
+    return {
+      l : '<',
+      g : '>',
+      quo : '"'
+    }[b];
+  });
 
 var allWitnesses;
 var newRules;
@@ -48,10 +62,11 @@ var alignOn;
 var allAlign;
 var customAligns;
 var isCustomAlign;
-var map; 
- </script>
-<script type="text/javascript" src="{% static "regularize/js/regularize.js" %}">
+var map;
+
 </script>
+<script type="text/javascript" 
+  src="{% static "regularize/js/regularize.js" %}"></script>
 
 </head>
 

@@ -2,7 +2,7 @@ from django.conf.urls import patterns, include, url
 from regularize.views import (
     regularization, chooseRuleSetsInterface, postSelectedRuleSets,
     chooseTextsInterface, postNewRule, changeRules, postRecollate,
-    sendRecollate, getBaseTokens, postSelectedWitnesses, postNewAlign,
+    postSelectedWitnesses, postNewAlign,
     changeAligns, deleteRuleSet, collate
 )
 
@@ -16,8 +16,6 @@ urlpatterns = patterns('',
     url(r'^changeRules/$', changeRules),
     url(r'^collate/$', collate),
     url(r'^postRecollate/$', postRecollate),
-    url(r'^sendRecollate/$', sendRecollate),
-    url(r'^getBaseTokens/$', getBaseTokens),
     url(r'^postNewAlign/$', postNewAlign),
     url(r'^changeAligns/$', changeAligns),
     url(r'^deleteRuleSet/$', deleteRuleSet),

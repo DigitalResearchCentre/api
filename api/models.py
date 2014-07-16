@@ -349,12 +349,12 @@ class Entity(DETNode):
         return result
 
     def witnesses(self):
-        urn = self.get_urn()
         witnesses = []
         for text in self.has_text_of():
             root = etree.XML(text.xml())
+            doc = text.is_text_in()
             witnesses.append({
-                'id': str(text.id),
+                'id': doc.get_root().name if doc else str(text.id),
                 'content': etree.tostring(root, method='text', encoding='UTF-8')
             })
         return witnesses
@@ -381,11 +381,14 @@ class Entity(DETNode):
             else:
                 last = get_last(descendants)
             first_doc = first.is_text_in()
-            last_doc = last.is_text_in()
-            qs = Doc.objects.filter(
-                tree_id=first_doc.tree_id,
-                rgt__gt=first_doc.lft, lft__lt=last_doc.lft
-            )
+            if first_doc:
+                last_doc = last.is_text_in()
+                qs = Doc.objects.filter(
+                    tree_id=first_doc.tree_id,
+                    rgt__gt=first_doc.lft, lft__lt=last_doc.lft
+                )
+            else:
+                qs = Doc.objects.none()
             if doc is None:
                 qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
             else:

@@ -24,7 +24,9 @@ def regularization(request):
     #urn = "urn:det:TCUSASK:CTP2:entity=MI:Tale=MI:Line=IR"
     #userName = "user@mail.usask.ca"
 
-    urn = request.GET.get('urn', '')
+    entity_id = request.GET.get('entity', '')
+    entity = Entity.objects.get(pk=entity_id)
+    urn = entity.get_urn()
     returnUrl = request.GET.get('page', '')
     username = request.user.username
 
@@ -102,10 +104,9 @@ def regularization(request):
     ruleSet = json.dumps({'ruleSet': ruleSet})
     request.session['urn'] = urn
 
-    print ruleSet
     return render_to_response('regularize/collate_interface.html', {
         "userName" : username, 
-        "urn" : 'entity=1:doc=2', 
+        "urn" : urn, 
         "witnessesTokens" : '{"table": []}', 
         "witnessesLines": '[[]]', 
         "ruleSetName": ruleSetName, 
@@ -231,23 +232,28 @@ def getWitnessData(urn):
 
 #def chooseTextsInterface(request):
     
+@login_required
 def chooseRuleSetsInterface(request):
-    urn = request.GET.get('urn', '')
-    userName = request.GET.get('username', '')
+    entity_id = request.GET.get('entity', '')
     returnUrl = request.GET.get('page', '')
+    entity = Entity.objects.get(pk=entity_id)
+    urn = entity.get_urn()
+    username = request.user.username
     ruleSets = getRuleSets(userName, urn)
     
-    return render_to_response('jsRegularize/chooseRuleSets_interface.html', {"userName" : userName, "urn" : urn, "ruleSetData": ruleSets, "returnUrl": returnUrl}, context_instance=RequestContext(request))
+    return render_to_response('regularize/chooseRuleSets_interface.html', {"urn" : urn, "ruleSetData": ruleSets, "returnUrl": returnUrl, 'userName': username}, context_instance=RequestContext(request))
 
+@login_required
 def chooseTextsInterface(request):
-    urn = request.GET.get('urn', '')
-    userName = request.GET.get('username', '')
+    entity_id = request.GET.get('entity', '')
     returnUrl = request.GET.get('page', '')
     witnesses = request.session.pop('data')
     jdata = json.dumps({"witnesses": witnesses})
     request.session['data'] = witnesses
-    
-    return render_to_response('jsRegularize/chooseTexts_interface.html', {"userName" : userName, "urn" : urn, "returnUrl": returnUrl, "witnesses": jdata}, context_instance=RequestContext(request))
+    entity = Entity.objects.get(pk=entity_id)
+    urn = entity.get_urn()
+   
+    return render_to_response('regularize/chooseTexts_interface.html', {"returnUrl": returnUrl, "witnesses": jdata, "urn": urn, 'userName': request.user.username}, context_instance=RequestContext(request))
 
 def getRuleSets(userName, urn):
         filteredRuleSets = RuleSet.objects.filter(appliesTo=urn).filter(userId=userName)
@@ -317,8 +323,8 @@ def getRuleSets(userName, urn):
 def postSelectedRuleSets(request):
     if request.is_ajax():
         if request.method == 'POST':
-            request.session['selectedRuleSet'] = request.raw_post_data
-            ruleSet = json.loads(request.raw_post_data)
+            request.session['selectedRuleSet'] = request.POST.get('data')
+            ruleSet = json.loads(request.POST.get('data'))
             
             filteredRuleSet = RuleSet.objects.filter(userId=ruleSet['userName']).filter(\
                                                         appliesTo=ruleSet['urn']).filter(\
@@ -336,7 +342,7 @@ def postSelectedRuleSets(request):
 def postSelectedWitnesses(request):
     if request.is_ajax():
         if request.method == 'POST':
-            request.session['selectedWitnesses'] = request.raw_post_data
+            request.session['selectedWitnesses'] = request.POST.get('data')
             
     return HttpResponse("OK")
 
@@ -347,7 +353,7 @@ def postNewRule(request):
     
     if request.is_ajax():
         if request.method == 'POST':
-            jdata = json.loads(request.raw_post_data)
+            jdata = json.loads(request.POST.get('data'))
 
             # if jdata['rules'][0]['scope'] == 'this_place':
             #     filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
@@ -398,7 +404,7 @@ def postNewRule(request):
 def changeRules(request):
     if request.is_ajax():
        if request.method == 'POST':
-           jdata = json.loads(request.raw_post_data)
+           jdata = json.loads(request.POST.get('data'))
 
            filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName'])
@@ -473,44 +479,9 @@ def collate(request):
 def postRecollate(request):
     if request.is_ajax():
        if request.method == 'POST':
-           request.session['recollate'] = request.raw_post_data
+           request.session['recollate'] = request.POST.get('data')
            
     return HttpResponse("OK")
-
-def sendRecollate(request):
-    if request.session.get('recollate'):
-        jdata = request.session.pop('recollate')
-        #jdata2 = json.loads(jdata)
-        
-    url = 'http://127.0.0.1:8080/collatex-web-0.9.1-RC2/api/collate'
-    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-
-    send = httplib2.Http()
-    response, content = send.request(url, 'POST', jdata, headers)
-
-    return HttpResponse(content, mimetype="application/json")
-
-def getBaseTokens(request):
-    #jdata = getTestData()
-    
-    if request.session.get('data'):
-        jdata = request.session.pop('data')
-        request.session['data'] = jdata
-        jdata = checkDuplicateWitnesses(jdata)
-        jdata = json.dumps({'witnesses': jdata})
-
-    if request.session.get('selectedWitnesses'):
-        jdata = request.session.pop('selectedWitnesses')
-        request.session['selectedWitnesses'] = jdata
-        jdata = checkDuplicateWitnesses(jdata)
-        jdata = json.dumps({'witnesses': jdata})
-    
-    url = 'http://127.0.0.1:8080/collatex-web-0.9.1-RC2/api/collate'
-    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-
-    send = httplib2.Http()
-    response, content = send.request(url, 'POST', jdata, headers)
-    return HttpResponse(content, mimetype="application/json")
 
 def getTestData():
     contentEl = 'Heere bigynneth the Miller; his tale'
@@ -534,7 +505,7 @@ def getTestData():
 def postNewAlign(request):
     if request.is_ajax():
         if request.method == 'POST':
-            jdata = json.loads(request.raw_post_data)
+            jdata = json.loads(request.POST.get('data'))
 
             filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName'])
@@ -583,7 +554,7 @@ def postNewAlign(request):
 def changeAligns(request):
     if request.is_ajax():
        if request.method == 'POST':
-           jdata = json.loads(request.raw_post_data)
+           jdata = json.loads(request.POST.get('data'))
 
            filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName'])
@@ -621,7 +592,7 @@ def changeAligns(request):
 def deleteRuleSet(request):
     if request.is_ajax():
        if request.method == 'POST':
-           jdata = json.loads(request.raw_post_data)
+           jdata = json.loads(request.POST.get('data'))
 
            filteredRuleSet = RuleSet.objects.filter(userId=jdata['userName']).filter(\
                                 appliesTo=jdata['urn']).filter(name=jdata['ruleSetName']).delete()
