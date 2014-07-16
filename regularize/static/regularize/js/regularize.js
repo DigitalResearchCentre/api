@@ -9,7 +9,7 @@ var env = {
 
 window.onmessage = function(width) {
   $('body').width(width);
-}
+};
 
 var Entity = Backbone.Model.extend({
   urlRoot: env.API_ENDPOINT + 'entities/',
@@ -71,7 +71,7 @@ function recollate()
           {
             for(var k in allTokens.alignment[i].tokens)
               {
-                if(allTokens.alignment[i].tokens[k] != null && data.alignment[i].tokens[j] != null)
+                if(allTokens.alignment[i].tokens[k] !== null && data.alignment[i].tokens[j] !== null)
                   {
                     if(allTokens.alignment[i].tokens[k].t == data.alignment[i].tokens[j].t)
                       {
@@ -290,12 +290,96 @@ function load(witnesses, tokens)
   regOn = false;
   regularize_onoff();
   regularize();
+
+  var clickCounter = 0;
+  $('#regularization_area').click(function(){
+    if (isRealign) {
+      selectRealignToken();
+    }else{
+      setTimeout(function(){
+        if (clickCounter == 0) {
+          selectToken(setRegThis);
+        }else {
+          clickCounter -= 1;
+        }
+        if (clickCounter < 0) {
+          clickCounter = 0;
+        }
+      }, 500);
+    }
+  }).dblclick(function(){
+    if (!isRealign) {
+      selectToken(setRegTo);
+      clickCounter = 2;
+    }
+  });
 }
+
+function selectToken(callback) {
+    var content = document.regularization.reg.value;
+    var txt = document.regularization.reg;
+    var pos = txt.selectionStart;
+
+    var token = findWord(pos, content);
+
+    if(!token || token == "null") {
+      alert("Invalid selection");
+    } else if(token != "isId") {
+      callback(token);
+    }
+}
+
+function setRealignToken(token) {
+  $('#realign_token input[name="token"]').val(token);
+}
+
+function getRealignToken() {
+  return $('#realign_token input[name="token"]').val();
+}
+
+
+
+function selectRealignToken() {
+  var content = document.regularization.reg.value;
+  var txt = document.regularization.reg;
+  var pos = txt.selectionStart;
+//  if(document.getElementById("move_realign").checked)
+//  {
+//    document.getElementById("backward_realign").checked = false;
+//    document.getElementById("forward_realign").checked = false;
+//    document.getElementById("backward_select").style.visibility = "hidden";
+//    document.getElementById("forward_select").style.visibility = "hidden";
+//  }
+
+  var token = findWord(pos, content);
+
+  if(!token)
+  {
+    alert("Invalid selection");
+  }
+  else if(token != "isId")
+  {
+    setRealignToken(token);
+  }
+}
+
+function setRegTo(token) {
+  $('form[name="regularization"] input[name="reg_to"]').val(token);
+}
+
+function setRegThis(token) {
+  $('form[name="regularization"] input[name="reg_this"]').val(token);
+}
+function getRegThis() {
+  return $('form[name="regularization"] input[name="reg_this"]').val();
+}
+
+
 
 function nextToken()
 {
   var reg_toWhole = document.regularization.reg_to.value;
-  document.regularization.reg_this.value = "";
+  setRegThis("");
 
   if(!regOn)
   {
@@ -320,7 +404,7 @@ function nextToken()
 function previousToken()
 {
   var reg_toWhole = document.regularization.reg_to.value;
-  document.regularization.reg_this.value = "";
+  setRegThis('');
   
   if(!regOn)
   {
@@ -343,93 +427,20 @@ function previousToken()
   
 }
 
-function determineClick()
-{
-  if(!isRealign)
-  {
-    if (iTimeoutId == null || !iTimeoutId)
-    {
-      iTimeoutId = setTimeout("selectToken()", 500);
-    }
-    else
-    {
-      //window.clearTimeout(iTimeoutId);
-      clearTimeout(iTimeoutId);
-      iTimeoutId = null;
-      selectNew();
-    }
-  }
-  else
-  {
-    selectRealignToken();
-  }
-}
-
-function selectRealignToken()
-{
-  var content = document.regularization.reg.value;
-  var txt = document.regularization.reg;
-  var pos = txt.selectionStart;
-//  if(document.getElementById("move_realign").checked)
-//  {
-//    document.getElementById("backward_realign").checked = false;
-//    document.getElementById("forward_realign").checked = false;
-//    document.getElementById("backward_select").style.visibility = "hidden";
-//    document.getElementById("forward_select").style.visibility = "hidden";
-//  }
-
-  var token = findWord(pos, content);
-
-  if(!token)
-  {
-    alert("Invalid selection");
-  }
-  else if(token != "isId")
-  {
-    document.realign_token.token.value = token;
-  }
-}
 
 function findWord(pos, content)
 {
   //find whitespaces -- find word indexes
-    var found = false;
-    var endPos = pos;
-    while(!found)
-    {
-      if(content[endPos] != " ")
-      {
-        endPos++;
-      }
-      else
-      {
-        found = true;
-      }
-    }
+  var found = false;
+  var endPos = content.slice(pos).indexOf(' ');
+  if (endPos === -1) {
+    endPos = content.length;
+  }else{
+    endPos += pos;
+  }
+  var startPos = content.slice(0, pos).lastIndexOf(' ') + 1;
 
-    found = false;
-    var startPos = pos;
-    while(!found)
-    {
-      if(content[startPos] != " ")
-      {
-        if(startPos != 0)
-        {
-          startPos--;
-        }
-        else
-        {
-          found = true;
-        }
-      }
-      else
-      {
-        found = true;
-      }
-    }
-
-  var length = endPos - startPos;
-  var token = content.substr(startPos, length);
+  var token = content.slice(startPos, endPos);
   token = token.split(" ");
   token = token.join("");
   var origToken = token;
@@ -471,61 +482,17 @@ function findWord(pos, content)
   }
 }
 
-function selectToken()
-{
-    window.clearTimeout(iTimeoutId);
-    iTimeoutId = null;
-    
-    var content = document.regularization.reg.value;
-    var txt = document.regularization.reg;
-    var pos = txt.selectionStart;
-
-    var token = findWord(pos, content);
-
-    if(!token || token == "null")
-    {
-      alert("Invalid selection");
-    }
-    else if(token != "isId")
-    {
-      document.regularization.reg_this.value = token;
-      reg_thisBox = token;
-    }
-
-}
-
-function selectNew()
-{
-  window.clearTimeout(iTimeoutId);
-  iTimeoutId = null;
-  var content = document.regularization.reg.value;
-  var txt = document.regularization.reg;
-  var pos = txt.selectionStart;
-
-  token = findWord(pos, content);
-
-  if(!token)
-  {
-    alert("Invalid selection");
-  }
-  else if(token != "isId")
-  {
-    document.regularization.reg_to.value = token;
-    reg_toBox = token;
-  }
-}
-
 function addRule()
 {
   
-  var reg_thisWhole = document.regularization.reg_this.value;
+  var reg_thisWhole = getRegThis();
   var reg_toWhole = document.regularization.reg_to.value;
     
   if(regOn && reg_thisWhole != reg_toWhole)
   {
-    var reg_word = document.regularization.reg_this.value;
+    var reg_word = getRegThis();
     var reg_to = document.regularization.reg_to.value;
-    var reg_thisWhole = document.regularization.reg_this.value;
+    var reg_thisWhole = getRegThis();
     var reg_toWhole = document.regularization.reg_to.value;
     var choice = document.regularization.reg_choices.value;
     var newRule = "";
@@ -596,7 +563,7 @@ function addRule()
 
     contextStruct = { witnesses: [] };
 
-    document.regularization.reg_this.value = "";
+    setRegThis('');
     document.regularization.reg_to.value = reg_toWhole;
 
     if(regOn)
@@ -1302,13 +1269,11 @@ function findNextVariant()
        {
            foundVariant = true;
            variant = token;
-           reg_thisBox = token;
        }
      }
      if(foundVariant)
      {
-       document.regularization.reg_this.value = "";
-       document.regularization.reg_this.value = variant;
+       setRegThis(variant);
      }
      else
      {
@@ -1402,11 +1367,11 @@ function addTokenThis()
   var reg_this = "";
   if(!isRealign)
   {
-    reg_this = document.regularization.reg_this.value;
+    reg_this = getRegThis();
   }
   else
   {
-    reg_this = document.realign_token.token.value;
+    reg_this = getRealignToken();
   }
   var position = currentPosition;
   var newToken = "";
@@ -1470,11 +1435,11 @@ function addTokenThis()
 
      if(add && !isRealign)
      {
-       document.regularization.reg_this.value += " " + newToken;
+       setRegThis(getRegThis() + ' ' + newToken);
      }
      else if(add && isRealign)
      {
-       document.realign_token.token.value += " " + newToken;
+       setRealignToken(getRealignToken() + ' ' + newToken);
      }
      else
      {
@@ -2601,22 +2566,20 @@ function automateReg(checkBox)
     if(maxPosition != distinct.witnesses.length-1)
     {
       maxPosition++;
-      document.regularization.reg_this.value = distinct.witnesses[maxPosition].token;
+      setRegThis(distinct.witnesses[maxPosition].token)
     }
     else if(maxPosition != 0 && maxPosition == distinct.witnesses.length)
     {
-      document.regularization.reg_this.value = distinct.witnesses[0].token;
+      setRegThis(distinct.witnesses[0].token)
     }
     
-    reg_thisBox = document.regularization.reg_this.value;
-    reg_toBox = document.regularization.reg_to.value;
     
   }
   else
   {
     autoReg = false;
     
-    document.regularization.reg_this.value = "";
+    setRegThis('')
     document.regularization.reg_to.value = "";
   }
 }
@@ -2694,7 +2657,7 @@ function showRealign(checkBox)
   if(checkBox.checked)
   {
     isRealign = true;
-    //document.realign_token.style.visibility = "visible";
+    document.realign_token.style.visibility = "visible";
     document.regularization.reg_checkbox.checked = false;
     document.getElementById("reg_wrapper").innerHTML = "";
     
@@ -3000,7 +2963,7 @@ function getRealign()
   
   var numPos = null;
   var isForward = null;
-  var token = document.realign_token.token.value;
+  var token = getRealignToken();
   var isMove = document.getElementById("move_realign").checked;
   
   var ids = [];
@@ -3529,7 +3492,7 @@ function addAlign()
 {
   var numPos = null;
   var isForward = null;
-  var token = document.realign_token.token.value;
+  var token = $('#realign_token input[name=token]').val();
   var isMove = document.getElementById("move_realign").checked;
   document.getElementById("realign_this").innerHTML = "";
   document.getElementById("realign_to").innerHTML = "";
