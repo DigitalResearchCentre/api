@@ -24,7 +24,7 @@ def regularization(request):
     #urn = "urn:det:TCUSASK:CTP2:entity=MI:Tale=MI:Line=IR"
     #userName = "user@mail.usask.ca"
 
-    entity_id = request.GET.get('entity', '')
+    entity_id = request.GET.get('entity')
     entity = Entity.objects.get(pk=entity_id)
     urn = entity.get_urn()
     returnUrl = request.GET.get('page', '')

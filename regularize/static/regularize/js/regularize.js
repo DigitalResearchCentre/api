@@ -7,6 +7,10 @@ var env = {
   COLLATE_URL: REGULARIZE_URL + 'collate/',
 };
 
+window.onmessage = function(width) {
+  $('body').width(width);
+}
+
 var Entity = Backbone.Model.extend({
   urlRoot: env.API_ENDPOINT + 'entities/',
   hasTextOf: function(callback) {
