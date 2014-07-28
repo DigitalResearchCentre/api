@@ -1,7 +1,6 @@
 class NumConv(object):
 
-    def __init__(self, radix=10, alphabet='0123456789'):
-        self.radix = radix
+    def __init__(self, alphabet='0123456789'):
         self.alphabet = alphabet
         self.alphabet_dict = dict(zip(alphabet, range(len(alphabet))))
 
