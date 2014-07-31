@@ -5,17 +5,12 @@ from django.contrib.contenttypes.models import ContentType
 
 from hierarchy.utils import NumConv
 
-class Tree(models.Model):
-    parent = models.ForeignKey('Node', related_name='descendants')
-    child = models.ForeignKey('Node', related_name='ancestors')
+class Node(models.Model):
     depth = models.PositiveSmallIntegerField()
+    paths = models.ManyToManyField('self', symmetrical=False)
 
     class Meta:
-        unique_together = (('parent', 'child'),)
-
-
-class Node(models.Model):
-    n = models.CharField(max_length=255)
+        abstract = True
 
     @classmethod
     def get_ancestors(cls, pk):
@@ -39,14 +34,13 @@ class Node(models.Model):
         return cls.objects.filter(
             ancestors__child__pk=pk, ancestors__depth=1)
 
-
     @transaction.atomic
     def add_child(self, **kwargs):
         child = self.__class__.objects.create(**kwargs)
-        Tree.objects.bulk_create([
-            Tree(parent_id=an.parent_id, child=child, depth=an.depth+1)
+        Path.objects.bulk_create([
+            Path(parent_id=an.parent_id, child=child, depth=an.depth+1)
             for an in self.ancestors.all()
-        ] + [Tree(parent=self, child=child, depth=1)])
+        ] + [Path(parent=self, child=child, depth=1)])
         return child
 
     def get_next_sibling(self):
@@ -54,6 +48,10 @@ class Node(models.Model):
 
     def get_prev_sibling(self):
         raise NotImplementedError
+
+class Foo(Node):
+    pass
+
 
 
 
