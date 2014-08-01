@@ -5,12 +5,25 @@ from django.contrib.contenttypes.models import ContentType
 
 from hierarchy.utils import NumConv
 
-class Node(models.Model):
+class ClosureTablePath(models.Model):
     depth = models.PositiveSmallIntegerField()
-    paths = models.ManyToManyField('self', symmetrical=False)
 
     class Meta:
         abstract = True
+
+
+class ClosureTableField(models.ManyToManyField):
+
+    def __init__(self, **kwargs):
+        super(ClosureTableField, self).__init__('self', **kwargs)
+
+    def contribute_to_class(self, cls, name):
+        super(ClosureTableField, self).contribute_to_class(cls, name)
+
+
+class Node(models.Model):
+    depth = models.PositiveSmallIntegerField()
+    ct = ClosureTableField()
 
     @classmethod
     def get_ancestors(cls, pk):
@@ -37,10 +50,10 @@ class Node(models.Model):
     @transaction.atomic
     def add_child(self, **kwargs):
         child = self.__class__.objects.create(**kwargs)
-        Path.objects.bulk_create([
-            Path(parent_id=an.parent_id, child=child, depth=an.depth+1)
-            for an in self.ancestors.all()
-        ] + [Path(parent=self, child=child, depth=1)])
+        # Path.objects.bulk_create([
+            # Path(parent_id=an.parent_id, child=child, depth=an.depth+1)
+            # for an in self.ancestors.all()
+        # ] + [Path(parent=self, child=child, depth=1)])
         return child
 
     def get_next_sibling(self):
@@ -48,10 +61,4 @@ class Node(models.Model):
 
     def get_prev_sibling(self):
         raise NotImplementedError
-
-class Foo(Node):
-    pass
-
-
-
 
