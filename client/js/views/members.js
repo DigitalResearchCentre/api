@@ -151,7 +151,7 @@ define([
             $td = this.$('.' + cls);
             $ul = $td.children('ul');
             $a = $('<a href="#task=' + task.id + '">'+doc.get('name')+'</a>');
-            doc.getUrn().done(function(urn){
+            doc.getUrn().done(function (urn){
                 var name = [];
                 _.each(urn.split(':'), function (parts) {
                     parts = parts.split('=');
@@ -164,9 +164,6 @@ define([
             $a.click(_.bind(function () {
                 this.options.viewTask(task);
             }, this));
-            this.listenTo(doc, 'change', function () {
-                $a.text(doc.get('name'));
-            });
             doc.fetch();
             $ul.append($('<li></li>').append($a));
             $td.children('span').text(' ' + $ul.children().length + ' tasks');

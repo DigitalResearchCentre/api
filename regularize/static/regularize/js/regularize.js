@@ -41,9 +41,39 @@ var Text = Backbone.Model.extend({
   },
 });
 
+function _regularize(witnesses, rules) {
+  _.each(witnesses, function(witness){ 
+    var content = witness.content;
+    _.each(rules, function(rule){
+      var re = /regularize\((.+), (.+)\)/;
+      var match = re.exec(rule.action);
+      var regThis = match[1].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      content = content.replace(new RegExp(regThis, 'g'), match[2]);
+    });
+    witness.content = content;
+    return content;
+  });
+  return witnesses;
+}
+
 function collate(witnesses, callback) {
-  var data = {data: JSON.stringify({witnesses: witnesses})};
-  return $.get(env.COLLATE_URL, data, callback);
+  var data = {data: JSON.stringify({
+    witnesses: _regularize(witnesses, allRules.rules)
+  })};
+  return $.get(env.COLLATE_URL, data, function(data){
+    var table = data.table;
+    var alignment = _.map(data.witnesses, function(id){
+      return {witness: id, tokens: []};
+    });
+    data.alignment = alignment;
+    _.each(table, function(row, i){
+      _.each(row, function(token, j){
+        alignment[j].tokens[i] = token.length > 0 ? 
+          {t: $.trim(token.join(' '))} : null;
+      });
+    });
+    callback(data);
+  });
 }
 
 function recollate()
@@ -52,7 +82,6 @@ function recollate()
   var newWitnesses = buildWitnesses();
   //var newWitnesses = createNewAllTokens();
   isRecollate = false;
-  newWitnesses = JSON.stringify(newWitnesses);
   
   $.ajax({
     url: env.REGULARIZE_URL + "postRecollate/",
@@ -60,38 +89,30 @@ function recollate()
     type: 'post',
     async: false,
     data: {data: JSON.stringify(newWitnesses)},
-    success: function(data){
-    }});
-  
-  
-  collate(newWitnesses, function(data){
-    for(var i in data.alignment)
-      {
-        for(var j in data.alignment[i].tokens)
-          {
-            for(var k in allTokens.alignment[i].tokens)
-              {
-                if(allTokens.alignment[i].tokens[k] !== null && data.alignment[i].tokens[j] !== null)
-                  {
-                    if(allTokens.alignment[i].tokens[k].t == data.alignment[i].tokens[j].t)
-                      {
-                        data.alignment[i].tokens[j].origToken = allTokens.alignment[i].tokens[k].origToken;
-                      }
-                  }
-              }
-          }
-      }
-
-      allTokens = data;
-
-      if(allTokens.alignment[0] != 'undefined')
-        {
-          totalPos = allTokens.alignment[0].tokens.length;
-        }
+    success: function(data){ }
   });
+  
+  collate(newWitnesses.witnesses, function(data){
+    _.each(data.alignment, function(alignment, i){
+      var origAlignment = allTokens.alignment[i];
+      if (origAlignment) {
+        _.each(alignment.tokens, function(token, j) {
+          var origToken = origAlignment.tokens[j];
+          if(origToken !== null && token !== null) {
+            if(origToken.t == token.t) {
+              token.origToken = origToken.origToken;
+            }
+          }
+        });
+      }
+    });
+    allTokens = {alignment: data.alignment};
+    if(allTokens.alignment[0] != 'undefined') {
+      totalPos = allTokens.alignment[0].tokens.length;
+    }
 
+  });
 }
-
 
 
 function getTokens(callback) {
@@ -101,23 +122,30 @@ function getTokens(callback) {
   ;
   entity.witnesses(function(witnesses){
     collate(witnesses, function(data) {
-      var table = data.table;
-      var alignment = _.map(data.witnesses, function(id){
-        return {witness: id, tokens: []};
-      });
-      var tokens = {alignment: alignment};
-      _.each(table, function(row, i){
-        _.each(row, function(token, j){
-          alignment[j].tokens[i] = token.length > 0 ? 
-            {t: $.trim(token.join(' '))} : null;
-        });
-      });
-      callback(witnesses, tokens);
+      callback(witnesses, {alignment: data.alignment});
     });
   });
 }
 
 $(document).ready(function(){
+
+  allAlign = { alignments: [] };
+  ruleSet = ruleSet.replace(/u'/g, '\'');
+  ruleSet = ruleSet.replace(/'/g, '\"');
+  ruleSet = JSON.parse(ruleSet);
+  newRules = { rules: [] };
+  customRules = { rules: [] };
+  allRules = { rules: [] };
+  var i;
+  for(i in ruleSet.ruleSet.rules)
+  {
+    allRules.rules.push(ruleSet.ruleSet.rules[i]);
+  }
+  for(i in ruleSet.ruleSet.alignments)
+  {
+    allAlign.alignments.push(ruleSet.ruleSet.alignments[i]);
+    allAlign.alignments[i].isApplied = false;
+  }
   getTokens(load);
 });
 
@@ -189,10 +217,6 @@ function chooseTexts()
 
 function load(witnesses, tokens)
 {
-
-  ruleSet = ruleSet.replace(/u'/g, '\'');
-  ruleSet = ruleSet.replace(/'/g, '\"');
-  ruleSet = JSON.parse(ruleSet);
   
   allImages = allImages.replace(/u'/g, '\'');
   allImages = allImages.replace(/'/g, '\"');
@@ -207,21 +231,9 @@ function load(witnesses, tokens)
   alignOn = false;
   isOriginals = false;
   isRealign = false;
-  newRules = { rules: [] };
-  customRules = { rules: [] };
   customAligns = { alignments: [] };
   isCustomAlign = false;
-  allRules = { rules: [] };
-  allAlign = { alignments: [] };
-  for(var i in ruleSet.ruleSet.rules)
-  {
-    allRules.rules.push(ruleSet.ruleSet.rules[i]);
-  }
-  for(var i in ruleSet.ruleSet.alignments)
-  {
-    allAlign.alignments.push(ruleSet.ruleSet.alignments[i]);
-    allAlign.alignments[i].isApplied = false;
-  }
+  var i;
   
   contextStruct = { witnesses: [] };
   
@@ -268,18 +280,13 @@ function load(witnesses, tokens)
   document.getElementById("title_label").innerHTML = "entity " + entity + ", line " + line;
   document.getElementById("ruleSetNameLabel").innerHTML = ruleSetName + "  ";
   
-  if(isAllWitnesses == "True")
-  {
+  if(isAllWitnesses == "True") {
     $('#chooseTextsLabel').text('all ');
-  }
-  else
-  {
+  } else {
     content = "";
-    
-    for(var i in allTokens.alignment)
-    {
-      content += allTokens.alignment[i].witness + " ";
-    }
+    $.each(allTokens.alignment, function(index, item){
+      content += item.witness + " ";
+    });
     
     content += " ";
     
@@ -297,7 +304,7 @@ function load(witnesses, tokens)
       selectRealignToken();
     }else{
       setTimeout(function(){
-        if (clickCounter == 0) {
+        if (clickCounter === 0) {
           selectToken(setRegThis);
         }else {
           clickCounter -= 1;
@@ -411,7 +418,7 @@ function previousToken()
     allTokens = origTokens;
   }
 
-  if(currentPosition != 0)
+  if(currentPosition !== 0)
   {
     currentPosition--;
   }
@@ -467,7 +474,7 @@ function findWord(pos, content)
     token = origToken;
   }
 
-  if(token == "///" || token == "")
+  if(token == "///" || token === "")
   {
     notToken = true;
   }
@@ -492,14 +499,14 @@ function addRule()
   {
     var reg_word = getRegThis();
     var reg_to = document.regularization.reg_to.value;
-    var reg_thisWhole = getRegThis();
-    var reg_toWhole = document.regularization.reg_to.value;
+    reg_thisWhole = getRegThis();
+    reg_toWhole = document.regularization.reg_to.value;
     var choice = document.regularization.reg_choices.value;
     var newRule = "";
     var index = "";
     var rulesToAdd = {rules:[]};
 
-    if(reg_thisWhole == "" || reg_toWhole == "")
+    if(reg_thisWhole === "" || reg_toWhole === "")
     {
       alert("Invalid Rule");
       return false;
@@ -510,7 +517,7 @@ function addRule()
       reg_toWhole = reg_toWhole.substring(0, reg_toWhole.length-1);
     }
 
-    if (reg_word != "" && reg_to != "")
+    if (reg_word !== "" && reg_to !== "")
     {
       if(choice == "this_place")
       {
@@ -523,34 +530,28 @@ function addRule()
         }
 
         // get rule for each of the witnesses with this token
-        for(var i in distinct.witnesses[index].originals)
-        {
-          for(var j in distinct.witnesses[index].originals[i].id)
-          {
-            var id = distinct.witnesses[index].originals[i].id[j];
-            newRule = createRule(choice, reg_thisWhole, reg_toWhole, reg_word, id, index);
-
+        $.each(distinct.witnesses[index].originals, function(i, original){
+          $.each(original.id, function(j, id){
+            newRule = createRule(choice, reg_thisWhole, 
+                                 reg_toWhole, reg_word, id, index);
             var add = true;
-            for(var i in rulesToAdd.rules)
-            {
-              if(rulesToAdd.rules[i].scope == newRule.scope && rulesToAdd.rules[i].action == newRule.action && 
-                  rulesToAdd.rules[i].token == newRule.token)
-              {
-                add = false;
-              }
-            }
-
-            if(add)
-            {
+            $.each(rulesToAdd.rules, function(k, rule){
+                if(
+                  rule.scope == newRule.scope && 
+                  rule.action == newRule.action && 
+                  rulesToAdd.rules[i].token == newRule.token
+                ) {
+                  add = false;
+                }
+            });
+            if(add) {
               rulesToAdd.rules.push(newRule);
             }
-          }
-        }
-
-        for(var i in rulesToAdd.rules)
-        {
-          addRuleList(rulesToAdd.rules[i]);
-        }
+          });
+        });
+        $.each(rulesToAdd.rules, function(i, rule) {
+          addRuleList(rule);
+        });
       }
       else
       {
@@ -629,15 +630,13 @@ function getContext(id, index)
   // if there are more than one match in a witness to 
   // be regularized --> needMoreContext
   var numMatches = 0;
-  for(var i in allWitnesses.witnesses)
-  {
-    var witness = allWitnesses.witnesses[i].content;
-    var result = witness.match(re);
-    if(result !== null && result !== undefined && result !== 'undefined')
-    {
+  $.each(allWitnesses.witnesses, function(i, witness){
+    var content = witness.content;
+    var result = content.match(re);
+    if(result !== null && result !== undefined && result !== 'undefined') {
       numMatches++; 
     }
-  }
+  });
   
   if(numMatches > 1)
   {
@@ -649,7 +648,8 @@ function getContext(id, index)
     returnContext = getMoreContext(id, index, contextIndex);
     if(returnContext)
     {
-      return context = getContext(id, index);
+      context = getContext(id, index);
+      return context;
     }
     else
     {
@@ -683,43 +683,43 @@ function getMoreContext(id, index, witnessIndex)
     }
   }
 
-  if(contextStruct.witnesses[witnessIndex].startPos == 0 && contextStruct.witnesses[witnessIndex].maxPos == endTokensPos)
+  if(contextStruct.witnesses[witnessIndex].startPos === 0 && contextStruct.witnesses[witnessIndex].maxPos == endTokensPos)
   {
     // total context
     return false;
   }
-  else if (contextStruct.witnesses[witnessIndex].startPos == 0 && contextStruct.witnesses[witnessIndex].endPos != endTokensPos)
+  else if (contextStruct.witnesses[witnessIndex].startPos === 0 && contextStruct.witnesses[witnessIndex].endPos != endTokensPos)
   {
     contextStruct.witnesses[witnessIndex].endPos++;
-    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].endPos] != null)
+    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].endPos] !== null)
     {
       contextStruct.witnesses[witnessIndex].context += " " + allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].endPos].t;
     }
     contextStruct.witnesses[witnessIndex].switchDirections = false;
   }
-  else if (contextStruct.witnesses[witnessIndex].endPos == endTokensPos && contextStruct.witnesses[witnessIndex].startPos != 0)
+  else if (contextStruct.witnesses[witnessIndex].endPos == endTokensPos && contextStruct.witnesses[witnessIndex].startPos !== 0)
   {
     contextStruct.witnesses[witnessIndex].startPos--;
-    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].startPos] != null)
+    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].startPos] !== null)
     {
       contextStruct.witnesses[witnessIndex].context = allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].startPos].t + " " + contextStruct.witnesses[witnessIndex].context;
     }
     contextStruct.witnesses[witnessIndex].switchDirections = false;
   }
-  else if (contextStruct.witnesses[witnessIndex].goForward == true && contextStruct.witnesses[witnessIndex].endPos != endTokensPos)
+  else if (contextStruct.witnesses[witnessIndex].goForward === true && contextStruct.witnesses[witnessIndex].endPos != endTokensPos)
   {
     contextStruct.witnesses[witnessIndex].goForward = false;
     contextStruct.witnesses[witnessIndex].endPos++;
-    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].endPos] != null)
+    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].endPos] !== null)
     {
       contextStruct.witnesses[witnessIndex].context += " " + allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].endPos].t;
     }
   }
-  else if (contextStruct.witnesses[witnessIndex].goForward == false && contextStruct.witnesses[witnessIndex].startPos != 0)
+  else if (contextStruct.witnesses[witnessIndex].goForward === false && contextStruct.witnesses[witnessIndex].startPos !== 0)
   {
     contextStruct.witnesses[witnessIndex].goForward = true;
     contextStruct.witnesses[witnessIndex].startPos--;
-    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].startPos] != null)
+    if(allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].startPos] !== null)
     {
       contextStruct.witnesses[witnessIndex].context = allTokens.alignment[tokenWitnessIndex].tokens[contextStruct.witnesses[witnessIndex].startPos].t + " " + contextStruct.witnesses[witnessIndex].context;
     }
@@ -739,7 +739,7 @@ function sendRule(newRule)
     $.post(env.REGULARIZE_URL + "postNewRule/", {data: JSON.stringify(sendRules)}, function(data){
        //alert("success");
      })
-   .error(function () {alert("error: saveRules");})
+   .error(function () {alert("error: saveRules");});
 
 }
 
@@ -765,7 +765,7 @@ function changeRegularizeLabel(choice, reg_thisWhole, reg_toWhole)
   var content = "REGULARIZED:: \"" + reg_thisWhole + "\" to \"" + reg_toWhole + "\" in " + scope + "</br>";
   document.getElementById('newRegInfo').innerHTML = content;
   
-  if (changeLabelTimer == null || !changeLabelTimer)
+  if (changeLabelTimer === null || !changeLabelTimer)
   {
     changeLabelTimer = setTimeout(function() {document.getElementById('newRegInfo').innerHTML = "";}, 5000);
   }
@@ -775,7 +775,7 @@ function changeRegularizeLabel(choice, reg_thisWhole, reg_toWhole)
 function regularize_onoff()
 {
   
-  if (regOn == false)
+  if (regOn === false)
   {
      if(document.regularization.reg_checkbox.checked)
      {
@@ -784,7 +784,7 @@ function regularize_onoff()
        document.getElementById("showOriginals").innerHTML = "Show originals";
        document.regularization.automate.style.visibility = "visible";
        document.getElementById("automateLabel").style.visibility = "visible";
-       document.getElementById("automateLabel").innerHTML = "Automate regularization"
+       document.getElementById("automateLabel").innerHTML = "Automate regularization";
        document.edit_reg.style.visibility = "hidden";
      }
      regOn = true;
@@ -871,7 +871,7 @@ function findDistinct(position)
     var token = "";
 
     // get token from json
-    if(allTokens.alignment[i].tokens[position] == null)
+    if(allTokens.alignment[i].tokens[position] === null)
     {
        origToken = "null";
     }
@@ -881,7 +881,7 @@ function findDistinct(position)
     }
 
     // regularize token
-    var token = getToken(i, position);
+    token = getToken(i, position);
    
 
     // determine what the original token is, if it is regularized
@@ -890,7 +890,7 @@ function findDistinct(position)
       regToken=true;
     }
     
-    if(allTokens.alignment[i].tokens[position] != null)
+    if(allTokens.alignment[i].tokens[position] !== null)
     {
       if(allTokens.alignment[i].tokens[position].origToken != "" && allTokens.alignment[i].tokens[position].origToken != undefined)
       {
@@ -1571,11 +1571,6 @@ function getToken(witnessId, position)
      {  
         if(choice == "this_place")
         {
-          //alert(allTokens.alignment[witnessId].witness);
-          //alert(regularizeToken);
-          //alert(reg_this + "; " + reg_to);
-          //alert("ruleApplied: " + ruleApplied);
-          //console.log(allTokens);
           var reg_thisArray = reg_this.split(" ");
           var reg_toArray = reg_to.split(" ");
           var tokenArray = regularizeToken.split(" ");  //?!? maybe should use reg_thisArray (is token only one word)
@@ -2054,10 +2049,7 @@ function ImageMap(url){
     var zoom = this.getZoom();
     var tile_num = Math.pow(2, zoom-1);
     var projection = this.getProjection();
-    //console.log(tile_num);
     var latLng = projection.fromPointToLatLng(new google.maps.Point(64, 64));
-    //console.log(projection);
-    //console.log(latLng);
     this.setCenter(latLng);
   });
   this.map = map;
@@ -2284,7 +2276,6 @@ function submitCustomReg()
     sendAligns.userName = userName;
     sendAligns.ruleSetName = ruleSetName;
     
-    //console.log(sendAligns);
 
     // send changed rules to server
     $.ajax({
@@ -2305,7 +2296,6 @@ function submitCustomReg()
     //);
     loadAlignTable();
     
-    ////console.log(allAlign);
     
     return;
   }
@@ -2520,7 +2510,6 @@ function createRule(scope, reg_this, reg_to, token, id, index)
            };
            
            
-  //console.log(newRule);
   return newRule;
 
 }
@@ -2967,7 +2956,6 @@ function getRealign()
   var isMove = document.getElementById("move_realign").checked;
   
   var ids = [];
-  //console.log(distinct);
 
   for (var i in distinct.witnesses)
   {
@@ -3106,7 +3094,6 @@ function getRealign()
   allTokens = oldTokens;
   regularize();
   totalPos = oldTotalPos;
-  //console.log(totalPos);
 }
 
 function getNullContent()
@@ -3541,7 +3528,6 @@ function sendAlign(newAlign)
   {
     sendAligns.alignments.push(newAlign.alignments[i]);
   }
-  //console.log(sendAligns);
   sendAligns.urn = urn;
   sendAligns.userName = userName;
   sendAligns.ruleSetName = ruleSetName;

@@ -5,24 +5,36 @@ from django.contrib.contenttypes.models import ContentType
 
 from hierarchy.utils import NumConv
 
-class ClosureTablePath(models.Model):
-    depth = models.PositiveSmallIntegerField()
+def create_closure_table_path_model(field, klass):
+    from django.db import models
+    name = '%s_%s' % (klass._meta.object_name, field.name)
+    meta = type(str('Meta'), (object,), {
+        'db_table': '%s_%s' % (klass._meta.db_table, field.name),
+        'managed': True,
+        'auto_created': klass,
+        'app_label': klass._meta.app_label,
+        'unique_together': ('parent', 'child'),
+    })
+    return type(str(name), (models.Model,), {
+        'Meta': meta,
+        '__module__': klass.__module__,
+        'parent': models.ForeignKey(klass, related_name='descendants'),
+        'child': models.ForeignKey(klass, related_name='ancestors'),
+        'depth': models.PositiveSmallIntegerField(),
+    })
 
-    class Meta:
-        abstract = True
 
-
-class ClosureTableField(models.ManyToManyField):
+class ClosureTableField(models.Field):
 
     def __init__(self, **kwargs):
         super(ClosureTableField, self).__init__('self', **kwargs)
 
     def contribute_to_class(self, cls, name):
         super(ClosureTableField, self).contribute_to_class(cls, name)
+        create_closure_table_path_model(self, cls)
 
 
 class Node(models.Model):
-    depth = models.PositiveSmallIntegerField()
     ct = ClosureTableField()
 
     @classmethod

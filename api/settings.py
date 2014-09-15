@@ -100,9 +100,9 @@ INSTALLED_APPS = (
 
     'rest_framework',
     'corsheaders',
-    #'treebeard',
+    'treebeard',
 
-    'hierarchy',
+    #'hierarchy',
     'api',
     'auth',
     'regularize',
