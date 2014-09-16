@@ -381,57 +381,44 @@ function getRegThis() {
   return $('form[name="regularization"] input[name="reg_this"]').val();
 }
 
-
-
-function nextToken()
-{
-  var reg_toWhole = document.regularization.reg_to.value;
-  setRegThis("");
-
-  if(!regOn)
-  {
+function moveToken(to) {
+  var regTo = document.regularization.reg_to;
+  var regToWhole;
+  if (regTo) {
+    regToWhole = regTo.value;
+  }
+  setRegThis('');
+  if(!regOn) {
     allTokens = origTokens;
   }
-  
-  if(currentPosition != totalPos-1  )
-  {
-    currentPosition++;
-  }
+
+  currentPosition = to;
   
   if(alignOn)
   {
     applyAlign();
   }
-  regularize();
-  
-  document.regularization.reg_to.value = reg_toWhole;
-  
+  if (regTo) {
+    regTo.value = regToWhole;
+  }
+
+  return regularize();
 }
 
-function previousToken()
-{
-  var reg_toWhole = document.regularization.reg_to.value;
-  setRegThis('');
-  
-  if(!regOn)
-  {
-    allTokens = origTokens;
+function nextToken() {
+  if(currentPosition != totalPos - 1) {
+    if (moveToken(parseInt(currentPosition) + 1) === null) {
+      nextToken();
+    }
   }
+}
 
-  if(currentPosition !== 0)
-  {
-    currentPosition--;
+function previousToken() {
+  if(currentPosition !== 0) {
+    if (moveToken(parseInt(currentPosition) - 1) === null) {
+      previousToken();
+    }
   }
-  
-  if(alignOn)
-  {
-    applyAlign();
-  }
-  regularize();
- 
-  
-  document.regularization.reg_to.value = reg_toWhole;
-  
 }
 
 
@@ -826,74 +813,51 @@ function regularize_onoff()
   
 }
 
-function regularize()
-{
-  var position = currentPosition;
-  
-  var content = findDistinct(position);
-  
-  if(!isRealign)
-  {
-    automateReg(document.getElementById("automate"));
+function regularize() {
+  var content = findDistinct(currentPosition);
+  if (content) {
+    if(!isRealign) {
+      automateReg(document.getElementById("automate"));
+    }
+    document.regularization.reg.value = content;
   }
-  
-//  if(alignOn)
-//  {
-//    applyAlign();
-//  }
-
-  document.regularization.reg.value = content;
-  
+  return content;
 }
 
-function findDistinct(position)
-{
-  if(!regOn)
-  {
+function findDistinct(position) {
+  if(!regOn) {
     regRules = newRules;
-  }
-  else if(isCustomRules)
-  {
+  } else if(isCustomRules) {
     regRules = customRules;
-  }
-  else
-  {
+  } else {
     regRules = allRules;
   }
   
   distinct = {witnesses:[]};
   
-  for (var i in allTokens.alignment)
-  {
+  for (var i in allTokens.alignment) {
     var regToken = false;
     var origToken = "";
     var added = false;
     var token = "";
 
     // get token from json
-    if(allTokens.alignment[i].tokens[position] === null)
-    {
+    if(!allTokens.alignment[i].tokens[position]) {
        origToken = "null";
-    }
-    else
-    {
+    } else {
       origToken = allTokens.alignment[i].tokens[position].t;
     }
 
     // regularize token
     token = getToken(i, position);
-   
 
     // determine what the original token is, if it is regularized
-    if(origToken != token)
-    {
+    if(origToken != token) {
       regToken=true;
     }
     
-    if(allTokens.alignment[i].tokens[position] !== null)
-    {
-      if(allTokens.alignment[i].tokens[position].origToken != "" && allTokens.alignment[i].tokens[position].origToken != undefined)
-      {
+    if(allTokens.alignment[i].tokens[position]) {
+      if(allTokens.alignment[i].tokens[position].origToken !== "" && allTokens.alignment[i].tokens[position].origToken !== undefined) {
         regToken = true;
         origToken = allTokens.alignment[i].tokens[position].origToken;
       }
@@ -901,22 +865,18 @@ function findDistinct(position)
     
     // search if token is already in the array
     // if is ... add after
-    for(var j in distinct.witnesses)
-    {
+    var j;
+    for(j in distinct.witnesses) {
       var distinctToken = distinct.witnesses[j].token;
       
-      if(token == distinctToken && !added)
-      {
-        for( var k in distinct.witnesses[j].originals)
-        {
-          if(origToken == distinct.witnesses[j].originals[k].origToken && !added)
-          {
+      if(token == distinctToken && !added) {
+        for( var k in distinct.witnesses[j].originals) {
+          if(origToken == distinct.witnesses[j].originals[k].origToken && !added) {
             distinct.witnesses[j].originals[k].id.push(allTokens.alignment[i].witness);
             added = true;
           }
         }
-        if(!added)
-        {
+        if(!added) {
           distinct.witnesses[j].originals.push({
             "origToken": origToken,
             "id": []
@@ -930,8 +890,7 @@ function findDistinct(position)
     }
     
     // add token to array because it is the first one
-    if(i==0)
-    {
+    if(i===0) {
       distinct.witnesses.push({
         "token": token,
         "originals": []
@@ -944,16 +903,14 @@ function findDistinct(position)
       
       distinct.witnesses[i].originals[i].id.push(allTokens.alignment[i].witness);
       added = true;
-    }
-    // not already in array ... add token and id to it
-    else if (!added)
-    {
+    } else if (!added) {
+      // not already in array ... add token and id to it
       distinct.witnesses.push({
         "token": token,
         "originals": []
       });
       
-      for(var j in distinct.witnesses)
+      for(j in distinct.witnesses)
       {
         if(distinct.witnesses[j].token == token && !added)
         {
@@ -971,10 +928,13 @@ function findDistinct(position)
   
   // create the content for the collation area text box
   var content = "";
-  console.log(distinct);
+  var allNull = true;
   for (var i in distinct.witnesses)
   {
     content += distinct.witnesses[i].token;
+    if (distinct.witnesses[i].token !== null && distinct.witnesses[i].token !== 'null') {
+      allNull = false;
+    }
     
     for(var j in distinct.witnesses[i].originals)
     {
@@ -1002,9 +962,7 @@ function findDistinct(position)
     
     content += " /// "; 
   }
- 
-  return content;
-  
+  return allNull ? null : content;
 }
 
 //http://www.openjs.com/scripts/events/keyboard_shortcuts/
