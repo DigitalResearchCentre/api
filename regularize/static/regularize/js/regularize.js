@@ -44,11 +44,20 @@ var Text = Backbone.Model.extend({
 function _regularize(witnesses, rules) {
   _.each(witnesses, function(witness){ 
     var content = witness.content;
-    _.each(rules, function(rule){
+    if (!witness.orig) {
+      witness.orig = content;
+    }
+    console.log(rules);
+    rules = _.sortBy(rules, function(rule) {
       var re = /regularize\((.+), (.+)\)/;
       var match = re.exec(rule.action);
-      var regThis = match[1].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-      content = content.replace(new RegExp(regThis, 'g'), match[2]);
+      rule.from = match[1].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      rule.to = match[2];
+      return match[1].length;
+    });
+    console.log(rules);
+    _.each(rules, function(rule){
+      content = content.replace(new RegExp(rule.from, 'g'), rule.to);
     });
     witness.content = content;
     return content;
@@ -57,6 +66,7 @@ function _regularize(witnesses, rules) {
 }
 
 function collate(witnesses, callback) {
+  console.log(witnesses);
   var data = {data: JSON.stringify({
     witnesses: _regularize(witnesses, allRules.rules)
   })};
@@ -130,13 +140,11 @@ function getTokens(callback) {
 $(document).ready(function(){
 
   allAlign = { alignments: [] };
-  ruleSet = ruleSet.replace(/u'/g, '\'');
-  ruleSet = ruleSet.replace(/'/g, '\"');
-  ruleSet = JSON.parse(ruleSet);
   newRules = { rules: [] };
   customRules = { rules: [] };
   allRules = { rules: [] };
   var i;
+  console.log(ruleSet);
   for(i in ruleSet.ruleSet.rules)
   {
     allRules.rules.push(ruleSet.ruleSet.rules[i]);
@@ -834,8 +842,9 @@ function findDistinct(position) {
   }
   
   distinct = {witnesses:[]};
+  var i, j, k;
   
-  for (var i in allTokens.alignment) {
+  for (i in allTokens.alignment) {
     var regToken = false;
     var origToken = "";
     var added = false;
@@ -865,12 +874,12 @@ function findDistinct(position) {
     
     // search if token is already in the array
     // if is ... add after
-    var j;
+    var index;
     for(j in distinct.witnesses) {
       var distinctToken = distinct.witnesses[j].token;
       
       if(token == distinctToken && !added) {
-        for( var k in distinct.witnesses[j].originals) {
+        for(k in distinct.witnesses[j].originals) {
           if(origToken == distinct.witnesses[j].originals[k].origToken && !added) {
             distinct.witnesses[j].originals[k].id.push(allTokens.alignment[i].witness);
             added = true;
@@ -882,7 +891,7 @@ function findDistinct(position) {
             "id": []
           });
           
-          var index = distinct.witnesses[j].originals.length-1;
+          index = distinct.witnesses[j].originals.length-1;
           distinct.witnesses[j].originals[index].id.push(allTokens.alignment[i].witness);
           added = true;
         }
@@ -919,7 +928,7 @@ function findDistinct(position) {
             "id" : []
           });
           
-          var index = distinct.witnesses[j].originals.length-1;
+          index = distinct.witnesses[j].originals.length-1;
           distinct.witnesses[j].originals[index].id.push(allTokens.alignment[i].witness);
         }
       }
@@ -929,18 +938,17 @@ function findDistinct(position) {
   // create the content for the collation area text box
   var content = "";
   var allNull = true;
-  for (var i in distinct.witnesses)
+  for (i in distinct.witnesses)
   {
     content += distinct.witnesses[i].token;
     if (distinct.witnesses[i].token !== null && distinct.witnesses[i].token !== 'null') {
       allNull = false;
     }
     
-    for(var j in distinct.witnesses[i].originals)
-    {
+    for(j in distinct.witnesses[i].originals) {
       if(distinct.witnesses[i].originals[j].origToken != distinct.witnesses[i].token && isOriginals)
       {
-        for(var k in distinct.witnesses[i].originals[j].id)
+        for(k in distinct.witnesses[i].originals[j].id)
         {
           content += " " + distinct.witnesses[i].originals[j].id[k];
         }
@@ -949,7 +957,7 @@ function findDistinct(position) {
       }
       else
       {
-        for(var k in distinct.witnesses[i].originals[j].id)
+        for(k in distinct.witnesses[i].originals[j].id)
         {
           content += " " + distinct.witnesses[i].originals[j].id[k];
         }
@@ -976,7 +984,7 @@ shortcut = {
 			'disable_in_input':false,
 			'target':document,
 			'keycode':false
-		}
+		};
 		if(!opt) opt = default_options;
 		else {
 			for(var dfo in default_options) {
@@ -993,7 +1001,7 @@ shortcut = {
 		var func = function(e) {
 			e = e || window.event;
 			
-			if(opt['disable_in_input']) { //Don't enable shortcut keys in Input, Textarea fields
+			if(opt.disable_in_input) { //Don't enable shortcut keys in Input, Textarea fields
 				var element;
 				if(e.target) element=e.target;
 				else if(e.srcElement) element=e.srcElement;
@@ -1035,7 +1043,7 @@ shortcut = {
 				".":">",
 				"/":"?",
 				"\\":"|"
-			}
+			};
 			//Special Keys - and their codes
 			var special_keys = {
 				'esc':27,
@@ -1089,7 +1097,7 @@ shortcut = {
 				'f10':121,
 				'f11':122,
 				'f12':123
-			}
+			};
 	
 			var modifiers = { 
 				shift: { wanted:false, pressed:false},
@@ -1122,8 +1130,8 @@ shortcut = {
 				} else if(k.length > 1) { //If it is a special key
 					if(special_keys[k] == code) kp++;
 					
-				} else if(opt['keycode']) {
-					if(opt['keycode'] == code) kp++;
+				} else if(opt.keycode) {
+					if(opt.keycode == code) kp++;
 
 				} else { //The special keys did not match
 					if(character == k) kp++;
@@ -1143,7 +1151,7 @@ shortcut = {
 						modifiers.meta.pressed == modifiers.meta.wanted) {
 				callback(e);
 	
-				if(!opt['propagate']) { //Stop the event
+				if(!opt.propagate) { //Stop the event
 					//e.cancelBubble is supported by IE - this will kill the bubbling process.
 					e.cancelBubble = true;
 					e.returnValue = false;
@@ -1156,33 +1164,33 @@ shortcut = {
 					return false;
 				}
 			}
-		}
+		};
 		this.all_shortcuts[shortcut_combination] = {
 			'callback':func, 
 			'target':ele, 
-			'event': opt['type']
+			'event': opt.type
 		};
 		//Attach the function with the event
-		if(ele.addEventListener) ele.addEventListener(opt['type'], func, false);
-		else if(ele.attachEvent) ele.attachEvent('on'+opt['type'], func);
-		else ele['on'+opt['type']] = func;
+		if(ele.addEventListener) ele.addEventListener(opt.type, func, false);
+		else if(ele.attachEvent) ele.attachEvent('on'+opt.type, func);
+		else ele['on' + opt.type] = func;
 	},
 
 //Remove the shortcut - just specify the shortcut and I will remove the binding
 	'remove':function(shortcut_combination) {
 		shortcut_combination = shortcut_combination.toLowerCase();
 		var binding = this.all_shortcuts[shortcut_combination];
-		delete(this.all_shortcuts[shortcut_combination])
+		delete(this.all_shortcuts[shortcut_combination]);
 		if(!binding) return;
-		var type = binding['event'];
-		var ele = binding['target'];
-		var callback = binding['callback'];
+		var type = binding.event;
+		var ele = binding.target;
+		var callback = binding.callback;
 
 		if(ele.detachEvent) ele.detachEvent('on'+type, callback);
 		else if(ele.removeEventListener) ele.removeEventListener(type, callback, false);
 		else ele['on'+type] = false;
 	}
-}
+};
 
 function findNextVariant()
 {
@@ -1205,7 +1213,7 @@ function findNextVariant()
     regRules = allRules;
   }
 
-  if(reg_to == "")
+  if(reg_to === "")
   {
     alert("Please select a token");
   }
@@ -1261,7 +1269,7 @@ function addTokenTo()
   var newPosition = currentPosition-1;
   newPosition += reg_thisArray.length;
 
-  if(reg_this == "")
+  if(reg_this === "")
   {
     alert("Please select a token");
   }
@@ -1271,8 +1279,9 @@ function addTokenTo()
   }
   else
   {
+    var i;
      position--;
-     for(var i in reg_thisArray)
+     for(i in reg_thisArray)
      {
        reg_this = reg_thisArray[i];
        position++;
@@ -1281,19 +1290,17 @@ function addTokenTo()
      var add = true;
      var found = false;
 
-     for (var i in allTokens.alignment)
+     for (i in allTokens.alignment)
      {
        var token = getToken(i, position);
         
         if(token == reg_this)
         {
-         var newPosition = position + 1;
-         var rToken = getToken(i, newPosition);
+         var rToken = getToken(i, position + 1);
 
-          if(!found)
-          {
-           	found = true;
-           	newToken = rToken;
+          if(!found) {
+            found = true;
+            newToken = rToken;
           }
           else if(found && rToken != newToken)
           {
@@ -1349,7 +1356,7 @@ function addTokenThis()
   var newPosition = currentPosition-1;
   newPosition += reg_thisArray.length;
 
-  if(reg_this == "")
+  if(reg_this === "")
   {
     alert("Please select a token");
   }
@@ -1359,8 +1366,9 @@ function addTokenThis()
   }
   else
   {
+    var i;
      position--;
-     for(var i in reg_thisArray)
+     for(i in reg_thisArray)
      {
        reg_this = reg_thisArray[i];
        position++;
@@ -1369,20 +1377,19 @@ function addTokenThis()
      var add = true;
      var found = false;
 
-     for (var i in allTokens.alignment)
+     for (i in allTokens.alignment)
      {
        var token = getToken(i, position);
         
         
         if(token == reg_this)
         {
-          var newPosition = position + 1;
-          var rToken = getToken(i, newPosition);
+          var rToken = getToken(i, position + 1);
 
           if(!found)
           {
-           	found = true;
-           	newToken = rToken;
+            found = true;
+            newToken = rToken;
           }
           else if(found && rToken != newToken)
           {
@@ -1444,10 +1451,9 @@ function seeWitnesses()
   
   var content = "";
 
-  for(var i in newWitnesses.witnesses)
-  {
-    content += newWitnesses.witnesses[i].id + ": " + newWitnesses.witnesses[i].content + "<br />";
-  }
+  _.each(allWitnesses, function(witness){
+    content += witness.id + ": " + witness.content + "<br />";
+  });
   
   document.getElementById('newRegInfo').innerHTML = content;
   document.getElementById("newRegInfo").style.visibility = "visible";
@@ -1499,7 +1505,7 @@ function getToken(witnessId, position)
      regRules = allRules;
    }
   
-   if(allTokens.alignment[witnessId].tokens[position] == null)
+   if(allTokens.alignment[witnessId].tokens[position] === null)
    {
      token = "null";
    }
@@ -1535,20 +1541,17 @@ function getToken(witnessId, position)
           var index = "";
           
           // Establish this is the correct place to regularize
-          if(tokenArray.length == 1)
-          {
-            for(var m in reg_thisArray)
+          var m;
+          if(tokenArray.length == 1) {
+            for(m in reg_thisArray)
             {
               if(token == reg_thisArray[m])
               {
                 index = m;
               }
             }
-          }
-          else
-          {
-            for(var m in reg_thisArray)
-            {
+          } else {
+            for(m in reg_thisArray) {
               if(tokenArray[0] == reg_thisArray[m])
               {
                 index = m;
@@ -1557,11 +1560,9 @@ function getToken(witnessId, position)
           }
           
           var numBack = currentPosition - index;
-          for(var m = 0; m<index; m++)
-          {
+          for(m = 0; m<index; m++) {
             //alert(numBack);
-            if(allTokens.alignment[witnessId].tokens[numBack] != null)
-            {
+            if(allTokens.alignment[witnessId].tokens[numBack] !== null) {
               if(allTokens.alignment[witnessId].tokens[numBack].t != reg_thisArray[m] && foundMatch)
               {
                 //alert("Backward: noMatch");
@@ -1578,9 +1579,9 @@ function getToken(witnessId, position)
           }
           
           var numForward = currentPosition;
-          for(var m = index + tokenArray.length - 1; m < reg_thisArray.length; m++)
+          for(m = index + tokenArray.length - 1; m < reg_thisArray.length; m++)
           {
-            if(allTokens.alignment[witnessId].tokens[numForward] != null)
+            if(allTokens.alignment[witnessId].tokens[numForward] !== null)
             {
               if(allTokens.alignment[witnessId].tokens[numForward].t != reg_thisArray[m] && foundMatch)
               {

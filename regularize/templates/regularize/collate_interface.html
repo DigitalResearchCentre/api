@@ -136,14 +136,7 @@ This regularization set for <label for="choice" id="choice"></label>
     var isAllWitnesses = "{{ isAllWitnesses }}"
     var witnessDataTokens;
     var witnessDataLines;
-    var ruleSet = (("{{ ruleSet }}")).replace(/&(l|g|quo)t;/g, function(a,b)
-    {
-      return {
-        l : '<',
-        g : '>',
-        quo : '"'
-      }[b];
-    });
+    var ruleSet = {{ ruleSet | safe }};
     var allImages = (("{{ images }}")).replace(/&(l|g|quo)t;/g, function(a,b)
     {
       return {

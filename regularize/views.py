@@ -18,6 +18,10 @@ from lxml import etree
 from api.models import Entity
 
 @login_required
+def test(request):
+    return render_to_response('regularize/collate.html')
+
+@login_required
 def regularization(request):
     # request should contain json with username and urn
 
@@ -29,92 +33,28 @@ def regularization(request):
     urn = entity.get_urn()
     returnUrl = request.GET.get('page', '')
     username = request.user.username
+    ruleSets = json.loads(getRuleSets(username, urn))
+    ruleSetName = 'default'
+    ruleSet = {}
+    for rs in ruleSets['ruleSets']:
+        if rs['name'] == ruleSetName:
+            ruleSet = rs
+            break
 
-    if request.session.get('urn'):
-        urnOld = request.session.pop('urn')
-        if urnOld != urn:
-            print "erase old: " + urnOld + "; new: " + urn
-            if request.session.get('selectedRuleSet'):
-                request.session.pop('selectedRuleSet')
-            if request.session.get('selectedWitnesses'):
-                request.session.pop('selectedWitnesses')
-            if request.session.get('images'):
-                request.session.pop('images')
-            if request.session.get('data'):
-                request.session.pop('data')
-            regularization(request)
-
-    if request.session.get('selectedRuleSet'):
-        jdata = json.loads(request.session.pop('selectedRuleSet'))
-        request.session['selectedRuleSet'] = json.dumps(jdata)
-        ruleSetName = jdata['ruleSetName']
-        ruleSet = jdata['ruleSet']
-        images = [] # request.session.pop('images')
-        request.session['images'] = images
-        if request.session.get('selectedWitnesses'):
-            jdata = json.loads(request.session.pop('selectedWitnesses'))
-            witnesses = jdata['witnesses']
-            request.session['selectedWitnesses'] = json.dumps(jdata)
-            allWitnesses = False
-        else:
-            allWitnesses = True
-            witnesses = request.session.pop('data')
-            request.session['data'] = witnesses
-            witnesses = checkDuplicateWitnesses(witnesses)
-    else:
-        if request.session.get('selectedWitnesses'):
-            allWitnesses = False
-            witnesses = json.loads(request.session.pop('selectedWitnesses'))
-            witnesses = witnesses['witnesses']
-            request.session['selectedWitnesses'] = json.dumps(witnesses)
-            images = request.session.pop('images')
-            request.session['images'] = images
-        else:
-            allWitnesses = True
-            entity_id = request.GET.get('entity', '')
-            witnesses = []
-            images = []
-            images = json.dumps(images)
-            #witData = getWitnessData(urn)
-            #witnesses = json.loads(witData[0])
-            #witnesses = checkDuplicateWitnesses(witnesses['witnesses'])
-            request.session['data'] = witnesses
-            #request.session['images'] = witData[1]
-            #images = witData[1]
-            
-        ruleSets = json.loads(getRuleSets(username, urn))
-        ruleSetName = 'default'
-
-        filteredRuleSet = RuleSet.objects.filter(userId=username)
-        filteredRuleSet = filteredRuleSet.filter(appliesTo=urn)
-        filteredRuleSet = filteredRuleSet.filter(name=ruleSetName)
-        if not filteredRuleSet:
-            rs = RuleSet()
-            rs.userId = username
-            rs.appliesTo = urn
-            rs.name = ruleSetName
-            rs.save()
-            ruleSet = '{}'
-        else:
-            for rs in ruleSets['ruleSets']:
-                if rs['name'] == "default":
-                    ruleSet = rs
-
-    #witnesses = json.dumps({'witnesses': witnesses})
-    ruleSet = json.dumps({'ruleSet': ruleSet})
-    request.session['urn'] = urn
-
+    if not ruleSet:
+        RuleSet.objects.create(userId=username, appliesTo=urn, name=ruleSetName)
+   
     return render_to_response('regularize/collate_interface.html', {
         "userName" : username, 
         "urn" : urn, 
         "witnessesTokens" : '{"table": []}', 
         "witnessesLines": '[[]]', 
         "ruleSetName": ruleSetName, 
-        "ruleSet": ruleSet, 
+        "ruleSet": json.dumps({'ruleSet': ruleSet}), 
         "position": 0,
-        "images": images, 
+        "images": '[]', 
         "returnUrl": returnUrl,
-        "isAllWitnesses": allWitnesses
+        "isAllWitnesses": not request.session.get('selectedWitnesses')
     }, context_instance=RequestContext(request))
 
 def checkDuplicateWitnesses(witnesses):
@@ -256,68 +196,71 @@ def chooseTextsInterface(request):
     return render_to_response('regularize/chooseTexts_interface.html', {"returnUrl": returnUrl, "witnesses": jdata, "urn": urn, 'userName': request.user.username}, context_instance=RequestContext(request))
 
 def getRuleSets(userName, urn):
-        filteredRuleSets = RuleSet.objects.filter(appliesTo=urn).filter(userId=userName)
-
-        jdata = '{ "ruleSets": ['
-        if filteredRuleSets:
-            ruleSetNum = 0
-            for rs in filteredRuleSets:
-                if(ruleSetNum != 0):
+    filteredRuleSets = RuleSet.objects.filter(appliesTo=urn, userId=userName)
+    jdata = '{ "ruleSets": ['
+    ruleSetNum = 0
+    for rs in filteredRuleSets:
+        if(ruleSetNum != 0):
+            jdata = jdata + ","
+        jdata = jdata + '{"name": ' + jsonpickle.encode(rs.name) + ','
+        jdata = jdata + '"appliesTo": ' + jsonpickle.encode(rs.appliesTo) + ','
+        jdata = jdata + '"userId": ' + jsonpickle.encode(rs.userId) + ','
+        jdata = jdata + '"rules": ['
+        ruleNum = 0
+        for r in rs.rules.all():
+            cur = ''
+            if(ruleNum != 0):
+                cur = cur + ","
+            cur = cur + '{"appliesTo": ' + jsonpickle.encode(r.appliesTo) + ','
+            cur = cur + '"action": ' + jsonpickle.encode(r.action) + ','
+            cur = cur + '"scope": ' + jsonpickle.encode(r.scope) + ','
+            cur = cur + '"token": ' + jsonpickle.encode(r.token) + ','
+            cur = cur + '"modifications": ['
+            modificationNum = 0
+            deleted = False
+            for m in r.modifications.all():
+                if(modificationNum != 0):
+                    cur = cur + ","
+                if m.modification_type == 'delete':
+                    deleted = True
+                cur = cur + '{"userId": ' + jsonpickle.encode(m.userId) + ','
+                cur = cur + '"modification_type": ' + \
+                    jsonpickle.encode(m.modification_type) + ','
+                cur = cur + '"dateTime": ' + jsonpickle.encode(m.dateTime) + '}'
+                modificationNum = modificationNum + 1
+            cur = cur + ']}'
+            if not deleted:
+                jdata = jdata + cur
+                ruleNum = ruleNum + 1
+        jdata = jdata + '],'
+        jdata = jdata + '"alignments": ['
+        alignNum = 0
+        for a in rs.alignments.all():
+            if(alignNum != 0):
+                jdata = jdata + ","
+            jdata = jdata + '{"appliesTo":' + jsonpickle.encode(a.appliesTo) + ','
+            jdata = jdata + '"witnessId": ' + jsonpickle.encode(a.witnessId) + ','
+            jdata = jdata + '"isForward": ' + jsonpickle.encode(a.isForward) + ','
+            jdata = jdata + '"isMove": ' + jsonpickle.encode(a.isMove) + ','
+            jdata = jdata + '"token": ' + jsonpickle.encode(a.token) + ','
+            jdata = jdata + '"numPos": ' + jsonpickle.encode(a.numPos) + ','
+            jdata = jdata + '"position": ' + jsonpickle.encode(a.position) + ','
+            jdata = jdata + '"context": ' + jsonpickle.encode(a.context) + ','
+            jdata = jdata + '"modifications": ['
+            modificationNum = 0
+            for m in a.modifications.all():
+                if(modificationNum != 0):
                     jdata = jdata + ","
-                jdata = jdata + '{"name": ' + jsonpickle.encode(rs.name) + ','
-                jdata = jdata + '"appliesTo": ' + jsonpickle.encode(rs.appliesTo) + ','
-                jdata = jdata + '"userId": ' + jsonpickle.encode(rs.userId) + ','
-                jdata = jdata + '"rules": ['
-                ruleNum = 0
-                for r in rs.rules.all():
-                    if(ruleNum != 0):
-                        jdata = jdata + ","
-                    jdata = jdata + '{"appliesTo": ' + jsonpickle.encode(r.appliesTo) + ','
-                    jdata = jdata + '"action": ' + jsonpickle.encode(r.action) + ','
-                    jdata = jdata + '"scope": ' + jsonpickle.encode(r.scope) + ','
-                    jdata = jdata + '"token": ' + jsonpickle.encode(r.token) + ','
-                    jdata = jdata + '"modifications": ['
-                    modificationNum = 0
-                    for m in r.modifications.all():
-                        if(modificationNum != 0):
-                            jdata = jdata + ","
-                        jdata = jdata + '{"userId": ' + jsonpickle.encode(m.userId) + ','
-                        jdata = jdata + '"modification_type": ' + \
-                            jsonpickle.encode(m.modification_type) + ','
-                        jdata = jdata + '"dateTime": ' + jsonpickle.encode(m.dateTime) + '}'
-                        modificationNum = modificationNum + 1
-                    jdata = jdata + ']}'
-                    ruleNum = ruleNum + 1
-                jdata = jdata + '],'
-                jdata = jdata + '"alignments": ['
-                alignNum = 0
-                for a in rs.alignments.all():
-                    if(alignNum != 0):
-                        jdata = jdata + ","
-                    jdata = jdata + '{"appliesTo":' + jsonpickle.encode(a.appliesTo) + ','
-                    jdata = jdata + '"witnessId": ' + jsonpickle.encode(a.witnessId) + ','
-                    jdata = jdata + '"isForward": ' + jsonpickle.encode(a.isForward) + ','
-                    jdata = jdata + '"isMove": ' + jsonpickle.encode(a.isMove) + ','
-                    jdata = jdata + '"token": ' + jsonpickle.encode(a.token) + ','
-                    jdata = jdata + '"numPos": ' + jsonpickle.encode(a.numPos) + ','
-                    jdata = jdata + '"position": ' + jsonpickle.encode(a.position) + ','
-                    jdata = jdata + '"context": ' + jsonpickle.encode(a.context) + ','
-                    jdata = jdata + '"modifications": ['
-                    modificationNum = 0
-                    for m in a.modifications.all():
-                        if(modificationNum != 0):
-                            jdata = jdata + ","
-                        jdata = jdata + '{"userId": ' + jsonpickle.encode(m.userId) + ','
-                        jdata = jdata + '"modification_type": ' + \
-                            jsonpickle.encode(m.modification_type) + ','
-                        jdata = jdata + '"dateTime": ' + jsonpickle.encode(m.dateTime) + '}'
-                        modificationNum = modificationNum + 1
-                    jdata = jdata + ']}'
-                    alignNum = alignNum + 1
-                jdata = jdata + ']}'
-                ruleSetNum = ruleSetNum + 1
+                jdata = jdata + '{"userId": ' + jsonpickle.encode(m.userId) + ','
+                jdata = jdata + '"modification_type": ' + \
+                    jsonpickle.encode(m.modification_type) + ','
+                jdata = jdata + '"dateTime": ' + jsonpickle.encode(m.dateTime) + '}'
+                modificationNum = modificationNum + 1
+            jdata = jdata + ']}'
+            alignNum = alignNum + 1
         jdata = jdata + ']}'
-        return jdata
+        ruleSetNum = ruleSetNum + 1
+    return jdata + ']}'
 
 @csrf_exempt
 def postSelectedRuleSets(request):
@@ -413,10 +356,6 @@ def changeRules(request):
                for modification in jdata['rules']:
                     found = False
                     for rule in filteredRuleSet[0].rules.all():
-                        # filteredModifications = Modification.objects.filter(userId=jdata['userName']\
-                        #                 ).filter(modification_type=jdata['modification']['modifications']\
-                        #                 [0]['modification_type']).filter(dateTime=jdata['rules'][0]\
-                        #                 ['modifications'][0]['dateTime'])
                         if (rule.appliesTo == jdata['urn'] and rule.action == \
                             modification['action'] and rule.scope == modification['scope'] \
                             and rule.token == modification['token']):
