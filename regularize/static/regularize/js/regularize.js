@@ -1495,24 +1495,20 @@ function getToken(witnessId, position)
    var foundMatch = true;
    var ruleApplied = false;
    
-   if(isCustomRules)
-   {
+   if(isCustomRules) {
      regRules = customRules;
      
    }
-   else
-   {
+   else {
      regRules = allRules;
    }
   
-   if(allTokens.alignment[witnessId].tokens[position] === null)
-   {
+   var tokens = allTokens.alignment[witnessId].tokens;
+   if (tokens && tokens[position]) {
+     token = tokens[position].t;
+     origToken = tokens[position].t;
+   } else {
      token = "null";
-   }
-   else
-   {
-     token = allTokens.alignment[witnessId].tokens[position].t;
-     origToken = allTokens.alignment[witnessId].tokens[position].t;
    }
 
    for (var k in regRules.rules)
@@ -1597,18 +1593,15 @@ function getToken(witnessId, position)
             numForward++;
           }
           
-          if(foundMatch)
-          { 
+          if(foundMatch) { 
              ruleApplied = true;
              //alert("match");
              var found = false;
              var indexEndThis = 0;
-             for(var m = index; m < reg_thisArray; m++)
-             {
-               for(var n = index; n < reg_toArray; n++)
-               {
-                 if(reg_thisArray[m] == reg_toArray[n] && !found)
-                 {
+             var n;
+             for(m = index; m < reg_thisArray; m++) {
+               for(n = index; n < reg_toArray; n++) {
+                 if(reg_thisArray[m] == reg_toArray[n] && !found) {
                    found = true;
                    indexEndThis = m;
                  }
@@ -1617,10 +1610,10 @@ function getToken(witnessId, position)
              var endIndex = reg_thisArray.length-index-indexEndThis;
              reg_thisArray = reg_thisArray.splice(index, endIndex);
              
-             var indexEndThis = 0;
-             for(var m = index; m < reg_thisArray; m++)
+             indexEndThis = 0;
+             for(m = index; m < reg_thisArray; m++)
              {
-               for(var n = index; n < reg_toArray; n++)
+               for(n = index; n < reg_toArray; n++)
                {
                  if(reg_thisArray[m] == reg_toArray[n] && !found)
                  {
@@ -1634,9 +1627,9 @@ function getToken(witnessId, position)
              //alert("RegSoFar: " + reg_thisArray.join(" "));
              
              
-             for(var m = index; m < reg_toArray; m++)
+             for(m = index; m < reg_toArray; m++)
              {
-               for(var n = index; n < reg_thisArray; n++)
+               for(n = index; n < reg_thisArray; n++)
                {
                  if(reg_thisArray[n] == reg_toArray[m] && !found)
                  {
@@ -1647,9 +1640,9 @@ function getToken(witnessId, position)
              }
              reg_toArray = reg_toArray.splice(index, reg_toArray.length-index-indexEndThis);
              
-             for(var m = index; m < reg_toArray; m++)
+             for(m = index; m < reg_toArray; m++)
              {
-               for(var n = index; n < reg_thisArray; n++)
+               for(n = index; n < reg_thisArray; n++)
                {
                  if(reg_thisArray[n] == reg_toArray[m] && !found)
                  {
@@ -1675,15 +1668,16 @@ function getToken(witnessId, position)
         
         var spacesThis = checkSpaces(reg_this);
         var spacesTo = checkSpaces(reg_to);
+        var content;
         
-        if(spacesThis != false)
+        if(spacesThis !== false)
         {
-            var content = token;
+            content = token;
 
             for (var i in spacesThis)
             {
               position++;
-              if(allTokens.alignment[witnessId].tokens[position] == null)
+              if(allTokens.alignment[witnessId].tokens[position] === null)
               {
                 newToken = "null";
               }
@@ -1697,7 +1691,7 @@ function getToken(witnessId, position)
             if(content == reg_this)
             {
               position = currentPosition;
-              if(origToken == "")
+              if(origToken === "")
               {
                 origToken = reg_this;
               }
@@ -1707,16 +1701,13 @@ function getToken(witnessId, position)
 
               //console.log(allTokens);
               position++;
-              for(var k in spacesThis)
+              for(k in spacesThis)
               { 
                 allTokens.alignment[witnessId].tokens.splice(position, 1);
               }
               collate = true;
             }
-		  
-        }
-        else
-        {
+        } else {
           ///TODO: change in object
           if(foundMatch)
           {
@@ -1728,12 +1719,11 @@ function getToken(witnessId, position)
           }
         }
         
-        if(spacesTo != false && !isBuildWitnesses)
-        {
+        if(spacesTo !== false && !isBuildWitnesses) {
             //Check if next word(s) match
             // if match -> recollate
 
-            var content = reg_to;
+            content = reg_to;
             //alert("spacesTo");
 
             content = content.split(' ').join('');
@@ -1743,24 +1733,18 @@ function getToken(witnessId, position)
             if(content == reg_this)
             {
               var insertTokens = reg_to.split(' ');
-              var position = currentPosition;
-              for(var k in insertTokens)
-              {
-                if(k == 0)
-                {
-                  if(origToken == "")
-                  {
+              position = currentPosition;
+              for(k in insertTokens) {
+                if(k == 0) {
+                  if(origToken == "") {
                     origToken = reg_this;
                   }
                   
-                  if(allTokens.alignment[witnessId].tokens[position] != null)
-                  {
+                  if(allTokens.alignment[witnessId].tokens[position] != null) {
                     allTokens.alignment[witnessId].tokens[position].t = insertTokens[k];
                     allTokens.alignment[witnessId].tokens[position].origToken = origToken;
                     allTokens.alignment[witnessId].tokens[position].reg_to = reg_to;
-                  }
-                  else
-                  {
+                  } else {
                     var insertTok = { "t" : insertTokens[k], "n" : insertTokens[k], "origToken" : origToken, "reg_to" : reg_to};
                     allTokens.alignment[witnessId].tokens.splice(position,1,insertTok);
                     // TODO:: May have to add a null token at end of each other witness to make same number of tokens
@@ -3679,5 +3663,8 @@ function applyAlign()
   console.log(allTokens);
   console.log(allAlign);
 }
+
+
+
 
 
