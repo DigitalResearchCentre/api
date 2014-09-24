@@ -8,7 +8,7 @@ from itertools import chain
 from django.http import HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -417,12 +417,9 @@ def collate(request):
     )
     return HttpResponse(content, content_type='application/json')
 
+@csrf_exempt
 def collate1(request):
-    print request.POST
-    print request.DATA
-    content = ''
-    return HttpResponse(content, content_type='application/json')
-
+    return redirect(settings.COLLATE_URL)
 
 
 @csrf_exempt

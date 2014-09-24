@@ -77,6 +77,7 @@ function collate(witnesses, callback) {
     tokenComparator: {type: 'equality'},
     transpositions: true,
   })};
+
   return $.post(env.COLLATE_URL, data, function(data){
     var table = data.table;
     var alignment = _.map(data.witnesses, function(id){
@@ -1443,7 +1444,7 @@ function seeWitnesses() {
   console.log(allWitnesses);
   _.each(allWitnesses, function(witness){
     content += witness.id + ": " + (witness.orig || witness.content) + "<br />";
-    content += witness.id + ": " + witness.content + "<br />";
+    //content += witness.id + ": " + witness.content + "<br />";
   });
   
   document.getElementById('newRegInfo').innerHTML = content;
