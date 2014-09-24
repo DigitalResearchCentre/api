@@ -32,3 +32,4 @@ class RuleSet(models.Model):
     userId = models.CharField(max_length=50)
     rules = models.ManyToManyField(Rule)
     alignments = models.ManyToManyField(Alignment)
+

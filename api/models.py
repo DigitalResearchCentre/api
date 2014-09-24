@@ -350,7 +350,7 @@ class Entity(DETNode):
 
     def witnesses(self):
         witnesses = []
-        for text in self.has_text_of():
+        for text in self.has_text_of().select_related('doc'):
             root = etree.XML(text.xml())
             doc = text.is_text_in()
             witnesses.append({

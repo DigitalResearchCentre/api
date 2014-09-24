@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block stylesheet %}
+  <style>
+    .reg-off {
+      display: none;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="header">
+  <h1>Collation Interface: for <label class="entity-name"></label></h1>
+</div>
+<div class="description">
+  Rule Set Name: <label class="ruleset-name"></label>
+  <input class="change-ruleset" type="button" value="Change Rule Set"><br/>
+  <label class="instruction">
+    Single click on the word you want regularized,
+    double click or type in the word you want it regularized to. <br/>
+    Select combination of Witnesses and Place.  Click OK when finished.
+  </label>
+  <br/><br/>
+  <div>
+    <label class="reg-on">Regularization is off! (Showing originals)</label>
+    <label class="reg-off">
+      Regularization is on!
+      Click on a witness for a regularized word to see more detail.
+    </label>
+  </div>
+</div>
+<div class="regularization">
+  <div class="reg-table">
+
+       <br /> <input type="checkbox" name="reg_checkbox" value="reg_checkbox" onchange="showRegularization(this)"/>
+        Add regularization rules
+       <br /> <input type="checkbox" name="change" value="change" onchange="showRealign(this)"/>
+        Change alignment of token (Make sure all regularizations are done!)
+       <br />
+       
+     document.getElementById('reg_button').value = "Reg. Off";
+       <input name="reg_on" id="reg_button" type="button" value="Reg. On" onclick="regularize_onoff()">
+       <input name="align_on" id="align_button" type="button" value="Align. Off" onclick="align_onoff()">
+       <input name="back" type="button" value="Back Entity" onclick="backEntity()">
+       <input name="forward" type="button" value="Forward Entity" onclick="forwardEntity()">
+       <input name="previous" type="button" value="Previous Word" onclick="previousToken()">
+       <input name="next" type="button" value="Next Word" onclick="nextToken()">
+
+       <div id="reg_wrapper"></div><br />
+
+  <form name="realign_token" id="realign_token">
+    <div id="align_wrapper"></div><br/>
+    </form>
+
+    <div>
+    <label id="newRegInfo">
+    </label>
+<h2>Witness Information</h2>
+Word <label for="word" id="word"></label> in line <label for="line" id="line"></label> in entity <label for="block" id="block"></label>
+in witness <label for="witnessId" id="witnessId"></label>
+
+<br /><br />
+
+Context:<br/>
+<label for="context" id="context"></label>
+
+<br /><br />
+
+Regularization from:<br/>
+<label for="reg_this_info" id="reg_this_info"></label>
+
+<br /><br />
+
+Regularization to:<br/>
+<label for="reg_to_info" id="reg_to_info"></label>
+
+<br /><br />
+
+This regularization set for <label for="choice" id="choice"></label>
+
+
+    </div>
+
+</div>
+<div class="witness-table"></div>
+<div class="rule-table">
+  <label class="rule-table-title">Regularizations</label>
+  <input class="submit-custom-reg" type="button" value="Submit">
+</div>
+<div class="image-map"></div>
+{% endblock %}
+
+{% block script %}
+<script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}">
+</script>
+<script src="{% static 'bower_components/jquery-cookie/jquery.cookie.js' %}">
+</script>
+<script 
+  src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}">
+</script>
+<script type="text/javascript" 
+  src="{% static 'bower_components/underscore-amd/underscore.js' %}"></script>
+<script type="text/javascript" 
+src="{% static 'bower_components/backbone-amd/backbone.js' %}"></script>
+  <script type="text/javascript" 
+  src="{% static 'bower_components/uri.js/src/uri.js' %}"></script>
+<script src="{% static 'regularize/js/collate.js' %}"></script>
+{% endblock %}
+
+

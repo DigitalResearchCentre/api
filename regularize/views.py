@@ -19,7 +19,9 @@ from api.models import Entity
 
 @login_required
 def test(request):
-    return render_to_response('regularize/collate.html')
+    return render_to_response('regularize/collate.html', {
+
+    })
 
 @login_required
 def regularization(request):
@@ -413,6 +415,14 @@ def collate(request):
         },
     )
     return HttpResponse(content, content_type='application/json')
+
+def collate1(request):
+    print request.POST
+    print request.DATA
+    content = ''
+    return HttpResponse(content, content_type='application/json')
+
+
 
 @csrf_exempt
 def postRecollate(request):

@@ -47,7 +47,7 @@ function _regularize(witnesses, rules) {
     if (!witness.orig) {
       witness.orig = content;
     }
-    console.log(rules);
+    content.replace(/  /g, ' ');
     rules = _.sortBy(rules, function(rule) {
       var re = /regularize\((.+), (.+)\)/;
       var match = re.exec(rule.action);
@@ -55,9 +55,14 @@ function _regularize(witnesses, rules) {
       rule.to = match[2];
       return match[1].length;
     });
-    console.log(rules);
     _.each(rules, function(rule){
-      content = content.replace(new RegExp(rule.from, 'g'), rule.to);
+      var from = $.trim(rule.from) + '(?=( |$))';
+      var to = rule.to;
+      if (!to || to == 'null') {
+        to = '';
+      }
+      content = content.replace(new RegExp('^'+from, 'g'), to);
+      content = content.replace(new RegExp(' '+from, 'g'), ' '+to);
     });
     witness.content = content;
     return content;
@@ -223,8 +228,7 @@ function chooseTexts()
 
 
 
-function load(witnesses, tokens)
-{
+function load(witnesses, tokens) {
   
   allImages = allImages.replace(/u'/g, '\'');
   allImages = allImages.replace(/'/g, '\"');
@@ -304,7 +308,9 @@ function load(witnesses, tokens)
   showRegularization(document.regularization.reg_checkbox);
   regOn = false;
   regularize_onoff();
-  regularize();
+
+  currentPosition -= 1;
+  nextToken();
 
   var clickCounter = 0;
   $('#regularization_area').click(function(){
@@ -402,8 +408,7 @@ function moveToken(to) {
 
   currentPosition = to;
   
-  if(alignOn)
-  {
+  if(alignOn) {
     applyAlign();
   }
   if (regTo) {
@@ -852,7 +857,7 @@ function findDistinct(position) {
 
     // get token from json
     if(!allTokens.alignment[i].tokens[position]) {
-       origToken = "null";
+      origToken = "null";
     } else {
       origToken = allTokens.alignment[i].tokens[position].t;
     }
@@ -919,10 +924,8 @@ function findDistinct(position) {
         "originals": []
       });
       
-      for(j in distinct.witnesses)
-      {
-        if(distinct.witnesses[j].token == token && !added)
-        {
+      for(j in distinct.witnesses) {
+        if(distinct.witnesses[j].token == token && !added) {
           distinct.witnesses[j].originals.push({
             "origToken": origToken,
             "id" : []
@@ -938,38 +941,25 @@ function findDistinct(position) {
   // create the content for the collation area text box
   var content = "";
   var allNull = true;
-  for (i in distinct.witnesses)
-  {
-    content += distinct.witnesses[i].token;
-    if (distinct.witnesses[i].token !== null && distinct.witnesses[i].token !== 'null') {
+  _.each(distinct.witnesses, function(witness) {
+    content += witness.token;
+    if (witness.token !== null && witness.token !== 'null') {
       allNull = false;
     }
     
-    for(j in distinct.witnesses[i].originals) {
-      if(distinct.witnesses[i].originals[j].origToken != distinct.witnesses[i].token && isOriginals)
-      {
-        for(k in distinct.witnesses[i].originals[j].id)
-        {
-          content += " " + distinct.witnesses[i].originals[j].id[k];
-        }
+    for(var j in witness.originals) {
+      for(var k in witness.originals[j].id) {
+        content += " " + witness.originals[j].id[k];
 
-        content += "(" + distinct.witnesses[i].originals[j].origToken + "), ";
-      }
-      else
-      {
-        for(k in distinct.witnesses[i].originals[j].id)
-        {
-          content += " " + distinct.witnesses[i].originals[j].id[k];
-        }
-        if(isOriginals)
-        {
+        if(witness.originals[j].origToken != witness.token && isOriginals) {
+          content += "(" + witness.originals[j].origToken + "), ";
+        }else{
           content += ",";
         }
       }
     }
-    
     content += " /// "; 
-  }
+  });
   return allNull ? null : content;
 }
 
@@ -1444,14 +1434,13 @@ function buildWitnesses()
   return newWitnesses;
 }
 
-function seeWitnesses()
-{
-
+function seeWitnesses() {
   var newWitnesses = buildWitnesses();
-  
   var content = "";
 
+  console.log(allWitnesses);
   _.each(allWitnesses, function(witness){
+    content += witness.id + ": " + (witness.orig || witness.content) + "<br />";
     content += witness.id + ": " + witness.content + "<br />";
   });
   
@@ -1511,26 +1500,24 @@ function getToken(witnessId, position)
      token = "null";
    }
 
-   for (var k in regRules.rules)
-   {
+   var reg_to;
+   for (var k in regRules.rules) {
      var action = regRules.rules[k].action;
      var reg_this = action.split(',')[0];
      reg_this = reg_this.substring(11,reg_this.length);
-     var reg_to = action.split(', ')[1];
+     reg_to = action.split(', ')[1];
      reg_to = reg_to.substring(0, reg_to.length-1);
      var wholeToToken = reg_to;
      var regularizeToken = regRules.rules[k].token;
      var choice = regRules.rules[k].scope;
      foundMatch = true;
      var modifications = regRules.rules[k].modifications;
-     if (modifications[modifications.length-1].modification_type == "delete")
-     {
+
+     if (modifications[modifications.length-1].modification_type == "delete") {
        isDisabled = true;
      }
-     else if ($.trim(token) == $.trim(regRules.rules[k].token))
-     {  
-        if(choice == "this_place")
-        {
+     else if ($.trim(token) == $.trim(regRules.rules[k].token)) {  
+        if(choice == "this_place") {
           var reg_thisArray = reg_this.split(" ");
           var reg_toArray = reg_to.split(" ");
           var tokenArray = regularizeToken.split(" ");  //?!? maybe should use reg_thisArray (is token only one word)
@@ -1558,31 +1545,20 @@ function getToken(witnessId, position)
           var numBack = currentPosition - index;
           for(m = 0; m<index; m++) {
             //alert(numBack);
-            if(allTokens.alignment[witnessId].tokens[numBack] !== null) {
-              if(allTokens.alignment[witnessId].tokens[numBack].t != reg_thisArray[m] && foundMatch)
-              {
-                //alert("Backward: noMatch");
-                //var newTokenn = allTokens.alignment[witnessId].tokens[position].t;
-                //alert(newTokenn + " " + reg_thisArray[m]);
+            if(tokens[numBack]) {
+              if(tokens[numBack].t != reg_thisArray[m] && foundMatch) {
                 foundMatch = false;
               }
-            }
-            else
-            {
+            } else {
               m--;
             }
             numBack--;
           }
           
           var numForward = currentPosition;
-          for(m = index + tokenArray.length - 1; m < reg_thisArray.length; m++)
-          {
-            if(allTokens.alignment[witnessId].tokens[numForward] !== null)
-            {
-              if(allTokens.alignment[witnessId].tokens[numForward].t != reg_thisArray[m] && foundMatch)
-              {
-                //alert(" Forward: noMatch");
-                //alert(allTokens.alignment[witnessId].tokens[numForward].t + " " + reg_thisArray[m]);
+          for(m = index + tokenArray.length - 1; m < reg_thisArray.length; m++) {
+            if(tokens[numForward]) {
+              if(tokens[numForward].t != reg_thisArray[m] && foundMatch) {
                 foundMatch = false;
               }
             }
@@ -1657,9 +1633,7 @@ function getToken(witnessId, position)
              
              //alert("reg_this: " + reg_this + " reg_to: " + reg_to);
             
-          }
-          else if(!ruleApplied)
-          {
+          } else if(!ruleApplied) {
             token = origToken;
             //alert("Nomatch: " + token);
           }
@@ -1674,36 +1648,31 @@ function getToken(witnessId, position)
         {
             content = token;
 
-            for (var i in spacesThis)
-            {
+            for (var i in spacesThis) {
               position++;
-              if(allTokens.alignment[witnessId].tokens[position] === null)
-              {
+              if(tokens[position]) {
+                newToken = tokens[position].t;
+              } else {
                 newToken = "null";
-              }
-              else
-              {
-                newToken = allTokens.alignment[witnessId].tokens[position].t;
               }
               content += " " + newToken;
             }
 
-            if(content == reg_this)
-            {
+            if(content == reg_this) {
               position = currentPosition;
-              if(origToken === "")
-              {
+              if(origToken === "") {
                 origToken = reg_this;
               }
-              allTokens.alignment[witnessId].tokens[position].t = reg_to;
-              allTokens.alignment[witnessId].tokens[currentPosition].origToken = origToken;
-              allTokens.alignment[witnessId].tokens[currentPosition].reg_to = reg_to;
+              if (tokens[position]) {
+                tokens[position].t = reg_to;
+                tokens[currentPosition].origToken = origToken;
+                tokens[currentPosition].reg_to = reg_to;
+              }
 
               //console.log(allTokens);
               position++;
-              for(k in spacesThis)
-              { 
-                allTokens.alignment[witnessId].tokens.splice(position, 1);
+              for(k in spacesThis) { 
+                tokens.splice(position, 1);
               }
               collate = true;
             }
@@ -1735,29 +1704,35 @@ function getToken(witnessId, position)
               var insertTokens = reg_to.split(' ');
               position = currentPosition;
               for(k in insertTokens) {
-                if(k == 0) {
-                  if(origToken == "") {
+                if(k === 0) {
+                  if(origToken === "") {
                     origToken = reg_this;
                   }
                   
-                  if(allTokens.alignment[witnessId].tokens[position] != null) {
-                    allTokens.alignment[witnessId].tokens[position].t = insertTokens[k];
-                    allTokens.alignment[witnessId].tokens[position].origToken = origToken;
-                    allTokens.alignment[witnessId].tokens[position].reg_to = reg_to;
+                  if(tokens[position]) {
+                    tokens[position].t = insertTokens[k];
+                    tokens[position].origToken = origToken;
+                    tokens[position].reg_to = reg_to;
                   } else {
-                    var insertTok = { "t" : insertTokens[k], "n" : insertTokens[k], "origToken" : origToken, "reg_to" : reg_to};
-                    allTokens.alignment[witnessId].tokens.splice(position,1,insertTok);
+                    tokens.splice(position, 1, {
+                      t: insertTokens[k], 
+                      n: insertTokens[k], 
+                      origToken: origToken, 
+                      reg_to: reg_to
+                    });
                     // TODO:: May have to add a null token at end of each other witness to make same number of tokens
                   }
-                }
-                else
-                {
-                  if(origToken == "")
+                } else {
+                  if(origToken === "")
                   {
                     origToken = reg_this;
                   }
-                  var insertTok = { "t" : insertTokens[k], "n" : insertTokens[k], "origToken" : origToken, "reg_to" : reg_to};
-                  allTokens.alignment[witnessId].tokens.splice(position,0,insertTok);
+                  tokens.splice(position,0,{
+                    t: insertTokens[k],
+                    n: insertTokens[k],
+                    origToken: origToken,
+                    reg_to: reg_to
+                  });
                   // TODO:: May have to add a null token at tend of each oter witness to make same number of tokens
                 }
                 position++;
@@ -1766,10 +1741,9 @@ function getToken(witnessId, position)
               reg_to = reg_to.split(' ')[0];
               collate = true;
               token = reg_to;
-
             }
         }
-        else if(spacesTo != false && isBuildWitnesses)
+        else if(spacesTo !== false && isBuildWitnesses)
         {
           token = wholeToToken;
         }
@@ -1787,20 +1761,19 @@ function getToken(witnessId, position)
           }
         }
       }
-   }
+    }
     
     if(collate)
     {
       collate = false;
       if(!isBuildWitnesses)
       {
-      	//recollate();
-      	isRecollate = false;
+        //recollate();
+        isRecollate = false;
         reg_to = reg_to.split(' ')[0];
-      	token = reg_to;
+        token = reg_to;
       }
     }
-    
     return token;
 }
 
@@ -1847,7 +1820,6 @@ function informationWindow(witnessId)
   var reg_to = "";
   var choice = "";
   
-  console.log(distinct);
   for(var j in distinct.witnesses)
   {
     for(var k in distinct.witnesses[j].originals)
@@ -1863,12 +1835,9 @@ function informationWindow(witnessId)
     }
   }
   
-  if(reg_this != reg_to)
-  {
-    for(var i in regRules.rules)
-    {
-      if(reg_this == regRules.rules[i].token)
-      {
+  if(reg_this != reg_to) {
+    for(i in regRules.rules) {
+      if(reg_this == regRules.rules[i].token) {
         choice = regRules.rules[i].scope;
       }
     }
@@ -1895,8 +1864,7 @@ function informationWindow(witnessId)
   document.getElementById('block').innerHTML = entity; 
   document.getElementById('context').innerHTML = context;
   
-  if(reg_this != "" && reg_to != "" && choice != "")
-  {
+  if(reg_this !== "" && reg_to !== "" && choice !== "") {
     document.reg_information.style.visibility = "visible";
     document.getElementById('reg_this_info').innerHTML = reg_this;
     document.getElementById('reg_to_info').innerHTML = reg_to;
@@ -1926,7 +1894,7 @@ function ImageMapType (options){
   this.minZoom = options.minZoom || 1;
   this.name = options.name || 'Image';
   this.src= options.src || 'image/';
-};
+}
 
 ImageMapType.prototype.getTile = function (coord, zoom, ownerDocument){
   var tilesCount = Math.pow(2, zoom);
@@ -1945,7 +1913,7 @@ ImageMapType.prototype.getTile = function (coord, zoom, ownerDocument){
   img.height = this.tileSize.height;
   img.src = this.src+(zoom)+'/'+coord.x+'_'+coord.y+".jpg";
   return img;
-}
+};
 
 
 function ImageMap(url){
@@ -1966,7 +1934,7 @@ function ImageMap(url){
     src: 'http://textualcommunities.usask.ca' + url,
     width: 1707,
     height: 2514
-  }
+  };
   this.rate = image.width > image.height ?  256/image.width : 256/image.height;
   this.x_fix = (256 - this.rate*image.width)/2;
   this.y_fix = (256 - this.rate*image.height)/2;
@@ -1998,24 +1966,20 @@ function ImageMap(url){
   this.map = map;
 }
 
-function loadRegTable()
-{
+function loadRegTable() {
   document.getElementById("reg_table_title").innerHTML = "Regularizations";
   var regRules = { rules: [] };
   
   regRules = allRules;
 
   //delete everything out of reg_table
-   var table = document.getElementById('reg_table');
-   var rowCount = table.rows.length;
-   for(var i =rowCount-1; i>=0; i--)
-   {
-     table.deleteRow(i);
-   }
-
   var table = document.getElementById('reg_table');
-
   var rowCount = table.rows.length;
+  for(var i =rowCount-1; i>=0; i--) {
+    table.deleteRow(i);
+  }
+
+  rowCount = table.rows.length;
   var row = table.insertRow(rowCount);
   
   var checkCellTitle = row.insertCell(0);
@@ -2031,8 +1995,7 @@ function loadRegTable()
   
   rowCount++; 
   
-  for(var i in regRules.rules)
-  {
+  for(i in regRules.rules) {
     var scope = regRules.rules[i].scope;
     var reg_this = regRules.rules[i].token;
     var reg_to = "";
@@ -2047,10 +2010,8 @@ function loadRegTable()
     {
       isDisabled = true; 
     }
-    
     insertRegTable(scope, reg_this, reg_to, isDisabled);
-  	
-  	rowCount++;
+    rowCount++;
   }
   
   document.edit_reg.style.visibility = "visible";
@@ -2058,32 +2019,26 @@ function loadRegTable()
 
 function insertRegTable(scope, reg_this, reg_to, isDisabled)
 {
-    if(reg_this == null)
-    {
+    if(reg_this === null) {
       reg_this = "null";
     }
-    
-    if(reg_to == null)
-    {
+    if(reg_to === null) {
       reg_to = "null";
     }
-    
     var found = true;
     if(isCustomRules)
     {
       found = false;
       //alert("isCustom: insertRegTable"); 
-      
       for(var i in customRules.rules)
       {
         var customScope = customRules.rules[i].scope;
-      	var action = customRules.rules[i].action;
+        var action = customRules.rules[i].action;
         var reg_thisRule = action.split(',')[0];
         reg_thisRule = reg_thisRule.substring(11,reg_thisRule.length);
         var reg_toRule = action.split(', ')[1];
         reg_toRule = reg_toRule.substring(0, reg_toRule.length-1);
         var scopeRule = customRules.rules[i].scope;
-	  	
         //TODO: add more when completed rules
         if(customScope == scope && reg_this == reg_thisRule && reg_to == reg_toRule)
         {
@@ -2095,97 +2050,88 @@ function insertRegTable(scope, reg_this, reg_to, isDisabled)
     var table = document.getElementById('reg_table');
 
     var rowCount = table.rows.length;
-  	var row = table.insertRow(rowCount);
+    var row = table.insertRow(rowCount);
     
     var checkCell = row.insertCell(0);
-  	var element1 = document.createElement("input");
-  	element1.type = "checkbox";
-  	if(found)
-  	{
-  	  element1.checked = "checked";
-  	}
-        if(isDisabled)
-        {
-          element1.disabled = true;
-        }
-  	checkCell.appendChild(element1);
-  	
-  	var scopeCell = row.insertCell(1);
-  	var element2 = document.createElement("select");
-  	var option1 = document.createElement("option");
-  	option1.text = "All witnesses, this entity";
-        if(isDisabled)
-        {
-          element2.disabled = true;
-        }
-  	element2.options.add(option1);
-  	var option2 = document.createElement("option");
-  	option2.text = "All witnesses, this place";
-  	element2.options.add(option2);
-  	var option3 = document.createElement("option");
-  	option3.text = "All witnesses, all places";
-  	element2.options.add(option3);
-  	if(scope == "all_places")
-  	{
-  	  element2.selectedIndex = 2; 
-  	}
-  	else if (scope == "this_place")
-  	{
-  	  element2.selectedIndex = 1;
-  	}
-  	scopeCell.appendChild(element2);
-  	
-  	var regThisCell = row.insertCell(2);
-  	var element3 = document.createElement("input");
-  	element3.type = "text";
-  	element3.size = "25";
-  	//regThisCell.innerHTML = reg_this;
-  	element3.value = reg_this;
-        if(isDisabled)
-        {
-          element3.disabled = true;
-        }
-  	regThisCell.appendChild(element3);
-  	
-  	var regToCell = row.insertCell(3);
-  	var element4 = document.createElement("input");
-  	element4.type = "text";
-  	element4.size = "25";
-  	element4.value = reg_to;
-        if(isDisabled)
-        {
-          element4.disabled = true;
-        }
-  	regToCell.appendChild(element4);
-  	
-  	
-  	var deleteCell = row.insertCell(4);
-  	deleteCell.align = "center";
-  	var element5 = document.createElement("input");
-  	element5.type = "checkbox";
-  	//element5.checked = "checked";
-        if(isDisabled)
-        {
-          element5.disabled = true;
-        }
-  	deleteCell.appendChild(element5);
+    var element1 = document.createElement("input");
+    element1.type = "checkbox";
+    if(found) {
+      element1.checked = "checked";
+    }
+    if(isDisabled) {
+      element1.disabled = true;
+    }
+    checkCell.appendChild(element1);
+
+    var scopeCell = row.insertCell(1);
+    var element2 = document.createElement("select");
+    var option1 = document.createElement("option");
+    option1.text = "All witnesses, this entity";
+    if(isDisabled) {
+      element2.disabled = true;
+    }
+    element2.options.add(option1);
+    var option2 = document.createElement("option");
+    option2.text = "All witnesses, this place";
+    element2.options.add(option2);
+    var option3 = document.createElement("option");
+    option3.text = "All witnesses, all places";
+    element2.options.add(option3);
+    if(scope == "all_places") {
+      element2.selectedIndex = 2; 
+    } else if (scope == "this_place") {
+      element2.selectedIndex = 1;
+    }
+    scopeCell.appendChild(element2);
+
+    var regThisCell = row.insertCell(2);
+    var element3 = document.createElement("input");
+    element3.type = "text";
+    element3.size = "25";
+    //regThisCell.innerHTML = reg_this;
+    element3.value = reg_this;
+    if(isDisabled) {
+      element3.disabled = true;
+    }
+    regThisCell.appendChild(element3);
+
+    var regToCell = row.insertCell(3);
+    var element4 = document.createElement("input");
+    element4.type = "text";
+    element4.size = "25";
+    element4.value = reg_to;
+    if(isDisabled) {
+      element4.disabled = true;
+    }
+    regToCell.appendChild(element4);
+
+
+    var deleteCell = row.insertCell(4);
+    deleteCell.align = "center";
+    var element5 = document.createElement("input");
+    element5.type = "checkbox";
+    //element5.checked = "checked";
+    if(isDisabled) {
+      element5.disabled = true;
+    }
+    deleteCell.appendChild(element5);
 }
 
 function submitCustomReg()
 {
   // for alignments
-  if(alignOn)
-  {
+  var table = document.getElementById("reg_table");
+  var rowCount = table.rows.length;
+  var i;
+  if(alignOn) {
     isCustomAlign = true;
     
-    var table = document.getElementById("reg_table");
-    var rowCount = table.rows.length;
     
     customAligns = { alignments: [] };
     var sendAligns = { alignments: [] };
     var aligns = allAlign;
     
-    for(var i=1; i<rowCount; i++)
+    for(i=1; i<rowCount; i++)
     {
       var row = table.rows[i];
       var check = row.cells[0].childNodes[0];
@@ -2245,8 +2191,8 @@ function submitCustomReg()
   
   // for regularization rules
   isCustomRules = true;  // ??!! <----
-  var table = document.getElementById('reg_table');
-  var rowCount = table.rows.length;
+  table = document.getElementById('reg_table');
+  rowCount = table.rows.length;
   
   customRules = { rules: [] };
   //first one is one to delete; second is new reg
@@ -2254,8 +2200,7 @@ function submitCustomReg()
   
   var regRules = allRules;
   
-  for(var i=1; i<rowCount; i++)
-  {
+  for(i=1; i<rowCount; i++) {
     var row = table.rows[i];
     var check = row.cells[0].childNodes[0];
     var deleteRule = row.cells[4].childNodes[0];
@@ -2618,14 +2563,7 @@ function showRealign(checkBox)
     recollate();
     alignOn = false;
     align_onoff();
-    //recollate();
-    //applyAlign();
-    //regularize();
-    
-    //document.getElementById("move_realign").checked = true;
-  }
-  else
-  {
+  } else {
     isRealign = false;
   }
 }
@@ -2705,63 +2643,50 @@ function realign(token, isMove, isForward, numPos, position, witnessId)
 {
   var isCreate = true;
   
-  if(isMove)
-  {
+  if(isMove) {
     isCreate = false;
   }
   
-  if(token == "")
-  {
+  if(token == "") {
     alert("Please select a token");
     return;
   }
   
-  if(!regOn)
-  {
+  if(!regOn) {
     alert("Regularization must be on to change alignment");
     return;
   }
   
-  if(!alignOn)
-  {
+  if(!alignOn) {
     alert("Alignment must be on to change alignment");
     return;
   }
   
   var index = 0;
-  for(var i in allTokens.alignment)
-  {
-    if(allTokens.alignment[i].witness == witnessId)
-    {
+  for(var i in allTokens.alignment) {
+    if(allTokens.alignment[i].witness == witnessId) {
       index = i; 
       //alert("found: " + index);
     }
   }
   
-  if (token != "")
-  {
+  if (token != "") {
     // MOVE TOKENS
-    if(isMove)
-    {
-      if(isForward)
-      {
+    if(isMove) {
+      if(isForward) {
         var newPos = parseInt(position);
         var numAdd = 0;
-        for(var k = 0; k < numPos; k++)
-        {
+        for(var k = 0; k < numPos; k++) {
           // GET RID OF null
           newPos++;
           //alert(index + " " + allTokens.alignment[index].tokens[newPos].t);
-          if(allTokens.alignment[index].tokens[newPos] == null)
-          {
+          if(allTokens.alignment[index].tokens[newPos] == null) {
             //alert(index + " " + newPos + " null");
             allTokens.alignment[index].tokens.splice(newPos, 1);
             allTokens.alignment[index].tokens.splice(position, 0, "null");
             allTokens.alignment[index].tokens[position] = null;
-          }
-          // MOVE ALL TOKENS FORWARD
-          else
-          {
+          } else {
+            // MOVE ALL TOKENS FORWARD
             //alert(index + " non-null");
             allTokens.alignment[index].tokens.splice(position, 0, "null");
             allTokens.alignment[index].tokens[position] = null;
@@ -2803,11 +2728,9 @@ function realign(token, isMove, isForward, numPos, position, witnessId)
     }
     
     // CREATE PHRASE
-    if(isCreate)
-    {
+    if(isCreate) {
       //alert("isCreate");
-      if(token[token.length-1] == " ")
-      {
+      if(token[token.length-1] == " ") {
         token.splice(token.length-1, 1);
       }
 
@@ -2817,40 +2740,32 @@ function realign(token, isMove, isForward, numPos, position, witnessId)
       var match = true;
       var forwardNum = currentPosition;
 
-      for (var j = 0; j < length; j++)
-      {
+      for (var j = 0; j < length; j++) {
         var newToken = getToken(index, forwardNum)
         //alert(allTokens.alignment[index].witness + ":" + newToken + " " + token[j]);
-        if(newToken != 'null')
-        {
-          if(newToken != token[j])
-          {
+        if(newToken != 'null') {
+          if(newToken != token[j]) {
             match = false;
           }
-        }
-        else
-        {
+        } else {
           j--;
         }
         forwardNum++;
       }
       
-      if(match)
-      {
+      if(match) {
         //alert("match");
         allTokens.alignment[index].tokens[currentPosition].t = token.join(" ");
         var indexInput = totalPos;
         var indexDelete = currentPosition;
         indexDelete++;
 
-        for(var j = 0; j < length-1; j++)
-        {
+        for(var j = 0; j < length-1; j++) {
           allTokens.alignment[index].tokens[indexInput] = null;
           indexInput++;
         }
 
-        for(var j=0; j < length-1; j++)
-        {
+        for(var j=0; j < length-1; j++) {
           allTokens.alignment[index].tokens.splice(indexDelete, 1);
         }
       }
@@ -3116,8 +3031,7 @@ function createNewAllTokens()
   return newTokens;
 }
 
-function loadAlignTable()
-{
+function loadAlignTable() {
   document.getElementById("reg_table_title").innerHTML = "Alignments";
 
   //delete everything out of reg_table
