@@ -405,8 +405,9 @@ def changeRules(request):
                         
     return HttpResponse("OK")
 
+@csrf_exempt
 def collate(request):
-    data = request.GET.get('data')
+    data = request.POST.get('data')
     send = httplib2.Http()
     response, content = send.request(
         settings.COLLATE_URL, 'POST', data.encode('utf-8'), {

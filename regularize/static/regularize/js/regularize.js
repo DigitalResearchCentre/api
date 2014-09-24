@@ -71,9 +71,13 @@ function _regularize(witnesses, rules) {
 function collate(witnesses, callback) {
   console.log(witnesses);
   var data = {data: JSON.stringify({
-    witnesses: _regularize(witnesses, allRules.rules)
+    witnesses: _regularize(witnesses, allRules.rules),
+    algorithm: 'dekker',
+    joined: true,
+    tokenComparator: {type: 'equality'},
+    transpositions: true,
   })};
-  return $.get(env.COLLATE_URL, data, function(data){
+  return $.post(env.COLLATE_URL, data, function(data){
     var table = data.table;
     var alignment = _.map(data.witnesses, function(id){
       return {witness: id, tokens: []};
