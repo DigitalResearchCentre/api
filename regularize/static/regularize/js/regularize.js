@@ -47,7 +47,6 @@ function _regularize(witnesses, rules) {
     if (!witness.orig) {
       witness.orig = content;
     }
-    content = content.replace(/  /g, ' ');
     rules = _.sortBy(rules, function(rule) {
       var re = /regularize\((.+), (.+)\)/;
       var match = re.exec(rule.action);
@@ -64,8 +63,7 @@ function _regularize(witnesses, rules) {
       content = content.replace(new RegExp('^'+from, 'g'), to);
       content = content.replace(new RegExp(' '+from, 'g'), ' '+to);
     });
-    witness.content = content;
-    console.log(content);
+    witness.content = content.replace(/  /g, ' ');
   });
   return witnesses;
 }
@@ -2234,11 +2232,8 @@ function submitCustomReg()
       });
       customRules.rules.push(newRule);
       sendRules.rules.push(newRule);
-    }
-    else if(check != null && check.checked)
-    {
-      if(reg_this == reg_thisRule && reg_to == reg_toRule && scope == scopeRule)
-      {
+    } else if(check != null && check.checked) {
+      if(reg_this == reg_thisRule && reg_to == reg_toRule && scope == scopeRule) {
         //add to customReg
         customRules.rules.push(regRules.rules[index]);
       }
