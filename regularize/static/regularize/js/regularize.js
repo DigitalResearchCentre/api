@@ -47,7 +47,7 @@ function _regularize(witnesses, rules) {
     if (!witness.orig) {
       witness.orig = content;
     }
-    content.replace(/  /g, ' ');
+    content = content.replace(/  /g, ' ');
     rules = _.sortBy(rules, function(rule) {
       var re = /regularize\((.+), (.+)\)/;
       var match = re.exec(rule.action);
@@ -65,7 +65,7 @@ function _regularize(witnesses, rules) {
       content = content.replace(new RegExp(' '+from, 'g'), ' '+to);
     });
     witness.content = content;
-    return content;
+    console.log(content);
   });
   return witnesses;
 }
@@ -2209,16 +2209,11 @@ function submitCustomReg()
     var reg_this = row.cells[2].childNodes[0].value;
     var reg_to = row.cells[3].childNodes[0].value;
 
-    if(scope == "All witnesses, this entity")
-    {
+    if(scope == "All witnesses, this entity") {
       scope = "this_entity";
-    }
-    else if(scope == "All witnesses, this place")
-    {
+    } else if(scope == "All witnesses, this place") {
       scope = "this_place";
-    }
-    else
-    {
+    } else {
       scope = "all_places";
     }
 
@@ -2229,8 +2224,7 @@ function submitCustomReg()
     reg_toRule = reg_toRule.substring(0, reg_toRule.length-1);
     var scopeRule = regRules.rules[index].scope;
     
-    if(deleteRule != null && deleteRule.checked)
-    {
+    if(deleteRule != null && deleteRule.checked) {
       // delete from database
       var newRule = allRules.rules[index];
       newRule.modifications.push({
