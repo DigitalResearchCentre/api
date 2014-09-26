@@ -9,7 +9,7 @@ from tastypie.authorization import DjangoAuthorization
 from tastypie.authentication import SessionAuthentication
 
 from django.contrib.auth.models import User
-from api.models import Text, Action, Community, Doc, Attr
+from api.models import Text, Action, Community, Doc, Attr, Entity
 
 class DynamicField(object):
     pass
@@ -177,6 +177,13 @@ class ActionResource(ModelResource):
             objects = objects.select_related(*fields)
         return objects
 
+
+class EntityResource(APIResource):
+
+    class Meta(APIResource.Meta):
+        queryset = Entity.objects.all()
+
+
 class DocResource(APIResource):
     facs = DynamicCharField()
     rend = DynamicCharField()
@@ -289,7 +296,8 @@ class DocResource(APIResource):
 
 v1_api = Api(api_name='v1')
 for cls in (
-    TextResource, ActionResource, UserResource, CommunityResource, DocResource
+    TextResource, ActionResource, UserResource, CommunityResource, DocResource,
+    EntityResource,
 ):
     v1_api.register(cls())
 urls = v1_api.urls

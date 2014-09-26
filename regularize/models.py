@@ -1,4 +1,5 @@
 from django.db import models
+from jsonfield import JSONField
 
 class Modification(models.Model):
     userId = models.CharField(max_length=100)
@@ -33,3 +34,9 @@ class RuleSet(models.Model):
     rules = models.ManyToManyField(Rule)
     alignments = models.ManyToManyField(Alignment)
 
+
+class Witness(models.Model):
+    witness = JSONField(blank=True, null=True)
+
+class Rule(models.Model):
+    pass
