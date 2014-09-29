@@ -2,11 +2,8 @@
 {% load staticfiles %}
 
 {% block stylesheet %}
-  <style>
-    .reg-off {
-      display: none;
-    }
-  </style>
+  <link rel="stylesheet/less" type="text/css" 
+    href="{% static 'regularize/less/styles.less' %}" />
 {% endblock %}
 
 {% block content %}
@@ -33,6 +30,13 @@
 <div class="regularization">
   <div class="reg-table">
 
+
+  </div>
+  <div class="witness-table">
+  </div>
+</div>
+    <!--
+<div>
        <br /> <input type="checkbox" name="reg_checkbox" value="reg_checkbox" onchange="showRegularization(this)"/>
         Add regularization rules
        <br /> <input type="checkbox" name="change" value="change" onchange="showRealign(this)"/>
@@ -53,7 +57,6 @@
     <div id="align_wrapper"></div><br/>
     </form>
 
-    <div>
     <label id="newRegInfo">
     </label>
 <h2>Witness Information</h2>
@@ -78,21 +81,19 @@ Regularization to:<br/>
 <br /><br />
 
 This regularization set for <label for="choice" id="choice"></label>
-
-
     </div>
 
-</div>
 <table id="table"> </table>
-<div class="witness-table"></div>
 <div class="rule-table">
   <label class="rule-table-title">Regularizations</label>
   <input class="submit-custom-reg" type="button" value="Submit">
 </div>
 <div class="image-map"></div>
+-->
 {% endblock %}
 
 {% block script %}
+<script src="{% static 'bower_components/less/dist/less-1.7.5.js' %}"></script>
 <script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}">
 </script>
 <script src="{% static 'bower_components/jquery-cookie/jquery.cookie.js' %}">

@@ -1,35 +1,9 @@
-/*
- * Copyright (c) 2013 The Interedition Development Group.
- *
- * This file is part of CollateX.
- *
- * CollateX is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * CollateX is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with CollateX.  If not, see <http://www.gnu.org/licenses/>.
- */
+YUI.add('interedition-collate', function(Y) {
+    var NS = Y.namespace("interedition.collate");
 
-YUI.add('collatex', function(Y) {
-    Y.CollateX = function(config) {
-        config = (config || {});
-
-        this.serviceUrl = (config.serviceUrl || "collate");
-        this.algorithm = (config.algorithm || "dekker");
-        this.tokenComparator = (config.tokenComparator || { type: "equality" });
-        this.joined = (config.joined || true);
-        this.transpositions = (config.transpositions || true);
-    };
-    Y.CollateX.prototype = {
+    NS.Collator = Y.Base.create("interedition-collate-collator", Y.Base, [], {
         collate: function(resultType, witnesses, callback) {
-            Y.io(this.serviceUrl, {
+            Y.io(this.get("base") + "/collate", {
                 method:"post",
                 headers:{
                     "Content-Type":"application/json",
@@ -37,38 +11,30 @@ YUI.add('collatex', function(Y) {
                 },
                 data: Y.JSON.stringify({
                     witnesses: witnesses,
-                    algorithm: this.algorithm,
-                    tokenComparator: this.tokenComparator,
-                    joined: this.joined,
-                    transpositions: this.transpositions
+                    algorithm: this.get("algorithm"),
+                    tokenComparator: this.get("tokenComparator"),
+                    joined: this.get("joined")
                 }),
                 on:{
                     success: function(transactionId, resp) { callback(resp); },
-                    failure: function(transactionId, resp) {
-                        alert(resp.status + " " + resp.statusText);
-                        Y.log(resp.status + " " + resp.statusText, "error", resp);
-                    }
+                    failure: function(transactionId, resp) { Y.log(resp.status + " " + resp.statusText, "error", resp); }
                 }
             });
         },
         withDekker: function() {
-            this.algorithm = "dekker";
+            this.set("algorithm", "dekker");
             return this;
         },
         withNeedlemanWunsch: function() {
-            this.algorithm = "needleman-wunsch";
-            return this;
-        },
-        withMedite: function() {
-            this.algorithm = "medite";
+            this.set("algorithm", "needleman-wunsch");
             return this;
         },
         withExactMatching: function() {
-            this.tokenComparator = { type: "equality" };
+            this.set("tokenComparator", { type: "equality" })
             return this;
         },
         withFuzzyMatching: function(maxDistance) {
-            this.tokenComparator = { type: "levenshtein", distance: maxDistance || 1 };
+            this.set("tokenComparator", { type: "levenshtein", distance: maxDistance || 1 })
             return this;
         },
         toJSON: function(data, callback) {
@@ -104,32 +70,54 @@ YUI.add('collatex', function(Y) {
                 Y.each(at.table, function (r) {
                     var cellContents = [];
                     Y.each(r, function (c) {
-                        cellContents.push(c.length == 0 ? null : Y.Array.reduce(c, "", function (str, next) {
+                        cellContents.push(c == null ? null : Y.Array.reduce(c, "", function (str, next) {
                             next = Y.Lang.isString(next) ? next : Y.dump(next);
-                            return str + next;
+                            return str + (str.length == 0 ? "" : " ") + next;
                         }));
                     });
                     cells.push(cellContents);
-                    var cellContentsFiltered = Y.Array.filter(cellContents, function (c) {
+                    variantStatus.push(Y.Array.dedupe(Y.Array.filter(cellContents, function (c) {
                         return (c != null);
-                    });
-                    var cellContentsNormalized = Y.Array.map(cellContentsFiltered, function (c) {
-                    	return Y.Lang.trimRight(c).toLowerCase();
-                    });
-                    variantStatus.push(Y.Array.dedupe(cellContentsNormalized).length == 1);
+                    })).length == 1);
                 });
-                for (var wc = 0; wc < at.witnesses.length; wc++) {
-                    var column = table.appendChild(Y.Node.create("<tr/>").append('<th>' + Y.Escape.html(at.witnesses[wc]) + '</th>'));
+                for (var wc = 0; wc < at.sigils.length; wc++) {
+                    var column = Y.Node.create("<tr/>");
+                    column.append('<th>' + Y.Escape.html(at.sigils[wc]) + '</th>');
                     Y.each(cells, function (r, cc) {
                         var c = r[wc];
                         column.append('<td class="' + (variantStatus[cc] ? "invariant" : "variant") + (c == null ? " gap" : "") + '">' + (c == null ? "" : Y.Escape.html(c)));
                     });
+                    table.append(column);
                 }
 
                 container.append(table);
             });
         }
-    };
+    }, {
+        ATTRS: {
+            "base": {
+                valueFn: function() {
+                    var collateJsResource = /\/static\/api\/collate\.js$/;
+                    var value = "";
+                    Y.all("script").each(function(s) {
+                        var src = s.get("src");
+                        if (src != null) {
+                            var result = collateJsResource.exec(src);
+                            if (result) {
+                                value = src.substring(0, result.index);
+                            }
+                        }
+                    });
+                    return value;
+                }
+            },
+            "algorithm": { value: "dekker" },
+            "tokenComparator": { value: { type: "equality" } },
+            "joined": { value: true }
+        }
+    });
 }, "1", {
-    requires: [ "node", "io", "json", "array-extras", "escape", "dump" ]
+    requires: ["base", "io", "json", "node", "array-extras", "escape", "dump"]
 });
+
+

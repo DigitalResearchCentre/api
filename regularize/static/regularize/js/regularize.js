@@ -41,6 +41,10 @@ var Text = Backbone.Model.extend({
   },
 });
 
+function toggleInfo() {
+  seeWitnesses();
+}
+
 function _regularize(witnesses, rules) {
   _.each(witnesses, function(witness){ 
     var content = witness.content;
@@ -91,6 +95,7 @@ function collate(witnesses, callback) {
       });
     });
     callback(data);
+    seeWitnesses();
   });
 }
 
@@ -241,7 +246,6 @@ function load(witnesses, tokens) {
   document.information.style.visibility = "hidden";
   document.reg_information.style.visibility ="hidden";
   document.edit_reg.style.visibility = "hidden";
-  document.regularization.reg_checkbox.checked = true;
   
   alignOn = false;
   isOriginals = false;
@@ -308,9 +312,8 @@ function load(witnesses, tokens) {
     document.getElementById("chooseTextsLabel").innerHTML = content;
   }
   
-  showRegularization(document.regularization.reg_checkbox);
-  regOn = false;
-  regularize_onoff();
+  showRegularization();
+  regOn = true;
 
   currentPosition -= 1;
   nextToken();
@@ -772,60 +775,6 @@ function changeRegularizeLabel(choice, reg_thisWhole, reg_toWhole)
   {
     changeLabelTimer = setTimeout(function() {document.getElementById('newRegInfo').innerHTML = "";}, 5000);
   }
-  
-}
-
-function regularize_onoff()
-{
-  
-  if (regOn === false)
-  {
-     if(document.regularization.reg_checkbox.checked)
-     {
-       document.regularization.originals.style.visibility = "visible";
-       document.getElementById("showOriginals").style.visibility = "visible";
-       document.getElementById("showOriginals").innerHTML = "Show originals";
-       document.regularization.automate.style.visibility = "visible";
-       document.getElementById("automateLabel").style.visibility = "visible";
-       document.getElementById("automateLabel").innerHTML = "Automate regularization";
-       document.edit_reg.style.visibility = "hidden";
-     }
-     regOn = true;
-     document.getElementById('reg_on').innerHTML = "Regularization is on! Click on a witness for a regularized word to see more detail.";
-     document.getElementById('reg_button').value = "Reg. Off";
-
-     if(!alignOn)
-     {
-       loadRegTable();
-     }
-  }
-  else
-  {
-     if(document.regularization.reg_checkbox.checked)
-     {
-       document.regularization.originals.style.visibility = "hidden";
-       document.getElementById("showOriginals").style.visibility = "hidden";
-       document.regularization.automate.style.visibility = "hidden";
-       document.getElementById("automateLabel").style.visibility = "hidden";
-     }
-     
-     regOn = false;
-     string = "Regularization is off! (Showing originals)";
-     document.getElementById('reg_on').innerHTML = string;
-     document.getElementById('reg_button').value = "Reg. On";
-     
-     //document.information.style.visibility = "hidden";
-     document.edit_reg.style.visibility = "hidden";
-     
-     allTokens = getBaseTokens();
-  }
-  
-  if(alignOn)
-  {
-    applyAlign();
-  }
-  
-  regularize();
   
 }
 
@@ -1441,9 +1390,8 @@ function seeWitnesses() {
   var newWitnesses = buildWitnesses();
   var content = "";
 
-  console.log(allWitnesses);
   _.each(allWitnesses, function(witness){
-    content += witness.id + ": " + (witness.orig || witness.content) + "<br />";
+    content += witness.doc + ": " + (witness.orig || witness.content) + "<br />";
     //content += witness.id + ": " + witness.content + "<br />";
   });
   
@@ -2476,12 +2424,9 @@ function toNull()
   document.regularization.reg_to.value = '';
 }
 
-function showRegularization(checkBox)
+function showRegularization()
 {
-  if(checkBox.checked)
-  {
     document.getElementById("align_wrapper").innerHTML = "";
-    document.regularization.change.checked = false;
     var regHTML = "<br /><br /><label id='reg_this'>Regularize This:</label>";
     regHTML += "<input type='text' name='reg_this' size='82'/> <br /><label id='reg_to'>To This:</label>";
     regHTML += "<input type='text' name='reg_to' size='80'/>";
@@ -2493,10 +2438,6 @@ function showRegularization(checkBox)
     regHTML += "<option value='all_places'>All witnesses, all places</option>";
     regHTML += "<option value='other'>Other ...</option>";
     regHTML += "</select></p>";
-    regHTML += "<input name='ok' type='button' value='Add Rule'";
-    regHTML += "onclick='addRule()'>";
-    regHTML += "<input name='recollateTokens' type='button' value='Recollate' onclick='recollate()'/>";
-    regHTML += "<input name='view' type='button' value='View Entire Reg.' onclick='seeWitnesses()'>";
     regHTML += "<br /> Shortcuts:: <br/>'Alt+Right Arrow': Add next word to Regularize This";
     regHTML += "<br /> 'Shift+Right Arrow': Add next word to Regularize To";
     regHTML += "<br /> 'Tab': Find next variant to regularize";
@@ -2520,7 +2461,6 @@ function showRegularization(checkBox)
     }
     isRealign = false;
     loadRegTable();
-  }
 }
 
 function showRealign(checkBox)

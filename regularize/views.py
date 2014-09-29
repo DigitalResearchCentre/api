@@ -419,8 +419,14 @@ def collate(request):
 
 @csrf_exempt
 def collate1(request):
-    return redirect(settings.COLLATE_URL)
-
+    send = httplib2.Http()
+    response, content = send.request(
+        settings.COLLATE_URL, 'POST', request.body, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json'
+        },
+    )
+    return HttpResponse(content, content_type='application/json')
 
 @csrf_exempt
 def postRecollate(request):
