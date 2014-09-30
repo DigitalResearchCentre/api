@@ -2,8 +2,12 @@
 {% load staticfiles %}
 
 {% block stylesheet %}
-  <link rel="stylesheet/less" type="text/css" 
-    href="{% static 'regularize/less/styles.less' %}" />
+  <link rel="stylesheet" 
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" 
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+    <link rel="stylesheet/less" type="text/css" 
+      href="{% static 'regularize/less/styles.less' %}" />
 {% endblock %}
 
 {% block content %}
@@ -13,28 +17,49 @@
 <div class="description">
   Rule Set Name: <label class="ruleset-name"></label>
   <input class="change-ruleset" type="button" value="Change Rule Set"><br/>
-  <label class="instruction">
-    Single click on the word you want regularized,
-    double click or type in the word you want it regularized to. <br/>
-    Select combination of Witnesses and Place.  Click OK when finished.
-  </label>
-  <br/><br/>
-  <div>
-    <label class="reg-on">Regularization is off! (Showing originals)</label>
-    <label class="reg-off">
-      Regularization is on!
-      Click on a witness for a regularized word to see more detail.
-    </label>
-  </div>
 </div>
 <div class="regularization">
-  <div class="reg-table">
+    <div class="left-panel col-xs-5">
+        <label class="instruction">
+            Single click on the word you want regularized. <br/>
+            double click or type in the word you want it regularized to. <br/>
+            Select combination of Witnesses and Place.  Click OK when finished.
+        </label>
 
+        <table class="reg-table">
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div class="right-panel col-xs-7">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="active">
+                <a href="#witness-table" role="tab" data-toggle="tab">
+                    View Witnesses
+                </a>
+            </li>
+            <li>
+                <a href="#image-table" role="tab" data-toggle="tab">
+                    View Images
+                </a>
+            </li>
+        </ul>
 
-  </div>
-  <div class="witness-table">
-  </div>
+        <div class="tab-content">
+            <div class="tab-pane active" id="witness-table">
+                <table class="witness-table"><tbody></tbody></table>
+            </div>
+            <div class="tab-pane" id="image-table">
+                <table class="image-table"><tbody></tbody></table>
+            </div>
+        </div>
+    </div>
 </div>
+      <table class="alignment-table">
+          <tbody>
+          </tbody>
+      </table>
+
     <!--
 <div>
        <br /> <input type="checkbox" name="reg_checkbox" value="reg_checkbox" onchange="showRegularization(this)"/>
@@ -107,9 +132,11 @@ This regularization set for <label for="choice" id="choice"></label>
 src="{% static 'bower_components/backbone-amd/backbone.js' %}"></script>
   <script type="text/javascript" 
   src="{% static 'bower_components/uri.js/src/uri.js' %}"></script>
-<script type="text/javascript" 
-  src="http://yui.yahooapis.com/3.8.1/build/yui/yui-min.js"></script>
-<script src="{% static 'regularize/js/collatex.js' %}"></script>
+<script type="text/javascript"
+  src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOf5NdCQ0GxTBjCX1kVtavpMo-G9u_2BU&sensor=false">
+</script>
+<script src="{% static 'regularize/js/map.js' %}"></script>
+
 <script src="{% static 'regularize/js/mock.js' %}"></script>
 <script src="{% static 'regularize/js/collate.js' %}"></script>
 {% endblock %}

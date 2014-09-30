@@ -378,11 +378,17 @@ class Entity(DETNode):
                 else:
                     nodes = list(text.get_tree(parent=text))
                 content, _ = get_content(nodes, 0)
-                witnesses.append({
+                witness = {
                     'id': '%s' % text.id,
-                    'doc': doc.tree_id,
+                    'doc': doc.id,
+                    'name': doc.tree_id,
                     'content': content.encode('UTF-8'),
-                })
+                }
+                pb = get_first(
+                    doc.get_ancestors().filter(tilerimage__isnull=False))
+                if pb:
+                    witness['image'] = pb.id
+                witnesses.append(witness)
 
         roots = Doc.objects.filter(depth=1, 
                                    tree_id__in=[d.tree_id for d in docs])
@@ -392,10 +398,10 @@ class Entity(DETNode):
 
         results = []
         for witness in witnesses:
-            tree_id = witness['doc']
+            tree_id = witness['name']
             name = doc_names.get(tree_id)
             if name:
-                witness['doc'] = name
+                witness['name'] = name
                 results.append(witness)
         return results
 

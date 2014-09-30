@@ -1,18 +1,59 @@
-@import 'bootstrap/bootstrap.less';
+@import (reference) 'bootstrap/bootstrap.less';
 
 #content {
-    .container-fluid;
+    .container-fluid();
 
     .regularization {
         .row;
 
-        .reg-table {
-            .make-xs-column(1);
-            border: 1px solid red;
+        .left-panel {
+            .reg-table {
+                >tbody>tr{
+                    >td {
+                        >.segment {
+                            padding: 2px 6px;
+                        }
+
+                        >.witness-name {
+                            .badge;
+                            padding: 3px 7px;
+                            margin: 5px 2px;
+                            display: inline-block;
+                        }
+                    }
+
+                    &.selected .segment {
+                        border: 2px solid green;
+                        padding: 2px 4px;
+                        .border-top-radius(@border-radius-base);
+                        .border-bottom-radius(@border-radius-base);
+                    }
+
+                }
+            }
         }
-        .witness-table {
-            .make-xs-column(11);
-            border: 1px solid blue;
+        .right-panel {
+            .witness-table, .image-table {
+                .table;
+                .table-striped;
+                .table-condensed;
+
+                .witness-name {
+                    .label;
+                    .label-default;
+                }
+            }
+
+            .image-table {
+                .witness-name.selected {
+                    .label-success;
+                }
+
+                .image-map {
+                    min-width: 460px;
+                    min-height: 800px;
+                }
+            }
         }
 
     }
