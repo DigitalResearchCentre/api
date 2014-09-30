@@ -4,7 +4,7 @@ var API_ENDPOINT = 'http://localhost:8000/'
 var env = {
   API_ENDPOINT: API_ENDPOINT,
   REGULARIZE_URL: REGULARIZE_URL,
-  DOC_URL: API_ENDPOINT + 'docs/',
+  DOC_URL: '//textualcommunities.usask.ca/api/docs/',
   COLLATE_URL: REGULARIZE_URL + 'collate1/',
 };
 
@@ -75,17 +75,23 @@ function regularize(witnesses, ruleset) {
       return rule.from.length;
     });
     _.each(rules, function(rule){
-      var from = $.trim(rule.from) + '(?=( |$))';
-      var to = rule.to;
-      if (!to || to == 'null') {
-        to = '';
-      }
-      content = content.replace(new RegExp('^'+from, 'g'), to);
-      content = content.replace(new RegExp(' '+from, 'g'), ' '+to);
+      witness.content = applyRule(witness.content, rule);
     });
     witness.content = content.replace(/  /g, ' ');
   });
   return witnesses;
+}
+
+function applyRule(content, rule) {
+  var from = rule.from.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  var to = rule.to;
+  from = $.trim(from) + '(?=( |$))';
+  if (!to || to === 'null') {
+    to = '';
+  }
+  content = content.replace(new RegExp('^'+from, 'g'), to);
+  content = content.replace(new RegExp(' '+from, 'g'), ' '+to);
+  return content;
 }
 
 function collate(data) {
@@ -101,11 +107,23 @@ function chooseRuleSet() {}
 function submitCustomReg() {}
 
 var InputManager = _.clone(Backbone.Events);
+InputManager.Key = {
+  LEFT_CLICK: 1,
+  TAB: 9,
+  ENTER: 13,
+};
 $(document).keydown(function(evt){
-  if (evt.which === 9) {
-    InputManager.trigger('tab');
-    evt.preventDefault();
+  switch (evt.which) {
+    case (InputManager.Key.TAB):
+      InputManager.trigger('tab');
+      break;
+    case (InputManager.Key.ENTER):
+      InputManager.trigger('enter');
+      break;
+    default:
+      return true;
   }
+  evt.preventDefault();
 });
 
 
@@ -113,8 +131,11 @@ var View = Backbone.View.extend({
   el: $('.regularization'),
   events: {
     'click .witness-name': 'onSelectWitness',
-    'dblclick .reg-table .segment': 'onSelectRegTo',
+    'click .reg-table .segment': 'onSelectRegClick',
     'click .add-rule': 'onAddRule',
+    'click .next-word': 'onNextWorkClick',
+    'click .prev-word': 'onPrevWorkClick',
+    'click .recollate': 'onRecollateClick',
   },
   initialize: function() {
     var self = this;
@@ -122,6 +143,7 @@ var View = Backbone.View.extend({
     this.curSegment = 0;
 
     this.listenTo(InputManager, 'tab', this.onTab);
+    this.listenTo(InputManager, 'enter', this.onAddRule);
 
     this.$('.nav-tabs a:last').on('shown.bs.tab', function (e) {
       var $selected = $('.image-table .witness-name.selected');
@@ -132,39 +154,78 @@ var View = Backbone.View.extend({
 
     this.loadData().then(_.bind(this.render, this));
   },
+  _getSegment: function(tokens) {
+    return _.map(_.isArray(tokens) ? tokens : [tokens], function(token){
+      return $.trim(_.isString(token) ? token : (token && token.t || ''));
+    }).join(' ');
+  },
+  onRecollateClick: function() {
+  },
   onAddRule: function() {
     var $from = this.$('.reg-input .reg-from')
       , $to = this.$('.reg-input .reg-to')
       , from = $from.val()
       , to = $to.val()
+      , rule = {from: from, to: to}
+      , ruleset = this.ruleset
+      , self = this
     ;
-    this.ruleset.push({from: from, to: to});
-    this.witnesses = regularize(this.witnesses, this.ruleset);
-    /* left from here
+    if (!from) {
+      alert('Can\'t regularize empty word or phrase');
+      return;
+    }
+    ruleset.push(rule);
+    _.each(this.alignment.table, function(col){
+      _.each(col, function(tokens, i){
+        var segment = self._getSegment(tokens)
+          , to = applyRule(segment, rule)
+        ;
+        if (segment != to) {
+          col[i] = to;
+        }
+      });
+    });
     this.renderRegTable();
-    */
   },
   onTab: function() {
-    var $regTable = this.$('.reg-table tbody');
-    var $next = $('tr.selected', $regTable).next('tr');
-    if ($next.length) {
-      this.onSelectRegFrom($next);
-    }else{
-      this.onSelectRegFrom($('tr:first', $regTable));
+    var $regTable = this.$('.reg-table');
+    var $next = $('.segment.selected', $regTable).next('.segment');
+    if (!$next.length) {
+      $next = $('.segment:first', $regTable);
+    }
+    this.onSelectRegFrom({
+      target: $next, which: InputManager.Key.TAB
+    });
+  },
+  onSelectRegClick: function(evt) {
+    var self = this;
+    if (!this._clickcount) {
+      this._clickcount = 0;
+    }
+    this._clickcount += 1;
+    if (this._clickcount == 1) {
+      _.delay(function(){
+        if (self._clickcount == 1) {
+          self.onSelectRegFrom(evt);
+        }else{
+          self.onSelectRegTo(evt);
+        }
+        self._clickcount = 0;
+      }, 300);
     }
   },
-  onSelectRegFrom: function($segment) {
-    var $regTable = this.$('.reg-table tbody')
+  onSelectRegFrom: function(evt) {
+    var $segment = $(evt.target)
+      , $regTable = this.$('.reg-table')
       , $from = $('.reg-input .reg-from')
     ;
-    $('tr.selected', $regTable).removeClass('selected');
+    $('.segment.selected', $regTable).removeClass('selected');
     $segment.addClass('selected');
-    $from.val($('.segment', $segment).text());
+    $from.val($segment.text());
   },
   onSelectRegTo: function(evt) {
     var $segment = $(evt.target)
       , $to = $('.reg-input .reg-to')
-      , $regTable = this.$('.reg-table tbody')
     ;
     $to.val($segment.text());
   },
@@ -173,24 +234,28 @@ var View = Backbone.View.extend({
       , doc = $witness.data('doc')
       , options = {zoom: 2 , minZoom: 1, maxZoom: 5, disableDefaultUI: true}
     ;
-    $('.image-table .witness-name.selected').removeClass('selected');
-    $('.image-table .witness-name').each(function(){
-      var d = $(this).data('doc');
-      if (d.id === doc.id) {
-        $(this).addClass('selected');
-        return;
-      }
-    });
     if (doc.image) {
+      $('.image-table .witness-name.selected').removeClass('selected');
+      $('.image-table .witness-name').each(function(){
+        var d = $(this).data('doc');
+        if (d.id === doc.id) {
+          $(this).addClass('selected');
+          return;
+        }
+      });
       var $imageMap = this.$('.image-table .image-map').empty();
       var imageMap = new ImageMap($imageMap[0], doc.image, options);
-      /*
-      var map = imageMap.map;
-      google.maps.event.trigger(map, 'resize');
-      map.setZoom(map.getZoom());
-      */
       this.$('.nav-tabs a:last').tab('show');
     }
+  },
+  onNextWorkClick: function(evt) {
+    this.curSegment += 1;
+    this.renderRegTable();
+  },
+  onPrevWorkClick: function(evt) {
+    var moveBackOnEmpty = true;
+    this.curSegment -= 1;
+    this.renderRegTable(moveBackOnEmpty);
   },
   loadData: function() {
     var self = this
@@ -234,18 +299,19 @@ var View = Backbone.View.extend({
     this.renderRegTable();
     return this;
   },
-  renderRegTable: function() {
+  renderRegTable: function(moveBackOnEmpty) {
     var segments = this.alignment.table[this.curSegment]
-      , $regBody = this.$('.reg-table tbody').empty()
+      , $regBody = this.$('.reg-table').empty()
       , ids = this.alignment.witnesses
       , witnesses = this.witnesses
       , segmentSet = {}
       , self = this
     ;
+    if (!this.alignment.table.length) {
+      return;
+    }
     _.each(segments, function(tokens, i){
-      var segment = _.map(_.isArray(tokens) ? tokens : [tokens], function(token){
-        return $.trim(_.isString(token) ? token : (token && token.t || ''));
-      }).join(' ');
+      var segment = self._getSegment(tokens);
       if (segment) {
         if (!segmentSet[segment]) {
           segmentSet[segment] = [];
@@ -255,18 +321,22 @@ var View = Backbone.View.extend({
     });
 
     var $rows = _.map(segmentSet, function(ids, segment){
-      var $row = $('<tr/>')
-        , $names = $('<td/>')
+      var $segments = $('<div class="segments"/>')
         , $segment = $('<div class="segment">' + segment + '</div>')
+        , $names = $('<div/>')
       ;
-      $row.append($('<td/>').append($segment));
-      $row.append($names);
+      $segments.append($segment);
+      $segments.append($names);
       _.each(ids, function(id){
         $names.append(self.renderWitness(witnesses[id]));
       });
-      return $row;
+      $segments.append('<div>//</div>');
+      return $segments;
     });
-
+    if (!$rows.length) {
+      this.curSegment += moveBackOnEmpty ? -1 : 1;
+      this.renderRegTable();
+    }
     $regBody.append(_.sortBy($rows, function($row){
       return - $row.find('.witness-name').length;
     }));
@@ -284,9 +354,7 @@ var View = Backbone.View.extend({
   }
 });
 
-function onNextWorkClick() {
 
-}
 
 $(function(){
   var uri = URI()
