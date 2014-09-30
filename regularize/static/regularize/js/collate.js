@@ -60,33 +60,33 @@ var Entity = Backbone.Model.extend({
     return this._witnesses;
   },
   regularize: function() {
-    return $.when(this.witnesses(), this.ruleset()).then(
-      function(witnesses, ruleset){ 
-      _.each(witnesses, function(witness){ 
-        var content = witness.content;
-        if (!witness.orig) {
-          witness.orig = content;
-        }
-        var rules = _.sortBy(ruleset, function(rule) {
-          rule.from = rule.from.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          rule.to = match[2];
-          return rule.from.length;
-        });
-        _.each(rules, function(rule){
-          var from = $.trim(rule.from) + '(?=( |$))';
-          var to = rule.to;
-          if (!to || to == 'null') {
-            to = '';
-          }
-          content = content.replace(new RegExp('^'+from, 'g'), to);
-          content = content.replace(new RegExp(' '+from, 'g'), ' '+to);
-        });
-        witness.content = content.replace(/  /g, ' ');
-      });
-      return witnesses;
-    });
+    return $.when(this.witnesses(), this.ruleset()).then(regularize);
   },
 });
+
+function regularize(witnesses, ruleset) {
+  _.each(witnesses, function(witness){ 
+    var content = witness.content;
+    if (!witness.orig) {
+      witness.orig = content;
+    }
+    var rules = _.sortBy(ruleset, function(rule) {
+      rule.from = rule.from.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      return rule.from.length;
+    });
+    _.each(rules, function(rule){
+      var from = $.trim(rule.from) + '(?=( |$))';
+      var to = rule.to;
+      if (!to || to == 'null') {
+        to = '';
+      }
+      content = content.replace(new RegExp('^'+from, 'g'), to);
+      content = content.replace(new RegExp(' '+from, 'g'), ' '+to);
+    });
+    witness.content = content.replace(/  /g, ' ');
+  });
+  return witnesses;
+}
 
 function collate(data) {
   return $.ajax({
@@ -112,7 +112,9 @@ $(document).keydown(function(evt){
 var View = Backbone.View.extend({
   el: $('.regularization'),
   events: {
-    'click .witness-name': 'onChooseWitness',
+    'click .witness-name': 'onSelectWitness',
+    'dblclick .reg-table .segment': 'onSelectRegTo',
+    'click .add-rule': 'onAddRule',
   },
   initialize: function() {
     var self = this;
@@ -124,22 +126,49 @@ var View = Backbone.View.extend({
     this.$('.nav-tabs a:last').on('shown.bs.tab', function (e) {
       var $selected = $('.image-table .witness-name.selected');
       if (!$selected.length) {
-        self.onChooseWitness({target: $('.image-table .witness-name:first')});
+        self.onSelectWitness({target: $('.image-table .witness-name:first')});
       }
     });
 
     this.loadData().then(_.bind(this.render, this));
   },
+  onAddRule: function() {
+    var $from = this.$('.reg-input .reg-from')
+      , $to = this.$('.reg-input .reg-to')
+      , from = $from.val()
+      , to = $to.val()
+    ;
+    this.ruleset.push({from: from, to: to});
+    this.witnesses = regularize(this.witnesses, this.ruleset);
+    /* left from here
+    this.renderRegTable();
+    */
+  },
   onTab: function() {
     var $regTable = this.$('.reg-table tbody');
-    var $next = $('tr.selected', $regTable).removeClass('selected').next('tr');
+    var $next = $('tr.selected', $regTable).next('tr');
     if ($next.length) {
-      $next.addClass('selected');
+      this.onSelectRegFrom($next);
     }else{
-      $('tr:first', $regTable).addClass('selected');
+      this.onSelectRegFrom($('tr:first', $regTable));
     }
   },
-  onChooseWitness: function(evt) {
+  onSelectRegFrom: function($segment) {
+    var $regTable = this.$('.reg-table tbody')
+      , $from = $('.reg-input .reg-from')
+    ;
+    $('tr.selected', $regTable).removeClass('selected');
+    $segment.addClass('selected');
+    $from.val($('.segment', $segment).text());
+  },
+  onSelectRegTo: function(evt) {
+    var $segment = $(evt.target)
+      , $to = $('.reg-input .reg-to')
+      , $regTable = this.$('.reg-table tbody')
+    ;
+    $to.val($segment.text());
+  },
+  onSelectWitness: function(evt) {
     var $witness = $(evt.target)
       , doc = $witness.data('doc')
       , options = {zoom: 2 , minZoom: 1, maxZoom: 5, disableDefaultUI: true}
@@ -164,9 +193,13 @@ var View = Backbone.View.extend({
     }
   },
   loadData: function() {
-    var self = this;
-    return $.when(this.model.regularize()).then(function(witnesses){
+    var self = this
+      , dfdRuleset = this.model.ruleset()
+      , dfdWitnesses = this.model.regularize()
+    ;
+    return $.when(dfdRuleset, dfdWitnesses).then(function(ruleset, witnesses){
       self.witnesses = witnesses;
+      self.ruleset = ruleset;
       return collate({
         witnesses: _.map(witnesses, function(w){return w;}),
         tokenComparator: {
@@ -180,11 +213,8 @@ var View = Backbone.View.extend({
     });
   },
   render: function() {
-    var segments = this.alignment.table[this.curSegment]
-      , ids = this.alignment.witnesses
+    var ids = this.alignment.witnesses
       , witnesses = this.witnesses
-      , segmentSet = {}
-      , $regBody = this.$('.reg-table tbody').empty()
       , $witnessBody = this.$('.witness-table tbody').empty()
       , $imageBody = this.$('.image-table tbody').empty()
       , self = this
@@ -201,6 +231,17 @@ var View = Backbone.View.extend({
     });
     $('tr:first', $imageBody).append(
       '<td class="image-map" rowspan="' + ids.length + '"/>');
+    this.renderRegTable();
+    return this;
+  },
+  renderRegTable: function() {
+    var segments = this.alignment.table[this.curSegment]
+      , $regBody = this.$('.reg-table tbody').empty()
+      , ids = this.alignment.witnesses
+      , witnesses = this.witnesses
+      , segmentSet = {}
+      , self = this
+    ;
     _.each(segments, function(tokens, i){
       var segment = _.map(_.isArray(tokens) ? tokens : [tokens], function(token){
         return $.trim(_.isString(token) ? token : (token && token.t || ''));
@@ -212,17 +253,23 @@ var View = Backbone.View.extend({
         segmentSet[segment].push(ids[i]);
       }
     });
-    _.map(segmentSet, function(ids, segment){
-      var $row = $('<tr/>');
-      var $names = $('<td/>');
-      $row.append('<td><div class="segment">' + segment + '</div></td>');
+
+    var $rows = _.map(segmentSet, function(ids, segment){
+      var $row = $('<tr/>')
+        , $names = $('<td/>')
+        , $segment = $('<div class="segment">' + segment + '</div>')
+      ;
+      $row.append($('<td/>').append($segment));
       $row.append($names);
       _.each(ids, function(id){
         $names.append(self.renderWitness(witnesses[id]));
       });
-      $regBody.append($row);
+      return $row;
     });
-    return this;
+
+    $regBody.append(_.sortBy($rows, function($row){
+      return - $row.find('.witness-name').length;
+    }));
   },
   renderWitness: function(witness) {
     var $witness = $('<div class="witness-name">' + witness.name + '</div>')

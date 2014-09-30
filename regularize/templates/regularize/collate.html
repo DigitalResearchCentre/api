@@ -30,6 +30,23 @@
             <tbody>
             </tbody>
         </table>
+        <div class="reg-input">
+            <div class="form-group">
+                <label>Regularize this word or phrase:</label>
+                <input type="text" class="form-control reg-from"/>
+            </div>
+            <div class="form-group">
+                <label>To this word or phrase:</label>
+                <input type="text" class="form-control reg-to"/>
+            </div>
+        </div>
+        <div class="reg-control">
+            <button type="button" class="add-rule">Add Rule</button>
+            <button type="button" class="prev-entity">Previous Entity</button>
+            <button type="button" class="next-entity">Next Entity</button>
+            <button type="button" class="prev-word">Previous Word</button>
+            <button type="button" class="next-word">Next Word</button>
+        </div>
     </div>
     <div class="right-panel col-xs-6">
         <ul class="nav nav-tabs" role="tablist">
@@ -62,21 +79,7 @@
 
     <!--
 <div>
-       <br /> <input type="checkbox" name="reg_checkbox" value="reg_checkbox" onchange="showRegularization(this)"/>
-        Add regularization rules
-       <br /> <input type="checkbox" name="change" value="change" onchange="showRealign(this)"/>
-        Change alignment of token (Make sure all regularizations are done!)
-       <br />
        
-     document.getElementById('reg_button').value = "Reg. Off";
-       <input name="reg_on" id="reg_button" type="button" value="Reg. On" onclick="regularize_onoff()">
-       <input name="align_on" id="align_button" type="button" value="Align. Off" onclick="align_onoff()">
-       <input name="back" type="button" value="Back Entity" onclick="backEntity()">
-       <input name="forward" type="button" value="Forward Entity" onclick="forwardEntity()">
-       <input name="previous" type="button" value="Previous Word" onclick="previousToken()">
-       <input name="next" type="button" value="Next Word" onclick="nextToken()">
-
-       <div id="reg_wrapper"></div><br />
 
   <form name="realign_token" id="realign_token">
     <div id="align_wrapper"></div><br/>

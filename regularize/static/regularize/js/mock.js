@@ -11,7 +11,9 @@ function mockWitnesses(callback) {
 
 function mockRuleset(callback) {
   var dfd = $.Deferred();
-  var data = [];
+  var data = [
+    {from: 'wHan', to: 'When'},
+  ];
   if (callback) {
     callback(data);
   }
