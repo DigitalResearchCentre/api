@@ -115,6 +115,7 @@ var View = Backbone.View.extend({
     'click .witness-name': 'onChooseWitness',
   },
   initialize: function() {
+    var self = this;
 
     this.curSegment = 0;
 
