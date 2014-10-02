@@ -215,7 +215,6 @@ var View = Backbone.View.extend({
     this.curSegment = 0;
     return $.when(dfdWitnesses).then(function(witnesses){
       self.witnesses = witnesses;
-      console.log(alignment);
       if (alignment && alignment.table) {
         self.alignment = alignment;
         return;

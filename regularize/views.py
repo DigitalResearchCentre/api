@@ -18,7 +18,7 @@ from lxml import etree
 from api.models import Entity
 
 @login_required
-def test(request):
+def regularization(request):
     entity_id = request.GET.get('entity')
     entity = Entity.objects.get(pk=entity_id)
     urn = entity.get_urn()
@@ -47,7 +47,7 @@ def save(request):
 
 
 @login_required
-def regularization(request):
+def regularization_old(request):
     # request should contain json with username and urn
 
     #urn = "urn:det:TCUSASK:CTP2:entity=MI:Tale=MI:Line=IR"
