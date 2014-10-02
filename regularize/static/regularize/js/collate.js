@@ -58,7 +58,9 @@ var Entity = Backbone.Model.extend({
         entity: this.id,
         data: JSON.stringify({
           alignment: alignment,
-          ruleset: ruleset,
+          ruleset: _.filter(ruleset, function(rule){
+            return !(rule.delete);
+          }),
         }),
       },
     });
