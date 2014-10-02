@@ -1,16 +1,67 @@
 @import (reference) 'bootstrap/bootstrap.less';
 
+.user-select-none {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -ms-user-select: none;
+}
+
 #content {
     .container-fluid();
+
+    .header {
+        .page-header;
+        margin-top: 25px;
+
+        .select-ruleset {
+            .pull-right;
+            top: -20px;
+        }
+    }
+
+    .tab-content {
+        padding: 8px 0;
+    }
 
     .regularization {
         .row;
 
+        .instruction {
+            padding: 0 8px 8px;
+
+            .more {
+                .glyphicon;
+                .glyphicon-expand;
+                cursor: pointer;
+            }
+
+            .shortcuts {
+                display: none;
+            }
+
+            &.expand {
+                .more {
+                    .glyphicon-collapse-down;
+                }
+
+                .shortcuts {
+                    .show;
+                }
+            }
+        }
+
         .left-panel {
+
+            .tab-pane {
+                overflow-x: scroll;
+            }
+
             .reg-table {
                 min-height: 300px;
-                border: 2px solid gray;
-                padding: 3px;
+                .panel;
+                .panel-default;
+                .panel-body;
 
                 >.segments {
                     display: inline;
@@ -27,20 +78,56 @@
                     }
 
                     >.segment {
+                        .user-select-none;
                         display: inline;
-
                         padding: 0 6px;
-                        -webkit-user-select: none;
-                        -moz-user-select: none;
-                        -khtml-user-select: none;
-                        -ms-user-select: none;
+                    }
 
-                        &.selected {
-                            border: 2px solid green;
-                            padding: 2px 4px;
-                            .border-top-radius(@border-radius-base);
-                            .border-bottom-radius(@border-radius-base);
-                        }
+                    &.selected .segment {
+                        border: 2px solid green;
+                        padding: 2px 4px;
+                        .border-top-radius(@border-radius-base);
+                        .border-bottom-radius(@border-radius-base);
+                    }
+
+                }
+            }
+
+            .alignment-table {
+                .table;
+                .table-condensed;
+
+                border-collapse: separate;
+                border-spacing: 3px;
+
+                td {
+                    .user-select-none;
+                    cursor: pointer;
+                }
+
+                .witness-name {
+                    .label;
+                    .label-default;
+                }
+
+                .invariant {
+                    border: 1px solid #80BB00;
+                }
+
+                .variant {
+                    border: 1px solid black;
+                }
+            }
+
+            .reg-control {
+                button {
+                    .btn;
+                    .btn-default;
+                    .btn-xs;
+
+                    &.save {
+                        .btn-primary;
+                        .pull-right;
                     }
                 }
             }
@@ -69,8 +156,21 @@
                 }
             }
         }
+    }
+
+    .ruleset {
+        margin-top: 40px;
+
+        .rule-table {
+            .table;
+
+            .remove-rule {
+                cursor: pointer;
+            }
+        }
 
     }
+
 
     .reg-off {
         .hidden;

@@ -348,6 +348,16 @@ class Entity(DETNode):
                 result.append(text.xml())
         return result
 
+    def ruleset(self, user_pk):
+        try:
+            collate = self.collate_set.get(user__pk=user_pk)
+            return {
+                'alignment': collate.alignment,
+                'ruleset': collate.ruleset,
+            }
+        except:
+            return {}
+
     def witnesses(self):
         def get_content(nodes, index):
             length = len(nodes)

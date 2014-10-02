@@ -13,15 +13,38 @@ from django.template import RequestContext
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 
-from models import Rule, RuleSet, Modification, Alignment
+from models import Rule, RuleSet, Modification, Alignment, Collate
 from lxml import etree
 from api.models import Entity
 
 @login_required
 def test(request):
+    entity_id = request.GET.get('entity')
+    entity = Entity.objects.get(pk=entity_id)
+    urn = entity.get_urn()
+    prev = entity.prev()
+    next = entity.next()
     return render_to_response('regularize/collate.html', {
-
+        'urn': urn,
+        'user': request.user,
+        'prev': prev.id if prev else '',
+        'next': next.id if next else '',
     })
+
+@login_required
+def save(request):
+    data = request.POST.get('data')
+    entity_id = request.POST.get('entity')
+    entity = Entity.objects.get(pk=entity_id)
+    data = json.loads(data)
+    collate, _ = Collate.objects.get_or_create(user=request.user, entity=entity)
+    collate.alignment = data['alignment']
+    collate.ruleset = data['ruleset']
+    collate.save()
+    return HttpResponse(json.dumps({'id': collate.id}),
+                        content_type='application/json')
+
+
 
 @login_required
 def regularization(request):
@@ -45,7 +68,7 @@ def regularization(request):
 
     if not ruleSet:
         RuleSet.objects.create(userId=username, appliesTo=urn, name=ruleSetName)
-   
+
     return render_to_response('regularize/collate_interface.html', {
         "userName" : username, 
         "urn" : urn, 
