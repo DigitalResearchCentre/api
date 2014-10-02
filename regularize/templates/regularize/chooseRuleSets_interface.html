@@ -10,13 +10,13 @@
   src="{% static "bower_components/underscore-amd/underscore.js" %}"></script>
 
 <script type="text/javascript">
-  var API_ENDPOINT = 'http://localhost:8000/'
+  var API_ENDPOINT = 'http://textualcommunities.usask.ca/api/'
     , REGULARIZE_URL = API_ENDPOINT + 'regularize/'
   ;
   var env = {
     API_ENDPOINT: API_ENDPOINT,
     REGULARIZE_URL: REGULARIZE_URL,
-    COLLATE_URL: 'http://localhost:8000/' + 'collate/',
+    COLLATE_URL: REGULARIZE_URL + 'collate/',
   };
 
   var uri = URI()
