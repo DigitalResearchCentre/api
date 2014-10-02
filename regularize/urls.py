@@ -3,7 +3,7 @@ from regularize.views import (
     regularization, chooseRuleSetsInterface, postSelectedRuleSets,
     chooseTextsInterface, postNewRule, changeRules, postRecollate,
     postSelectedWitnesses, postNewAlign,
-    changeAligns, deleteRuleSet, collate
+    changeAligns, deleteRuleSet, collate, collate1, save
 )
 
 urlpatterns = patterns('',
@@ -15,9 +15,11 @@ urlpatterns = patterns('',
     url(r'^postNewRule/$', postNewRule),
     url(r'^changeRules/$', changeRules),
     url(r'^collate/$', collate),
+    url(r'^collate1/$', collate1),
     url(r'^postRecollate/$', postRecollate),
     url(r'^postNewAlign/$', postNewAlign),
     url(r'^changeAligns/$', changeAligns),
     url(r'^deleteRuleSet/$', deleteRuleSet),
+    url(r'^save/$', save),
 )
 

@@ -348,16 +348,72 @@ class Entity(DETNode):
                 result.append(text.xml())
         return result
 
+    def ruleset(self, user_pk):
+        try:
+            collate = self.collate_set.get(user__pk=user_pk)
+            return {
+                'alignment': collate.alignment,
+                'ruleset': collate.ruleset,
+            }
+        except:
+            return {}
+
     def witnesses(self):
+        def get_content(nodes, index):
+            length = len(nodes)
+            if index == length:
+                return ''
+            cur = nodes[index]
+            depth = cur.get_depth()
+            content = cur.text 
+            i = index + 1
+            while i < length:
+                node = nodes[i]
+                if node.get_depth() > depth:
+                    c, offset = get_content(nodes, i)
+                    content += c + node.tail
+                    i += offset
+                else:
+                    break
+            return content, i - index
+
         witnesses = []
+        docs = []
         for text in self.has_text_of():
-            root = etree.XML(text.xml())
             doc = text.is_text_in()
-            witnesses.append({
-                'id': doc.get_root().name if doc else str(text.id),
-                'content': etree.tostring(root, method='text', encoding='UTF-8')
-            })
-        return witnesses
+            if doc:
+                docs.append(doc)
+                if text.is_leaf():
+                    nodes = [text]
+                else:
+                    nodes = list(text.get_tree(parent=text))
+                content, _ = get_content(nodes, 0)
+                witness = {
+                    'id': '%s' % text.id,
+                    'doc': doc.id,
+                    'name': doc.tree_id,
+                    'content': content.encode('UTF-8'),
+                }
+                pb = get_first(
+                    doc.get_ancestors().filter(tilerimage__isnull=False))
+                if pb:
+                    witness['image'] = pb.id
+                witnesses.append(witness)
+
+        roots = Doc.objects.filter(depth=1, 
+                                   tree_id__in=[d.tree_id for d in docs])
+        doc_names = {}
+        for r in roots:
+            doc_names[r.tree_id] = r.name
+
+        results = []
+        for witness in witnesses:
+            tree_id = witness['name']
+            name = doc_names.get(tree_id)
+            if name:
+                witness['name'] = name
+                results.append(witness)
+        return results
 
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)
@@ -689,7 +745,7 @@ class Text(Node):
     def xml(self):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:
-            qs = self.get_tree(self)
+            qs = self.get_tree(parent=self)
             exclude = None
             bound = None
         else:

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block stylesheet %}
+  <link rel="stylesheet" 
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" 
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+    <link rel="stylesheet/less" type="text/css" 
+      href="{% static 'regularize/less/styles.less' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h3>Collation Interface: for <span class="entity-name"></span></h1>
+
+</div>
+<div class="regularization">
+    <div class="left-panel col-xs-7">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="active">
+                <a href="#reg-table" role="tab" data-toggle="tab">
+                    Regularization
+                </a>
+            </li>
+            <li>
+                <a href="#alignment-table" role="tab" data-toggle="tab">
+                    Alignment
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane active" id="reg-table">
+                <div class="instruction">
+                    <div>
+                        Single click on the word you want regularized. 
+                        Double click or type in the word you want it regularized to. 
+                        Select combination of Witnesses and Place.  Click OK when finished.
+                        <span class="more"></span>
+                    </div>
+                    <div class="shortcuts">
+                        Shortcuts: <br/>
+                        'Alt+Right Arrow': Add next word to Regularize This <br/>
+                        'Shift+Right Arrow': Add next word to Regularize To<br/>
+                        'Tab': Find next variant to regularize<br/>
+                        'Enter': Add rule
+                    </div>
+                </div>
+                <div class="reg-table">
+                </div>
+                <div class="reg-input">
+                    <div class="form-group">
+                        <label>Regularize this word or phrase:</label>
+                        <input type="text" class="form-control reg-from"/>
+                    </div>
+                    <div class="form-group">
+                        <label>To this word or phrase:</label>
+                        <input type="text" class="form-control reg-to"/>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane" id="alignment-table">
+                <div class="instruction">
+                    <div>
+                        Single click on the word you want move forward. 
+                        Single click on space to remove it.
+                    </div>
+                </div>
+
+                <table class="alignment-table">
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="reg-control">
+            <button type="button" class="add-rule">Add Rule</button>
+            <button type="button" class="prev-entity">Previous Entity</button>
+            <button type="button" class="next-entity">Next Entity</button>
+            <button type="button" class="prev-word">Previous Word</button>
+            <button type="button" class="next-word">Next Word</button>
+            <button type="button" class="recollate">Recollate</button>
+            <button type="button" class="confirm-alignment">
+                Confirm Alignment</button>
+            <button type="button" class="save">Save</button>
+        </div>
+
+        <div class="ruleset">
+            <h3>Rules Table:</h3>
+        <table class="rule-table">
+            <thead>
+                <tr>
+                    <th>Apply</th>
+                    <th>Scope</th>
+                    <th>From</th>
+                    <th>To</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>
+                    <button type="button" class="save">Save</button>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+        </div>
+    </div>
+    <div class="right-panel col-xs-5">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="active">
+                <a href="#witness-table" role="tab" data-toggle="tab">
+                    View Witnesses
+                </a>
+            </li>
+            <li>
+                <a href="#image-table" role="tab" data-toggle="tab">
+                    View Images
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane active" id="witness-table">
+                <table class="witness-table"><tbody></tbody></table>
+            </div>
+            <div class="tab-pane" id="image-table">
+                <table class="image-table"><tbody></tbody></table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript">
+    var ENV = {
+        urn: '{{ urn }}',
+        prevEntity: '{{ prev }}',
+        nextEntity: '{{ next }}',
+        user: '{{ user.id }}',
+    };
+</script>
+<script src="{% static 'bower_components/less/dist/less-1.7.5.js' %}"></script>
+<script src="{% static 'bower_components/jquery/dist/jquery.min.js' %}">
+</script>
+<script src="{% static 'bower_components/jquery-cookie/jquery.cookie.js' %}">
+</script>
+<script 
+  src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}">
+</script>
+<script type="text/javascript" 
+  src="{% static 'bower_components/underscore-amd/underscore.js' %}"></script>
+<script type="text/javascript" 
+src="{% static 'bower_components/backbone-amd/backbone.js' %}"></script>
+  <script type="text/javascript" 
+  src="{% static 'bower_components/uri.js/src/uri.js' %}"></script>
+<script type="text/javascript"
+  src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOf5NdCQ0GxTBjCX1kVtavpMo-G9u_2BU&sensor=false">
+</script>
+<script src="{% static 'regularize/js/map.js' %}"></script>
+
+<script src="{% static 'regularize/js/mock.js' %}"></script>
+<script src="{% static 'regularize/js/collate.js' %}"></script>
+{% endblock %}
+
+

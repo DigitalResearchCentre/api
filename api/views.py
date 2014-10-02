@@ -6,7 +6,7 @@ import json
 import urllib
 import urllib2
 import datetime
-from django.db import models
+from django.db import models, transaction
 from django.http import HttpResponse, Http404
 from django.conf import settings
 from django.conf.urls import patterns, url
@@ -236,14 +236,17 @@ class APIView(CreateModelMixin, RelationView):
         return self.get_response({'editable': editable})
 
 
-
+    @transaction.atomic
     def _post_assign(self, request, *args, **kwargs):
         pk_list = map(int, request.POST.getlist('docs[]', []))
         membership = Membership.objects.get(pk=kwargs['pk'])
         doc_pk_list = membership.task_set.values_list('doc_id', flat=True)
-        pk_list = [pk for pk in pk_list if pk not in doc_pk_list]
-        for doc in Doc.objects.filter(pk__in=pk_list).exclude():
+        add_pk_list = [pk for pk in pk_list if pk not in doc_pk_list]
+        del_pk_list = [pk for pk in doc_pk_list if pk not in pk_list]
+        for doc in Doc.objects.filter(pk__in=add_pk_list).exclude():
             Task.objects.create(doc=doc, membership=membership)
+        qs = Task.objects.filter(doc__id__in=del_pk_list, membership=membership)
+        qs.delete()
         return self._get_assign(self, request, *args, **kwargs)
 
 

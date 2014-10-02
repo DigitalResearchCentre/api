@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import User
+from jsonfield import JSONField
+from api.models import Entity
 
 class Modification(models.Model):
     userId = models.CharField(max_length=100)
@@ -32,3 +35,12 @@ class RuleSet(models.Model):
     userId = models.CharField(max_length=50)
     rules = models.ManyToManyField(Rule)
     alignments = models.ManyToManyField(Alignment)
+
+
+class Collate(models.Model):
+    user = models.ForeignKey(User)
+    entity = models.ForeignKey(Entity)
+    alignment = JSONField(blank=True, null=True)
+    ruleset = JSONField(blank=True, null=True)
+
+
