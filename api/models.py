@@ -359,6 +359,11 @@ class Entity(DETNode):
             return {}
 
     def witnesses(self):
+        try:
+            return self.witnessescache.json
+        except:
+            pass
+
         def get_content(nodes, index):
             length = len(nodes)
             if index == length:
@@ -413,6 +418,9 @@ class Entity(DETNode):
             if name:
                 witness['name'] = name
                 results.append(witness)
+
+        from regularize.models import WitnessesCache
+        WitnessesCache.objects.create(entity=self, json=results)
         return results
 
     def get_urn(self):

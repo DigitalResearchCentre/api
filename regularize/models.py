@@ -44,3 +44,6 @@ class Collate(models.Model):
     ruleset = JSONField(blank=True, null=True)
 
 
+class WitnessesCache(models.Model):
+    entity = models.OneToOneField(Entity)
+    json = JSONField(blank=True, null=True)
