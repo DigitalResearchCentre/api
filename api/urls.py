@@ -145,6 +145,7 @@ urlpatterns = patterns(
             {'func': 'tasks', 'serializer_class': TaskSerializer},
             {'func': 'has_task', 'func_args': '(?P<doc_pk>\d+)/'},
             {'func': 'assign'},
+            {'func': 'assign', 'func_args': '(?P<doc_pk>\d+)/'},
         ], extra={
             'model': Membership, 'serializer_class': MembershipSerializer
         }))),

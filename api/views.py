@@ -200,10 +200,11 @@ class APIView(CreateModelMixin, RelationView):
 
     def _get_assign(self, request, *args, **kwargs):
         membership = Membership.objects.get(pk=kwargs['pk'])
+        doc_pk = kwargs.get('doc_pk')
         data = []
-        for doc in membership.community.docs.all():
-            children = []
-            for page in doc.has_parts():
+        if doc_pk:
+            doc = Doc.objects.get(pk=kwargs.get('doc_pk'))
+            for page in doc.has_parts().prefetch_related('task_set'):
                 names = []
                 child = {'key': page.pk}
                 for task in page.task_set.all():
@@ -211,13 +212,16 @@ class APIView(CreateModelMixin, RelationView):
                         child['select'] = True
                     names.append(task.membership.name)
                 names = ['(%s) %s' % pair 
-                         for pair in zip(xrange(1, len(names)+1), names)]
+                            for pair in zip(xrange(1, len(names)+1), names)]
                 names = ' - %s' % ', '.join(names) if names else ''
                 child['title'] = page.name + names 
-                children.append(child)
-            data.append({'title': doc.name, 'key': doc.pk, 'children': children})
-        return self.get_response(data)
+                data.append(child)
+        else:
+            for doc in membership.community.docs.all():
+                data.append({ 
+                    'title': doc.name, 'key': doc.pk, 'isLazy': True})
 
+        return self.get_response(data)
 
     def _get_can_edit(self, request, *args, **kwargs):
         user = self.get_object()
@@ -240,7 +244,11 @@ class APIView(CreateModelMixin, RelationView):
     def _post_assign(self, request, *args, **kwargs):
         pk_list = map(int, request.POST.getlist('docs[]', []))
         membership = Membership.objects.get(pk=kwargs['pk'])
-        doc_pk_list = membership.task_set.values_list('doc_id', flat=True)
+        doc = Doc.objects.get(pk=kwargs['doc_pk'])
+        doc_pk_list = membership.task_set.filter(
+            doc__tree_id=doc.tree_id, 
+            doc__lft__gte=doc.lft, doc__rgt__lte=doc.rgt,
+        ).values_list('doc_id', flat=True)
         add_pk_list = [pk for pk in pk_list if pk not in doc_pk_list]
         del_pk_list = [pk for pk in doc_pk_list if pk not in pk_list]
         for doc in Doc.objects.filter(pk__in=add_pk_list).exclude():
