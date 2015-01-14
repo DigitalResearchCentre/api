@@ -23,6 +23,7 @@ admin.autodiscover()
 urlpatterns = patterns(
     '',
     url(r'^$', api_root),
+    url(r'^regularize/', include('regularize.urls')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^communities/$', CommunityList.as_view(), name='community-list'),
     url(r'^communities/(?P<pk>\d+)/$', CommunityDetail.as_view()),
@@ -94,6 +95,8 @@ urlpatterns = patterns(
             {'func': 'prev'},
             {'func': 'parent'},
             {'func': 'has_parts'},
+            {'func': 'witnesses'},
+            {'func': 'ruleset', 'func_args': '(?P<user_pk>\d+)/'},
             {'func': 'xml'},
             {'func': 'xml', 'func_args': '(?P<doc_pk>\d+)/'},
             {'func': 'has_text_of', 'serializer_class': TextSerializer},
@@ -142,6 +145,7 @@ urlpatterns = patterns(
             {'func': 'tasks', 'serializer_class': TaskSerializer},
             {'func': 'has_task', 'func_args': '(?P<doc_pk>\d+)/'},
             {'func': 'assign'},
+            {'func': 'assign', 'func_args': '(?P<doc_pk>\d+)/'},
         ], extra={
             'model': Membership, 'serializer_class': MembershipSerializer
         }))),
@@ -177,5 +181,9 @@ urlpatterns = patterns(
 ) + v1_api.urls
 
 if settings.DEBUG:
-    urlpatterns += static('/client', document_root=settings.CLIENT_ROOT)
+    urlpatterns += static('/client', 
+                          document_root=settings.ROOT_PATH + '/../client')
+    urlpatterns += static('/interface',
+                          document_root=settings.ROOT_PATH + '/../interface')
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

@@ -1,6 +1,10 @@
 define([
-  'jquery', 'underscore', 'auth', './modal', './editcommunity'
-], function($, _, auth, ModalView, EditCommunityView) {
+  'jquery', 'underscore', 'auth', './modal', './editcommunity', 'urls'
+], function($, _, auth, ModalView, EditCommunityView, urls) {
+  var uri = urls.URI();
+  var authToken = uri.query(true).authToken;
+  console.log(authToken);
+
   var CreateCommunityView = ModalView.extend({
     bodyTemplate: _.template($('#community-form-tmpl').html()),
     buttons: [
@@ -14,6 +18,7 @@ define([
       ], function(name) {
         data[name] = this.$('#form-field-'+name).val();
       }, this);
+      data.authToken = authToken;
       return this.model.save(data).done(_.bind(function() {
         this.$('.error').addClass('hide');
         auth.getUser().getMemberships().fetch();

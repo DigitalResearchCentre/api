@@ -47,7 +47,7 @@
                 var next = base + 
                     '/interface/indexajax.html?community=' + community;
                 if (Liferay.ThemeDisplay.isSignedIn())  {
-                    next += '&login=1';
+                    next += '&login=1&userId=' + Liferay.ThemeDisplay.getUserId();
                 }
                 if (docName) {
                     next += '&docName=' + docName;

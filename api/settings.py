@@ -1,4 +1,5 @@
-# Django settings for api project.
+import os
+ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -22,7 +23,7 @@ DATABASES = {
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -47,30 +48,12 @@ USE_L10N = True
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
-# Absolute filesystem path to the directory that will hold user-uploaded files.
-# Example: "/var/www/example.com/media/"
-MEDIA_ROOT = ''
-
-# URL that handles the media served from MEDIA_ROOT. Make sure to use a
-# trailing slash.
-# Examples: "http://example.com/media/", "http://media.example.com/"
-MEDIA_URL = ''
-
-# Absolute path to the directory static files should be collected to.
-# Don't put anything in this directory yourself; store your static files
-# in apps' "static/" subdirectories and in STATICFILES_DIRS.
-# Example: "/var/www/example.com/static/"
-STATIC_ROOT = ''
-
-# URL prefix for static files.
-# Example: "http://example.com/static/", "http://static.example.com/"
-STATIC_URL = '/static/'
-
 # Additional locations of static files
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    os.path.join(ROOT_PATH, '..', 'client'),
 )
 
 # List of finder classes that know how to find static files in
@@ -100,7 +83,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'api.middleware.QueryLogMiddleware',
+    #'api.middleware.QueryLogMiddleware',
     'api.middleware.PartnerMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -132,6 +115,7 @@ INSTALLED_APPS = (
 
     'api',
     'auth',
+    'regularize',
     'mycelery',
 )
 
@@ -184,8 +168,26 @@ LOGGING = {
     }
 }
 
-
 TASTYPIE_DEFAULT_FORMATS = ['json', 'xml']
+
+############################## custom settings ##############################
+DATABASES = {
+   'default': {
+       'ENGINE': 'django.db.backends.mysql',
+       'NAME': 'api',
+       'USER': 'api',
+       'PASSWORD': 'api',
+   }
+}
+
+BASE_URL = 'http://localhost:8000/'
+
+STATIC_ROOT = os.path.join(ROOT_PATH, 'static')
+STATIC_URL = '/static/'
+MEDIA_ROOT = os.path.join(ROOT_PATH, 'static', 'media')
+MEDIA_URL = '/static/media/'
+
+
 LOGIN_REDIRECT_URL = '/auth/'
 FROM_EMAIL = 'noreply@textualcommunities.usask.ca'
 PARTNER_BASE = 'http://localhost:8080'
@@ -200,6 +202,13 @@ EMAIL_PORT = '1025'
 BROKER_URL = 'django://'
 
 CELERY_TRACK_STARTED = True
+
+#PARTNER_BASE = 'http://www.textualcommunities.usask.ca/'
+#PARTNER_API = PARTNER_BASE + '/textual-community-portlet/api'
+#PARTNER_URL = PARTNER_API + '/secure/jsonws/myorganization/'
+
+COLLATEX_ENDPOINT = 'http://localhost:7369/'
+COLLATE_URL = COLLATEX_ENDPOINT + 'collate'
 
 try:
     from env import *

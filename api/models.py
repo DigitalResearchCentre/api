@@ -1,3 +1,7 @@
+import warnings
+warnings.filterwarnings("default", category=PendingDeprecationWarning)
+
+import requests
 import math
 import os
 import StringIO
@@ -46,8 +50,9 @@ class Community(models.Model):
     long_name = models.CharField(max_length=80, blank=True)
     description = models.TextField(blank=True)
     # Not a real m2m here, there is a unique community in database level
-    docs = models.ManyToManyField('Doc', limit_choices_to={'depth': 0})
-    entities = models.ManyToManyField('Entity',
+    docs = models.ManyToManyField('Doc', blank=True,
+                                  limit_choices_to={'depth': 0}, )
+    entities = models.ManyToManyField('Entity', blank=True,
                                       limit_choices_to={'depth': 0})
     font = models.CharField(max_length=255, blank=True)
     refsdecls = models.ManyToManyField('RefsDecl', blank=True)
@@ -154,6 +159,20 @@ class Community(models.Model):
         return cls.objects.get(abbr='TC')
 
 
+# class Availability(models.Model):
+    # content_type = models.ForeignKey(ContentType)
+    # object_id = models.PositiveIntegerField()
+    # content_object = GenericForeignKey('content_type', 'object_id')
+
+    # group = models.ForeignKey(Group)
+
+
+# def check_perm(perm):
+    # perms = obj.get_perms()
+    # user
+
+
+
 class Membership(models.Model):
     user = models.ForeignKey(User)
     community = models.ForeignKey(Community)
@@ -180,12 +199,15 @@ class Membership(models.Model):
             usermapping = self.user.usermapping
             communitymapping = self.community.communitymapping
             url = settings.PARTNER_URL + 'add-organization-user-by-group-id'
-            data = {
+            url = settings.TMP_LIFERAY_API + 'add-organization'
+            r = requests.get(url, auth=(
+                settings.TMP_LIFERAY_USERNAME, 
+                settings.TMP_LIFERAY_PASSWORD,
+            ), params={
                 'groupId': communitymapping.mapping_id,
                 'userId': usermapping.mapping_id,
                 'roleId': role[self.role.name]
-            }
-            resp = urllib2.urlopen(urllib2.Request(url, urllib.urlencode(data)))
+            })
         except UserMapping.DoesNotExist:
             pass
         except CommunityMapping.DoesNotExist:
@@ -330,6 +352,81 @@ class Entity(DETNode):
                 result.append(text.xml())
         return result
 
+    def ruleset(self, user_pk):
+        try:
+            collate = self.collate_set.get(user__pk=user_pk)
+            return {
+                'alignment': collate.alignment,
+                'ruleset': collate.ruleset,
+            }
+        except:
+            return {}
+
+    def witnesses(self):
+        try:
+            return self.witnessescache.json
+        except:
+            pass
+
+        def get_content(nodes, index):
+            length = len(nodes)
+            if index == length:
+                return '', 0
+            cur = nodes[index]
+            depth = cur.get_depth()
+            content = cur.text 
+            i = index + 1
+            while i < length:
+                node = nodes[i]
+                if node.get_depth() > depth:
+                    c, offset = get_content(nodes, i)
+                    content += c + node.tail
+                    i += offset
+                else:
+                    break
+            return content, i - index
+
+        witnesses = []
+        docs = []
+        for text in self.has_text_of():
+            doc = text.is_text_in()
+            if doc:
+                docs.append(doc)
+                if text.is_leaf():
+                    nodes = [text]
+                else:
+                    nodes = list(text.get_tree(parent=text))
+                content, _ = get_content(nodes, 0)
+                witness = {
+                    'id': '%s' % text.id,
+                    'doc': doc.id,
+                    'name': doc.tree_id,
+                    'content': content.encode('UTF-8'),
+                }
+                pb = get_first(
+                    doc.get_ancestors().filter(tilerimage__isnull=False))
+                if pb:
+                    witness['image'] = pb.id
+                witnesses.append(witness)
+
+        roots = Doc.objects.filter(depth=1, 
+                                   tree_id__in=[d.tree_id for d in docs])
+        doc_names = {}
+        for r in roots:
+            doc_names[r.tree_id] = r.name
+
+        results = []
+        for witness in witnesses:
+            tree_id = witness['name']
+            name = doc_names.get(tree_id)
+            if name:
+                witness['name'] = name
+                results.append(witness)
+
+        from regularize.models import WitnessesCache
+        WitnessesCache.objects.create(entity=self, json=results)
+        return results
+
     def get_urn(self):
         return get_urn(self.get_community().get_urn_base(), entity=self)
 
@@ -352,11 +449,14 @@ class Entity(DETNode):
             else:
                 last = get_last(descendants)
             first_doc = first.is_text_in()
-            last_doc = last.is_text_in()
-            qs = Doc.objects.filter(
-                tree_id=first_doc.tree_id,
-                rgt__gt=first_doc.lft, lft__lt=last_doc.lft
-            )
+            if first_doc:
+                last_doc = last.is_text_in()
+                qs = Doc.objects.filter(
+                    tree_id=first_doc.tree_id,
+                    rgt__gt=first_doc.lft, lft__lt=last_doc.lft
+                )
+            else:
+                qs = Doc.objects.none()
             if doc is None:
                 qs = qs.filter(depth=qs.aggregate(d=models.Min('depth'))['d'])
             else:
@@ -383,9 +483,7 @@ class Entity(DETNode):
                 entity = entity.get_children().get(label=label, name=name)
             except Entity.DoesNotExist:
                 logger.info(entity.label + ', ' + entity.name)
-                print entity.label, entity.name
                 logger.info(label + ', ' + name)
-                print label, name
                 entity = entity.add_child(label=label, name=name)
         return entity
 
@@ -659,7 +757,7 @@ class Text(Node):
     def xml(self):
         # <text/> element can have both entity and doc
         if self.entity_id is not None or self.doc_id is None:
-            qs = self.get_tree(self)
+            qs = self.get_tree(parent=self)
             exclude = None
             bound = None
         else:
@@ -1252,13 +1350,12 @@ class Task(models.Model):
         (SUBMITTED, 'submitted'),
         (COMPLETED, 'completed'),
     )
-    doc = models.ForeignKey(Doc)
+    doc = models.ForeignKey(Doc, editable=False)
     membership = models.ForeignKey(Membership)
     status = models.IntegerField(choices=STATUS_CHOICES, default=ASSIGNED)
 
     class Meta:
         unique_together = ('doc', 'membership', )
-
 
 class Partner(models.Model):
     name = models.CharField(max_length=80, unique=True, db_index=True)

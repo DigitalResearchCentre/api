@@ -6,7 +6,8 @@ import json
 import urllib
 import urllib2
 import datetime
-from django.db import models
+import requests
+from django.db import models, transaction
 from django.http import HttpResponse, Http404
 from django.conf import settings
 from django.conf.urls import patterns, url
@@ -200,10 +201,11 @@ class APIView(CreateModelMixin, RelationView):
 
     def _get_assign(self, request, *args, **kwargs):
         membership = Membership.objects.get(pk=kwargs['pk'])
+        doc_pk = kwargs.get('doc_pk')
         data = []
-        for doc in membership.community.docs.all():
-            children = []
-            for page in doc.has_parts():
+        if doc_pk:
+            doc = Doc.objects.get(pk=kwargs.get('doc_pk'))
+            for page in doc.has_parts().prefetch_related('task_set'):
                 names = []
                 child = {'key': page.pk}
                 for task in page.task_set.all():
@@ -211,13 +213,16 @@ class APIView(CreateModelMixin, RelationView):
                         child['select'] = True
                     names.append(task.membership.name)
                 names = ['(%s) %s' % pair 
-                         for pair in zip(xrange(1, len(names)+1), names)]
+                            for pair in zip(xrange(1, len(names)+1), names)]
                 names = ' - %s' % ', '.join(names) if names else ''
                 child['title'] = page.name + names 
-                children.append(child)
-            data.append({'title': doc.name, 'key': doc.pk, 'children': children})
-        return self.get_response(data)
+                data.append(child)
+        else:
+            for doc in membership.community.docs.all():
+                data.append({ 
+                    'title': doc.name, 'key': doc.pk, 'isLazy': True})
 
+        return self.get_response(data)
 
     def _get_can_edit(self, request, *args, **kwargs):
         user = self.get_object()
@@ -236,14 +241,21 @@ class APIView(CreateModelMixin, RelationView):
         return self.get_response({'editable': editable})
 
 
-
+    @transaction.atomic
     def _post_assign(self, request, *args, **kwargs):
         pk_list = map(int, request.POST.getlist('docs[]', []))
         membership = Membership.objects.get(pk=kwargs['pk'])
-        doc_pk_list = membership.task_set.values_list('doc_id', flat=True)
-        pk_list = [pk for pk in pk_list if pk not in doc_pk_list]
-        for doc in Doc.objects.filter(pk__in=pk_list).exclude():
+        doc = Doc.objects.get(pk=kwargs['doc_pk'])
+        doc_pk_list = membership.task_set.filter(
+            doc__tree_id=doc.tree_id, 
+            doc__lft__gte=doc.lft, doc__rgt__lte=doc.rgt,
+        ).values_list('doc_id', flat=True)
+        add_pk_list = [pk for pk in pk_list if pk not in doc_pk_list]
+        del_pk_list = [pk for pk in doc_pk_list if pk not in pk_list]
+        for doc in Doc.objects.filter(pk__in=add_pk_list).exclude():
             Task.objects.create(doc=doc, membership=membership)
+        qs = Task.objects.filter(doc__id__in=del_pk_list, membership=membership)
+        qs.delete()
         return self._get_assign(self, request, *args, **kwargs)
 
 
@@ -278,12 +290,13 @@ class APIView(CreateModelMixin, RelationView):
         return self.create(data=data, files=request.FILES)
 
     def _post_upload_tei(self, request, *args, **kwargs):
+        from lxml import etree
         f = request.FILES['xml']
         community = self.get_object()
         result = tasks.add_text_file.delay(f.read(), community)
         Action.objects.create(
-            user=request.user, community=community, action='add text file',
-            key=result.id, data={'file': f.name})
+           user=request.user, community=community, action='add text file',
+           key=result.id, data={'file': f.name})
         return self.get_response({'status': result.status, 'id': result.id})
 
     def _post_upload_zip(self, request, *args, **kwargs):
@@ -317,6 +330,8 @@ class CommunityList(generics.ListCreateAPIView):
 
     def create_liferay_community(self):
         url = settings.PARTNER_URL + 'add-organization'
+        url = settings.TMP_LIFERAY_API + 'add-organization'
+
         values = {
             'parentOrganizationId': 10718,
             'name': self.object.name,
@@ -326,10 +341,11 @@ class CommunityList(generics.ListCreateAPIView):
             values['userId'] = self.request.user.usermapping.mapping_id
         except UserMapping.DoesNotExist:
             pass
-        data = urllib.urlencode(values)
-        req = urllib2.Request(url, data)
-        resp = urllib2.urlopen(req)
-        resp_json = json.loads(resp.read())
+        r = requests.get(url, auth=(
+            settings.TMP_LIFERAY_USERNAME, 
+            settings.TMP_LIFERAY_PASSWORD,
+        ), params=values)
+        resp_json = r.json()
         url = settings.PARTNER_URL + 'get-group-by-organization-id'
         values = {
             'organizationId': resp_json['organizationId'],

@@ -20,12 +20,14 @@ require([
         var model = this.model;
         this.community = model.getCommunity();
         this.role = model.getRole();
+        this.tasks = model.getTasks();
 
         this.listenTo(model, 'remove', this.remove);
         this.listenTo(model, 'view:onAdminClick', this.onAdminClick);
         this.listenTo(model, 'change', this.onChange);
         this.listenTo(this.community, 'change', this.onChange);
         this.listenTo(this.role, 'change', this.onChange);
+        this.listenTo(this.tasks, 'add', this.onTaskAdd);
     },
     onAdminClick: function() {
         console.log('onAdminClick');
@@ -44,10 +46,54 @@ require([
           window.parent.location = friendlyURL + '/viewer';
         });
     },
+    onTaskAdd: function(task) {
+      var status = ['assigned', 'in-progress', 'approval', 'published'];
+      var $td = this.$('td.' + status[task.get('status')]);
+      var $ul = $td.children('ul');
+      var doc = task.getDoc();
+      var $a = $('<a href="#task=' + task.id + '">'+doc.get('name')+'</a>');
+      doc.getUrn().done(function(urn){
+        var name = [];
+        _.each(urn.split(':'), function (parts) {
+          parts = parts.split('=');
+          if (parts.length > 1) {
+            name.push(parts[1]);
+          }
+        });
+        $a.text(name.join(':'));
+      });
+      $a.click(_.bind(function () {
+        this.viewTask(task);
+      }, this));
+      doc.fetch();
+      $ul.append($('<li></li>').append($a));
+      $td.children('span').text(' ' + $ul.children().length + ' tasks');
+    },
+    viewTask: function (task) {
+      var doc = task.getDoc();
+      var parent = doc.getParent();
+      var url = urls.get(['community:friendly_url', {pk: this.model.get('community')}]);
+      $.get(url, function(friendlyURL) {
+        if (parent.isNew()) {
+          parent.fetch().done(function() {
+            var url = friendlyURL + '/viewer?' 
+            + 'docName=' + parent.get('name') 
+            + '&pageName=' + doc.get('name');
+            window.parent.location = url;
+          });
+        }else{
+          var url = friendlyURL + '/viewer?' 
+          + 'docName=' + parent.get('name') 
+          + '&pageName=' + doc.get('name');
+          window.parent.location = url;
+        }
+      });
+    },
     render: function() {
         this.$el.html(this.template());
         this.community.fetch();
         this.role.fetch();
+        this.tasks.fetch();
         this.onChange();
         return this;
     },

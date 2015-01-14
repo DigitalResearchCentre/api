@@ -4,20 +4,20 @@ var require = {
   paths: {
     jquery: [
       '//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min',
-      LIB + 'jquery/jquery'
+      LIB + 'jquery/jquery.min'
     ],
-    backbone: LIB + 'backbone-amd/backbone',
-    underscore: LIB + 'underscore-amd/underscore',
+    backbone: LIB + 'backbone-amd/backbone-min',
+    underscore: LIB + 'underscore-amd/underscore-min',
     text: LIB + 'requirejs-text/text',
     async: LIB + 'requirejs-plugins/src/async',
     json: LIB + 'requirejs-plugins/src/json',
     urijs: LIB + 'uri.js/src',
-    bootstrap: LIB + 'bootstrap/dist/js/bootstrap',
+    bootstrap: LIB + 'bootstrap/dist/js/bootstrap.min',
     'bootstrap-fileupload': 
       LIB + 'bootstrap-jasny/docs/assets/js/bootstrap-fileupload',
     codemirror: LIB + 'codemirror/lib/codemirror',
     'jquery.cookie': LIB + 'jquery.cookie/jquery.cookie',
-    'jquery-ui': LIB + 'jquery-ui/ui/jquery-ui',
+    'jquery-ui': LIB + 'jquery-ui/ui/minified/jquery-ui.min',
     'codemirror-xml': LIB + 'codemirror/mode/xml/xml',
     'dynatree': LIB + 'dynatree/dist/jquery.dynatree.min',
     tmpl: '../tmpl'
@@ -31,5 +31,6 @@ var require = {
     dynatree: ['jquery-ui'],
     'codemirror-xml': ['codemirror']
   }
-  , urlArgs: 'bust=' + (new Date()).getTime()
+  , waitSeconds: 0
+  , urlArgs: 'bust=' + ((new Date()).getTime() % (3600*24*7))
 };

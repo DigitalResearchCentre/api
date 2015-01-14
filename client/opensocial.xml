@@ -13,7 +13,7 @@
         <![CDATA[
         <script>gadgets.window.adjustHeight();</script>
         <script type="text/javascript">
-            window.location = 'http://textualcommunities.usask.ca/api/client/profile.html'
+            window.location = 'http://textualcommunities.usask.ca/api/client/profile.html?authToken=' + parent.Liferay.authToken;
         </script>
         ]]>
     </Content>

@@ -30,6 +30,13 @@
         <script type="text/javascript" src="mergely-3.3.3/lib/mergely.js"></script>
         <link type="text/css" rel="stylesheet" href="mergely-3.3.3/lib/mergely.css" />
         <link href="TCeditor.css" rel="stylesheet" type="text/css"/>
+        <style type="text/css" media="all">
+          #showcollation {
+            width: 100%;
+            border: none;
+          }
+        </style>
+
    
    
 <script type="text/javascript">
@@ -57,6 +64,7 @@ var pheight=0;
 var search = location.search.substr(1);
 var imageMap = null;
 var login = null;
+var userId = null;
 if (search)  {
     var params = search.split('&');
     for (var i=0; i<params.length; i++) {
@@ -68,6 +76,15 @@ if (search)  {
         }
         if (key == 'login') {
             login = value;
+        }
+        if (key == 'userId') {
+            userId = value;
+        }
+        if (key == 'docName') {
+          docName = value;
+        }
+        if (key == 'pageName') {
+          pageName = value;
         }
     }
 }
@@ -592,48 +609,11 @@ function makeEntMenu(rootMenu) {
       children: eval(rootMenu),
       onActivate: function(node) {
 			if ( node.data.lineid) {
-				$('#showcollation').html("<br/><b>&nbsp;&nbsp;&nbsp;&nbsp;Loading in texts. Please wait.</b>"); 
 				var entityText="";
 				var numdocs=0;
-				$.getJSON(url+'entities/'+node.data.lineid+'/has_text_of?page_size=0&format=json',function(thisdoc){
-					 $.each(thisdoc, function(i, pageurl) {
-					 	//rewrite this to make it really recursive
-					 	//problem -- could be relic text from deleted document
-					 	$.getJSON(url+'texts/'+pageurl.id+'/is_text_in/', function (test) {
-							numdocs+=1;
-					 		$.getJSON(url+'texts/'+pageurl.id+'/xml',function(thispage){
-								var newpage=thispage.replace(/</g, "&lt;");
-								$.getJSON(url+'texts/'+pageurl.id+'/is_text_in?page_size=0&format=json',function(thistext){
-									var info=""+thistext.label+" "+thistext.name+": "+ newpage + "</p>";
-									$.getJSON(url+'docs/'+thistext.id+'/parent?page_size=0&format=json',function(thisparent){
-										info=""+thisparent.label+" "+thisparent.name+"</a>, "+info;
-										if (thisparent.has_parent) {
-											$.getJSON(url+'docs/'+thisparent.id+'/parent?page_size=0&format=json',function(grandparent){
-												info="<p><a href=\"javascript:initTextDtree('"+grandparent.name+"', '"+thisparent.name+"')\">"+grandparent.label+" "+grandparent.name+", "+info;
-												entityText+=info;
-	//											$('#showcollation').html(entityText); 
-												if (numdocs==thisdoc.length) {
-													$('#showcollation').html(entityText);
-												}
-											});
-										} else {
-											info="<p><a href=\"javascript:initTextDtree('"+thisparent.name+"', '"+thistext.name+"')\">"+info;
-											entityText+=info;
-											if (numdocs==thisdoc.length) {
-												$('#showcollation').html(entityText);
-											}
-										}
-									});
-								});
-							});
-						})
-						.fail(function() {
-								numdocs+=1;
-								if (numdocs==thisdoc.length) {
-								$('#showcollation').html(entityText); }
-						});
-					 });
-				});
+                                $('#showcollation').attr('src', url + 'regularize/?entity=' + node.data.lineid);
+                                $('#showcollation').height($('#right').height());
+                                $('#showcollation')[0].contentWindow.postMessage($('#right').width());
 			}
 		},
       onLazyRead: function(node){
@@ -1758,9 +1738,7 @@ function fliptextimage() {
 			</div>
 		    </div>
 		</div>
-		<div id="showcollation">
-			<h4>Click on an entity to see all texts of that entity</h4>
-		</div>
+                <iframe id="showcollation"></iframe>
 	</div>
 		<div id="new-transcript" style="display:none">
    			 <div id="prevPageTree"></div>
@@ -1810,8 +1788,8 @@ function fliptextimage() {
 	 $( "#topright").resizable({   
     	handles: 's', 
     	resize: function(event, ui) {
-        ui.size.width = ui.originalSize.width;
-		}
+          ui.size.width = ui.originalSize.width;
+	}
 	 });
     $("#left ").on("resize", function (event, ui) {
             var setWidth = $("#left").width();
@@ -1911,6 +1889,8 @@ function fliptextimage() {
  			$('#right').width($('body').width()-6);
  		}
 	}
+        $('#showcollation').height($('#right').height());
+        $('#showcollation')[0].contentWindow.postMessage($('#right').width());
  });
 
 
@@ -1949,13 +1929,27 @@ function fliptextimage() {
             dataType: "json",
             url: url + 'auth/',
             success: function(user){
+              if (login == 1) {
+                $.get(url + 'v1/user/' + user.id + '/?fields=usermapping',
+                  function(u){
+                    if (parseInt(u.usermapping.mapping_id) != userId) {
+                      window.location = url + '/auth/logout/?partner=1&next=' + encodeURIComponent(window.location.href);
+                    }
+                    curUser = user;
+                    $buttons.prop('disabled', false);
+                    init();
+                  }
+                );
+              } else {
                 curUser = user;
                 $buttons.prop('disabled', false);
                 init();
+              }
             },
             error: function() {
                 if (login == 1)  {
-                    window.location = url + '/auth/login/?partner=1&next=' + window.location.href;
+                    window.location = url + '/auth/login/?partner=1&next=' +
+                      encodeURIComponent(window.location.href);
                 }else{
                     $buttons.prop('disabled', true);
                     init();

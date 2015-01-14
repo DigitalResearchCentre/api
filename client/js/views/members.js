@@ -42,13 +42,21 @@ define([
         },
         render: function () {
             ModalView.prototype.render.apply(this, arguments);
-            var $tree = this.$('.assign-task-tree'),
-            expand = {};
+            var $tree = this.$('.assign-task-tree')
+              , expand = {}
+              , self = this
+              , url = urls.get(['membership:assign', {pk: this.model.id}])
+            ;
 
             $tree.dynatree({
                 checkbox: true,
                 selectMode: 3,
                 initAjax: {url: this.url},
+                onLazyRead: function(node) {
+                  node.appendAjax({
+                    url: url + node.data.key + '/?format=json'
+                  });
+                },
                 onExpand: function(flag, node) {
                     if (flag) {
                         expand[node.data.key] = flag;
@@ -70,19 +78,46 @@ define([
             return this;
         },
         onAssign: function() {
-            var 
-            $tree = this.$('.assign-task-tree'),
-            selNodes = $tree.dynatree("getSelectedNodes"),
-            selKeys = $.map(selNodes, function(node){
-                return node.data.key;
+            var $tree = this.$('.assign-task-tree')
+              , root = $tree.dynatree('getRoot')
+              , selNodes = $tree.dynatree("getSelectedNodes")
+              , url = urls.get(['membership:assign', {pk: this.model.id}])
+              , datas = {}
+              , self = this
+            ;
+            $.each(selNodes, function(i, node){
+              var parent = node.parent;
+              if (parent.parent) {
+                // is page node
+                var docPk = parent.data.key;
+                if (!datas[docPk]){
+                  datas[docPk] = {'docs': []};
+                }
+                datas[docPk].docs.push(node.data.key);
+              }else{
+                // is doc node, skip
+              }
             });
-            $.post(this.url, {'docs': selKeys}).done(_.bind(function(data){
-                $tree.dynatree({children: data});
-                this.$('.error').addClass('hide');
-                this.$('.alert-success').removeClass('hide').show();
-            }, this)).fail(_.bind(function(resp) {
-                this.$('.error').removeClass('hide').html(resp.responseText);
-            }, this));
+
+            $.each(root.childList, function(i, node){
+              var docPk = node.data.key;
+              if (node.childList && node.childList.length > 0 && !datas[docPk]){
+                datas[docPk] = {'docs': []};
+              }
+            });
+
+            $.each(datas, function(i, d) {
+              console.log(datas);
+              console.log(i);
+              console.log(d);
+              $.post(url + i + '/?format=json', d).done(function(data){
+                  $tree.dynatree({children: data});
+                  self.$('.error').addClass('hide');
+                  self.$('.alert-success').removeClass('hide').show();
+              }).fail(function(resp) {
+                  self.$('.error').removeClass('hide').html(resp.responseText);
+              });
+            });
         }
     });
 
@@ -126,10 +161,31 @@ define([
             var $el = $(event.target);
             $el.toggleClass('glyphicon-folder-close glyphicon-folder-open');
             $el.siblings('ul').toggleClass('folder-open folder-close');
+            if ($el.hasClass('glyphicon-folder-open')) {
+              this.tasks.each(function(task){
+                if (!task._docFetched) {
+                  var doc = task.getDoc()
+                    , $a = task.$a
+                  ;
+                  doc.getUrn().done(function (urn){
+                      var name = [];
+                      _.each(urn.split(':'), function (parts) {
+                          parts = parts.split('=');
+                          if (parts.length > 1) {
+                              name.push(parts[1]);
+                          }
+                      });
+                      $a.text(name.join(':'));
+                  });
+                  doc.fetch().done(function(){
+                    task._docFetched = true;
+                  });
+                }
+              });
+            }
         },
         onTaskAdd: function (task) {
             var cls, $td, $ul, $a,
-            doc = task.getDoc(),
             status = task.status;
 
             switch (task.get('status')) {
@@ -150,25 +206,13 @@ define([
             }
             $td = this.$('.' + cls);
             $ul = $td.children('ul');
-            $a = $('<a href="#task=' + task.id + '">'+doc.get('name')+'</a>');
-            doc.getUrn().done(function(urn){
-                var name = [];
-                _.each(urn.split(':'), function (parts) {
-                    parts = parts.split('=');
-                    if (parts.length > 1) {
-                        name.push(parts[1]);
-                    }
-                });
-                $a.text(name.join(':'));
-            });
+
+            $a = $('<a href="#task=' + task.id + '">'+task.id+'</a>');
             $a.click(_.bind(function () {
                 this.options.viewTask(task);
             }, this));
-            this.listenTo(doc, 'change', function () {
-                $a.text(doc.get('name'));
-            });
-            doc.fetch();
             $ul.append($('<li></li>').append($a));
+            task.$a = $a;
             $td.children('span').text(' ' + $ul.children().length + ' tasks');
             this.options.autoResize();
         }
@@ -244,15 +288,15 @@ define([
             $.get(url, function(friendlyURL) {
                 if (parent.isNew()) {
                     parent.fetch().done(function() {
-                        var url = friendlyURL + '/viewer?' 
-                            + 'docName=' + parent.get('name') 
-                            + '&pageName=' + doc.get('name');
+                        var url = friendlyURL + '/viewer?' + 
+                              'docName=' + parent.get('name') + 
+                              '&pageName=' + doc.get('name');
                         window.parent.location = url;
                     });
                 }else{
-                    var url = friendlyURL + '/viewer?' 
-                        + 'docName=' + parent.get('name') 
-                        + '&pageName=' + doc.get('name');
+                    var url = friendlyURL + '/viewer?' +
+                          'docName=' + parent.get('name') +
+                          '&pageName=' + doc.get('name');
                     window.parent.location = url;
                 }
             });

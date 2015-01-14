@@ -9,13 +9,27 @@ from tastypie.authorization import DjangoAuthorization
 from tastypie.authentication import SessionAuthentication
 
 from django.contrib.auth.models import User
-from api.models import Text, Action, Community, Doc, Attr
+from api.models import Text, Action, Community, Doc, Attr, UserMapping
 
 class DynamicField(object):
     pass
 
-class DynamicToOneField(DynamicField, fields.ToOneField):
-    pass
+class DynamicToOneField(fields.ToOneField):
+    ID_AFFIX = '_id'
+
+    def __init__(self, to, attribute, **kwargs):
+        super(DynamicToOneField, self).__init__(to, attribute, 
+                                                full=True, **kwargs)
+
+    def dehydrate(self, bundle, **kwargs):
+        if self.attribute in bundle.request.GET.get('fields', '').split(','):
+            return super(DynamicToOneField, self).dehydrate(bundle, **kwargs)
+        fk = getattr(bundle.obj, '%s%s' % (self.attribute, self.ID_AFFIX), None)
+        if fk:
+            fk_resource = self.get_related_resource(None)
+            fake_obj = lambda: None
+            setattr(fake_obj, 'pk', fk)
+            return fk_resource.get_resource_uri(bundle_or_obj=fake_obj)
 
 class DynamicCharField(DynamicField, fields.CharField):
     pass
@@ -57,9 +71,10 @@ class APIResource(DynamicModelResource):
         auth_result = self._meta.authentication.is_authenticated(request)
 
         if isinstance(auth_result, HttpResponse):
+            print 'why here?'
             raise ImmediateHttpResponse(response=auth_result)
 
-        if not auth_result is True and request.method != 'GET':
+        if (not auth_result is True) and request.method != 'GET':
             raise ImmediateHttpResponse(response=http.HttpUnauthorized())
         return auth_result
 
@@ -69,7 +84,14 @@ class TextResource(ModelResource):
     class Meta:
         queryset = Text.objects.all()
 
+class UserMappingResource(ModelResource):
+    class Meta:
+        queryset = UserMapping.objects.all()
+
 class UserResource(ModelResource):
+    usermapping = DynamicToOneField(UserMappingResource, 
+                                    'usermapping', null=True)
+
     class Meta:
         queryset = User.objects.all()
         excludes = ['password', ]
@@ -79,8 +101,8 @@ class CommunityResource(ModelResource):
         queryset = Community.objects.all()
 
 class ActionResource(ModelResource):
-    user = DynamicToOneField(UserResource, 'user', full=True)
-    community = DynamicToOneField(CommunityResource, 'community', full=True)
+    user = DynamicToOneField(UserResource, 'user')
+    community = DynamicToOneField(CommunityResource, 'community')
     status = fields.CharField('get_status')
 
     class Meta:
@@ -176,10 +198,18 @@ class DocResource(APIResource):
                 next_text = body.get_first_child()
             if next_text:
                 # TODO: entity ?
+                obj = Doc.objects.get(pk=obj.pk)
+                next_text = Text.objects.get(pk=next_text.pk)
                 next_text.add_sibling(pos='left', tag='pb', doc=obj)
             else:
                 text = body.add_child(tag='pb', doc=obj)
             bundle.obj = obj
+
+    def authorized_update_detail(self, object_list, bundle):
+        return True
+
+    def authorized_create_detail(self, object_list, bundle):
+        return True
 
     def save(self, bundle, **kwargs):
         bundle = super(DocResource, self).save(bundle, **kwargs)
@@ -208,7 +238,8 @@ class DocResource(APIResource):
 
 v1_api = Api(api_name='v1')
 for cls in (
-    TextResource, ActionResource, UserResource, CommunityResource, DocResource
+    TextResource, ActionResource, UserResource, CommunityResource, DocResource,
+    UserMappingResource,
 ):
     v1_api.register(cls())
 urls = v1_api.urls

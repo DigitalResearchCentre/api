@@ -21,12 +21,9 @@ class SSOBackend(ModelBackend):
             email = data['email']
             try:
                 user = User.objects.get(username=email)
-                try:
-                    # user create in liferay
-                    invitation = Invitation.objects.get(invitee__user=user)
+                # user create in liferay
+                for invitation in Invitation.objects.filter(invitee__user=user):
                     invitation.activate()
-                except Invitation.DoesNotExist, e:
-                    pass
             except User.DoesNotExist, e:
                 user = User.objects.create_user(email, email=data['email'])
             UserMapping.objects.create(

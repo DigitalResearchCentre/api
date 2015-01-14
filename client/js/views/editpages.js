@@ -140,7 +140,7 @@ define([
 
   var Page = Model.extend({
     urlRoot: env.restBase + '/v1/doc/',
-    urlArgs: {fields: 'facs,rend'},
+    urlArgs: {fields: 'facs,rend', limit: 0},
   });
 
   var PageRowView = Backbone.View.extend({
