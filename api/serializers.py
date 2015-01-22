@@ -91,14 +91,20 @@ class MembershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = Membership
 
+
 class MemberSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField('get_name')
+    email = serializers.SerializerMethodField('get_email')
 
     class Meta:
         model = Membership
 
     def get_name(self, obj):
         return obj.name
+
+    def get_email(self, obj):
+        return obj.user.email
+
 
 class JSSerializer(serializers.ModelSerializer):
 

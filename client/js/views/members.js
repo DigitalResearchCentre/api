@@ -107,9 +107,6 @@ define([
             });
 
             $.each(datas, function(i, d) {
-              console.log(datas);
-              console.log(i);
-              console.log(d);
               $.post(url + i + '/?format=json', d).done(function(data){
                   $tree.dynatree({children: data});
                   self.$('.error').addClass('hide');
@@ -133,7 +130,7 @@ define([
             var $span, $ul,
             model = this.model;
             this.$el.html(
-                '<td>' + model.get('name') + '</td>' + 
+                '<td>' + model.get('name') + '<br/>' + model.get('email') + '</td>' + 
                 '<td>' + model.get('create_date') + '</td>' + 
                 '<td class="assigned"><span> 0 tasks</span><ul></ul></td>' + 
                 '<td class="in-progress"><span> 0 tasks</span><ul></ul></td>' + 

@@ -199,7 +199,8 @@ class Membership(models.Model):
             usermapping = self.user.usermapping
             communitymapping = self.community.communitymapping
             url = settings.PARTNER_URL + 'add-organization-user-by-group-id'
-            url = settings.TMP_LIFERAY_API + 'add-organization'
+            url = settings.TMP_LIFERAY_API + 'add-organization-user-by-group-id'
+
             r = requests.get(url, auth=(
                 settings.TMP_LIFERAY_USERNAME, 
                 settings.TMP_LIFERAY_PASSWORD,
@@ -208,6 +209,7 @@ class Membership(models.Model):
                 'userId': usermapping.mapping_id,
                 'roleId': role[self.role.name]
             })
+            resp_json = r.json()
         except UserMapping.DoesNotExist:
             pass
         except CommunityMapping.DoesNotExist:

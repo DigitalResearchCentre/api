@@ -331,7 +331,6 @@ class CommunityList(generics.ListCreateAPIView):
     def create_liferay_community(self):
         url = settings.PARTNER_URL + 'add-organization'
         url = settings.TMP_LIFERAY_API + 'add-organization'
-
         values = {
             'parentOrganizationId': 10718,
             'name': self.object.name,
