@@ -104,14 +104,14 @@ INSTALLED_APPS = (
 
     #'hierarchy',
     'api',
-    'auth',
+    'myauth',
     'regularize',
     'mycelery',
 )
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
-    'auth.backends.SSOBackend',
+    'myauth.backends.SSOBackend',
 )
 
 REST_FRAMEWORK = {

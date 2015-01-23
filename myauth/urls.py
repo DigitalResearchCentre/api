@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, include, url
-from auth.views import *
+from myauth.views import *
 
 urlpatterns = patterns(
     '',

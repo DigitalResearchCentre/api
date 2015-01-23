@@ -9,7 +9,7 @@ from tastypie.authorization import DjangoAuthorization
 from tastypie.authentication import SessionAuthentication
 
 from django.contrib.auth.models import User
-from api.models import Text, Action, Community, Doc, Attr, Entity
+from api.models import Text, Action, Community, Doc, Attr, Entity, UserMapping
 
 class DynamicField(object):
     pass
@@ -137,7 +137,14 @@ class TextResource(APIResource):
     class Meta:
         queryset = Text.objects.all()
 
+class UserMappingResource(ModelResource):
+    class Meta:
+        queryset = UserMapping.objects.all()
+
 class UserResource(ModelResource):
+    usermapping = DynamicToOneField(UserMappingResource, 
+                                    'usermapping', null=True)
+        
     class Meta:
         queryset = User.objects.all()
         excludes = ['password', ]

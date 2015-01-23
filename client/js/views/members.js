@@ -79,11 +79,12 @@ define([
         },
         onAssign: function() {
             var $tree = this.$('.assign-task-tree')
+              , root = $tree.dynatree('getRoot')
               , selNodes = $tree.dynatree("getSelectedNodes")
               , url = urls.get(['membership:assign', {pk: this.model.id}])
               , datas = {}
               , self = this
-            ;
+            ;            
             $.each(selNodes, function(i, node){
               var parent = node.parent;
               if (parent.parent) {
@@ -97,10 +98,14 @@ define([
                 // is doc node, skip
               }
             });
+            $.each(root.childList, function(i, node){
+              var docPk = node.data.key;
+              if (node.childList && node.childList.length > 0 && !datas[docPk]){
+                datas[docPk] = {'docs': []};
+              }
+            });
+
             $.each(datas, function(i, d) {
-              console.log(datas);
-              console.log(i);
-              console.log(d);
               $.post(url + i + '/?format=json', d).done(function(data){
                   $tree.dynatree({children: data});
                   self.$('.error').addClass('hide');

@@ -1438,7 +1438,7 @@ class Invitation(models.Model):
 
     def invite_url(self):
         return '%s%s?code=%s&partner=1' % (
-            settings.BASE_URL, reverse('auth:activate'), self.code)
+            settings.BASE_URL, reverse('myauth:activate'), self.code)
 
     def send_invitation(self):
         subject = 'Welcome to %s' % self.invitee.community.name
