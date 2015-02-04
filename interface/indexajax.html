@@ -27,6 +27,7 @@
             src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOf5NdCQ0GxTBjCX1kVtavpMo-G9u_2BU&sensor=false">
         </script>
         <script type="text/javascript" src="map.js"></script>
+        <script type="text/javascript" src="env.js"></script>
         <script type="text/javascript" src="mergely-3.3.3/lib/mergely.js"></script>
         <link type="text/css" rel="stylesheet" href="mergely-3.3.3/lib/mergely.css" />
         <link href="TCeditor.css" rel="stylesheet" type="text/css"/>
@@ -41,9 +42,10 @@
    
 <script type="text/javascript">
 var curUser;
+var curUserLeader=0;
 var mintocwidth=200;
 var minheight=760;
-var url = "http://textualcommunities.usask.ca/api/"; 
+var url = ENV.base_url; 
 var urlstatic = "http://textualcommunities.usask.ca/media/tc/"; 
 //    var community="T25";   
 //    var community="JDP1";   
@@ -73,6 +75,11 @@ if (search)  {
         var value = param[1];
         if (key == 'community') {
             community = value;
+            $.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
+            	$.each(data, function(h, thiscommunity){
+            		if (thiscommunity.abbr==community) {communityID=thiscommunity.id};
+            	});
+            });
         }
         if (key == 'login') {
             login = value;
@@ -90,33 +97,26 @@ if (search)  {
 }
     
 function loadTexts (mycommunity) {
-    $.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
-        $.each(data, function(h, thiscommunity){ 
-            if (thiscommunity.abbr==mycommunity) {
-                communityID=thiscommunity.id;
-                var rootMenu="[";
-                var doccount=0;
-                $.getJSON(url+'communities/'+thiscommunity.id+'/docs/?page_size=0&format=json', function (docdata) {
-                    var numdocs=docdata.length;
-                    $.each(docdata, function(i, thisdoc) {
-                        doccount+=1;
-                        rootMenu+="{title:'"+thisdoc.name+" <span title=\"XML for this document\" onclick=javascript:doThisOne(\"" +
-                            thisdoc.id+"\")>gettext<"+"/span>', isLazy: true, url:'"+thisdoc.id+"'}";
-                        if (doccount==numdocs) {
-                            rootMenu+="]";
-                            makeTextMenu(rootMenu);
-                            var setWidth = $("#left").width();
-                            var wholeWidth=$('body').width()-6;
-                            $('#right').width(wholeWidth-setWidth);
-                            console.log('set width')
-                        } else {
-                            rootMenu+=",";
-                        }
-                    });
-                });
-            }
-        });
-    });
+	var rootMenu="[";
+	var doccount=0;
+	$.getJSON(url+'communities/'+communityID+'/docs/?page_size=0&format=json', function (docdata) {
+		var numdocs=docdata.length;
+		$.each(docdata, function(i, thisdoc) {
+			doccount+=1;
+			rootMenu+="{title:'"+thisdoc.name+" <span title=\"XML for this document\" onclick=javascript:doThisOne(\"" +
+				thisdoc.id+"\")>gettext<"+"/span>', isLazy: true, url:'"+thisdoc.id+"'}";
+			if (doccount==numdocs) {
+				rootMenu+="]";
+				makeTextMenu(rootMenu);
+				var setWidth = $("#left").width();
+				var wholeWidth=$('body').width()-6;
+				$('#right').width(wholeWidth-setWidth);
+//                           console.log('set width')
+			} else {
+				rootMenu+=",";
+			}
+		});
+	});
 }
 	
 	  			//check for default font
@@ -353,6 +353,35 @@ function doPrevChoice () {
 	if ($('#pccont').is(':checked')) {
 		$('#prevInfo').html("<p style='text-align:center'>Select continuing text</p>");
 		$('.selectcont').removeAttr("disabled");
+	}
+}
+
+function setEditorButtons(user) {
+	//don't deal with members.  what are they?
+	if (user==null) {
+		//visitor
+		$('.btn.submit, .btn.commit, .btn.save').hide();
+	} else {
+		$.getJSON(url+'memberships/?page_size=0&format=json', function (userlist) {
+		    //check for leadership first -- trumps transcription!
+			$.each(userlist, function(i, thisuser) {
+				if (thisuser.user==curUser.id && thisuser.community==communityID && (thisuser.role==1 || thisuser.role==2)) {
+					//leader or coleader: hide submit button
+						$('.btn.submit').hide();
+						return;
+				}
+				//not found as leader; check as transcriber..
+				if (i==userlist.length) {
+					$.each(userlist, function(i, thisuser) {
+						if (thisuser.user==curUser.id && thisuser.community==communityID && (thisuser.role==4 || thisuser.role==3)) {
+							//transcriber
+								$('.btn.commit').hide();
+								return;
+						}
+					});
+				}
+			});
+		});	
 	}
 }
 
@@ -1723,13 +1752,13 @@ function fliptextimage() {
                                 <td class="tcnt" id="tcnt1">
                                   <button id="tcntSaveLeft" class="btn save" value="0" data-version="0" title="Save left transcript page (not to database)" onclick="javascript:SaveTranscript(2)">Save</button></td>
                                 <td class="tcnt2" id="tcnt2">
-                                    <button id="tcntNew" class="btn new" title="New transcript page" onclick="javascript:NewTranscript()">New...</button>
                                     <button id="tcntSave" class="btn save" value="0" title="Save transcript page (not to database)" 
                                         onclick="javascript:SaveTranscript(1)">Save</button>
-                                    <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
+                                    <button id="tcntSave" class="btn submit" value="0" title="Submit transcript page for approval" 
+                                        onclick="javascript:SubmitTranscript(1)">Submit</button>
+                                   <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
                                     <button class="btn commit" title="Parse and save to database"
                                         onclick="javascript:commitTranscript()">Commit</button>
-                                    <button class="btn publish" onclick="javascript:publishTranscript()">Publish</button>
                                     <span id="pww">&nbsp;&nbsp;&nbsp;<span id="wwoffbutton"><a id="wwoffb">Word Wrap Off</a></span><span id="wwonbutton"><a href="javascript:toggleWordWrap()" id="wwonb">Word Wrap On</a></span></span></td>
                                   <td  class="tcnt" id="tcnt3">
                                     <button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3)">Save</button>
@@ -1926,7 +1955,7 @@ function fliptextimage() {
     $(document).ready(function(){
         $('#tcnt1').hide();
         $('#tcnt3').hide();
-        var $buttons = $('.btn.commit, .btn.publish, .btn.save, .btn.new');
+        var $buttons = $('.btn.commit, .btn.submit, .btn.save');
         $.ajax({
             dataType: "json",
             url: url + 'auth/',
@@ -1938,13 +1967,17 @@ function fliptextimage() {
                       window.location = url + '/auth/logout/?partner=1&next=' + encodeURIComponent(window.location.href);
                     }
                     curUser = user;
-                    $buttons.prop('disabled', false);
+                    setEditorButtons(user);
+//                    curUserLeader=isCurUserLeader(user);
+//                    $buttons.prop('disabled', false);
                     init();
                   }
                 );
               } else {
                 curUser = user;
-                $buttons.prop('disabled', false);
+                setEditorButtons(user)
+//                curUserLeader=isCurUserLeader(user);
+//                $buttons.prop('disabled', false);
                 init();
               }
             },
@@ -1953,7 +1986,8 @@ function fliptextimage() {
                     window.location = url + '/auth/login/?partner=1&next=' +
                       encodeURIComponent(window.location.href);
                 }else{
-                    $buttons.prop('disabled', true);
+                	setEditorButtons(null);
+//                    $buttons.prop('disabled', true);
                     init();
                 }
             }

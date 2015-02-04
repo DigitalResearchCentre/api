@@ -210,6 +210,9 @@ CELERY_TRACK_STARTED = True
 COLLATEX_ENDPOINT = 'http://localhost:7369/'
 COLLATE_URL = COLLATEX_ENDPOINT + 'collate'
 
+TMP_LIFERAY_API = 'http://localhost:8000/'
+TMP_LIFERAY_USERNAME = 'user'
+TMP_LIFERAY_PASSWORD = 'pass'
 try:
     from env import *
 except ImportError, e:
