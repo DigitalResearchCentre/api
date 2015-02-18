@@ -43,8 +43,14 @@
 <script type="text/javascript">
 var curUser;
 var curUserLeader=0;
-var mintocwidth=200;
-var minheight=760;
+var mintocwidth=200;  
+var minheight=560;
+var minwidth=880;
+var containerwidth=minwidth;
+var minframewidth=300; //for text and images
+var minframetextheight=270; //for text and images
+var minframeimageheight=230; //for text and images
+var minframeheight=270; //for text and images
 var url = ENV.base_url; 
 var urlstatic = "http://textualcommunities.usask.ca/media/tc/"; 
 //    var community="T25";   
@@ -58,8 +64,8 @@ var editor=null;
 var $iframe=null;
 var editorstring="";
 //in full application -- set next from params
-var docName="Hg";
-var pageName="2r";
+var docName="";
+var pageName="";
 var currentDocId;
 var pwidth=0;
 var pheight=0;
@@ -75,9 +81,12 @@ if (search)  {
         var value = param[1];
         if (key == 'community') {
             community = value;
+            $.cookie('community', community, { expires: 365 });
             $.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
             	$.each(data, function(h, thiscommunity){
-            		if (thiscommunity.abbr==community) {communityID=thiscommunity.id};
+            		if (thiscommunity.abbr==community) {
+            			communityID=thiscommunity.id};
+            			$.cookie('communityID', communityID, { expires: 365 });
             	});
             });
         }
@@ -94,7 +103,17 @@ if (search)  {
           pageName = value;
         }
     }
+} else {
+	if ($.cookie('community')) {community=$.cookie('community')} else {
+		community="CTP2"; $.cookie('community', 'CTP2', { expires: 365 });}
+	if ($.cookie('communityID')) {communityID=$.cookie('communityID')} else {
+		communityID=4; $.cookie('communityID', '4', { expires: 365 });}
 }
+	if ($.cookie('docName')) {docName=$.cookie('docName')} else {
+		docName="Hg"; $.cookie('docName', 'Hg', { expires: 365 });}
+	if ($.cookie('pageName')) {pageName=$.cookie('pageName')} else {
+		pageName="1r";  $.cookie('pageName', '1r', { expires: 365 });}
+
     
 function loadTexts (mycommunity) {
 	var rootMenu="[";
@@ -108,10 +127,6 @@ function loadTexts (mycommunity) {
 			if (doccount==numdocs) {
 				rootMenu+="]";
 				makeTextMenu(rootMenu);
-				var setWidth = $("#left").width();
-				var wholeWidth=$('body').width()-6;
-				$('#right').width(wholeWidth-setWidth);
-//                           console.log('set width')
 			} else {
 				rootMenu+=",";
 			}
@@ -153,10 +168,7 @@ function loadTexts (mycommunity) {
 							if (doccount==numdocs) {
 								rootMenu+="]";
 								makeDMenu(rootMenu);
-								 var setWidth = $("#left").width();
-								 var wholeWidth=$('body').width()-6;
-								  $('#right').width(wholeWidth-setWidth);
-								} else {rootMenu+=",";}
+							} else {rootMenu+=",";}
 							});
 					});
 				}
@@ -178,11 +190,8 @@ function loadTexts (mycommunity) {
 							if (entcount==numents) {
 								rootMenu+="]";
 								makeEntMenu(rootMenu);
-								 var setWidth = $("#left").width();
-								 var wholeWidth=$('body').width()-6;
-								  $('#right').width(wholeWidth-setWidth);
-								} else {rootMenu+=",";}
-							});
+							} else {rootMenu+=",";}
+						});
 					});
 				}
 			});
@@ -362,17 +371,18 @@ function setEditorButtons(user) {
 		//visitor
 		$('.btn.submit, .btn.commit, .btn.save').hide();
 	} else {
+		var isLeader=0;
 		$.getJSON(url+'memberships/?page_size=0&format=json', function (userlist) {
 		    //check for leadership first -- trumps transcription!
 			$.each(userlist, function(i, thisuser) {
 				if (thisuser.user==curUser.id && thisuser.community==communityID && (thisuser.role==1 || thisuser.role==2)) {
 					//leader or coleader: hide submit button
 						$('.btn.submit').hide();
-						return;
+						isLeader=1
 				}
 				//not found as leader; check as transcriber..
-				if (i==userlist.length) {
-					$.each(userlist, function(i, thisuser) {
+				if (i==userlist.length-1 && !isLeader) {
+					$.each(userlist, function(j, thisuser) {
 						if (thisuser.user==curUser.id && thisuser.community==communityID && (thisuser.role==4 || thisuser.role==3)) {
 							//transcriber
 								$('.btn.commit').hide();
@@ -383,6 +393,102 @@ function setEditorButtons(user) {
 			});
 		});	
 	}
+}
+
+function adjustTextSpace() {
+	$("#transcriptHeader").width($("#transcriptheader").parent().parent().width());
+	setTranscriptHeight();
+	if (editor) {
+		editor.setSize($("#transcripttext").parent().parent().width()-5, getTranscriptHeight());
+		if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+		editor.refresh();
+	}	else {
+		$('#mergely-resizer').height(getTranscriptHeight());
+		$('#mergely-resizer').width($("#transcripttext").parent().width());
+		$('#compare').mergely('resize');
+	}
+}
+
+
+function heightRightWindows(which, value) {
+ 	if ($('#splitright').attr('name')=="ishorizontal") {
+ 	 	if (which==0) { //take it out of image window till we hit minheight...
+ 			var imageHeight=$('#topright').height();
+ 			if (imageHeight-value>=minframeheight) {
+ 				$('#topright').height(imageHeight-value);
+ 				$( "#topright" ).resizable( "option", "maxHeight", $(window).height()-minframeimageheight-50);
+ 			} else {
+ 				if (imageHeight!=minframeheight) {
+ 					value=value-(imageHeight-minframeheight);
+ 					$('#topright').height(minframeheight);
+ 				}
+ 				if ($('#lowerright').height()-value<minframeheight) $('#lowerright').height(minframeheight);
+ 				else $('#lowerright').height($('#lowerright').height()-value);
+ 				$( "#topright" ).resizable( "option", "maxHeight", $(window).height()-minframeimageheight-50);
+ 				adjustTextSpace();
+ 			}
+ 		} else {
+ 			$('#topright').height($('#topright').height()+(value/2));
+  			$('#lowerright').height($('#lowerright').height()+(value/2));
+ 			$( "#topright" ).resizable( "option", "maxHeight", $(window).height()-minframeimageheight-50);
+  			adjustTextSpace();
+		}
+	}
+} 
+
+
+function widthRightWindows(which, value) {
+ //which: 0 make it narrow, 1 wider, how much: 
+ 	if ($('#splitright').attr('name')=="ishorizontal") {
+ 		if (which==0) { //contracting, take it all out of the image window, until we hit minimum width
+ 			var imageWidth=$('#topright').width();
+ 			if ($('#left').is(":visible")) {
+				if (imageWidth-value>minframewidth) {
+					$('#right').width($('#right').width()-value-4);
+					$('#topright').width(imageWidth-value-4); //case 1: just contract both windows
+					$('#lowerright').width(imageWidth-value-4); //reset editor width too
+					$( "#right" ).css("left", $('#left').width() +8+'px');
+	//				$( "#left" ).resizable( "option", "maxWidth", $(window).width()-(minframewidth*2)-36);
+				} else { //brought window size to minimum
+					$('#right').width(minframewidth+4);
+					$('#topright').width(minframewidth); //case 1: just contract both windows
+					$('#lowerright').width(minframewidth); //reset editor width too
+					$( "#right" ).css("left", $('#left').width() +8+'px');
+				}
+ 			} else {
+ 				if (imageWidth-value>minwidth) {
+					$('#right').width($('#right').width()-value-4);
+					$('#topright').width(imageWidth-value-4); //case 1: just contract both windows
+					$('#lowerright').width(imageWidth-value-4); //reset editor width too
+	//				$( "#left" ).resizable( "option", "maxWidth", $('#right').width()-(minframewidth*2)-36);
+				} else { //brought window size to minimum
+					$('#right').width(minwidth+4);
+					$('#topright').width(minwidth); //case 1: just contract both windows
+					$('#lowerright').width(minwidth); //reset editor width too
+				}
+ 			}
+ 		} else { //grow the windows
+ 				var imageWidth=$('#topright').width();
+ 				if ($('#left').is(":visible")) { 
+ 			 		$('#right').width(imageWidth+value);
+ 					$('#topright').width(imageWidth+value-8); //case 1: just contract both windows
+ 					$('#lowerright').width(imageWidth+value-8); //reset editor width too
+ 					$( "#right" ).css("left", $('#left').width() +8+'px');
+ 	//				$( "#left" ).resizable( "option", "maxWidth", $(window).width()-(minframewidth*2)-36);
+ 				} else {
+ 					$('#right').width(imageWidth+value+6);
+ 					$('#topright').width(imageWidth+value-2); //case 1: just contract both windows
+ 					$('#lowerright').width(imageWidth+value-2); //reset editor width too
+ 					$( "#openpanel" ).css("position", 'absolute');
+ 					$("#openpanel" ).css("left", 4+'px');
+ 	//				$( "#right" ).css("position", 'absolute');
+					$( "#right" ).css("top", '2px');
+					$( "#right" ).css("left", '2px');
+ 				}
+  		}
+ 	}
+ 	//adjust min widths of resizables
+ 	adjustTextSpace();
 }
 
 function doSelectPrevious (which) {	
@@ -552,7 +658,6 @@ function doPrevLazyRead (node, editpage) {
 	 	});
 }
 
-	
 function makeDMenu(rootMenu) {
 	$("#tree").dynatree({
       children: eval(rootMenu),
@@ -567,7 +672,7 @@ function makeDMenu(rootMenu) {
      });
     var containerheight=$(window).height();
      if (containerheight<minheight) containerheight=minheight;
-     $( ".dynatree-container").height(containerheight-34);
+     $( ".dynatree-container").height(containerheight-96);
      //now
        initTextDtree(docName, pageName);
 }
@@ -670,7 +775,7 @@ function makeEntMenu(rootMenu) {
      });
     var containerheight=$(window).height();
      if (containerheight<minheight) containerheight=minheight;
-     $( ".dynatree-container").height(containerheight-100);
+     $( ".dynatree-container").height(containerheight-80);
 }
 
 function loadTCDocumentText (doctext, pagekey) {
@@ -694,16 +799,18 @@ function loadTCDocumentText (doctext, pagekey) {
 			$('#tabs').tabs('select', 0);
 		} else {
 			//could be in mergely...
+	//		$( "#transcripttext").height($("#transcripttext").parent().parent().height()-52);
 			if (!editor) {
 				if ($('#mergely-resizer').length>0) $('#mergely-resizer').remove();
 				$('#transcripttext').html('<textarea id="code"></textarea>');
+				$( "#transcripttext").height($("#lowerright").height()-$("#transcriptHeader").height()-$("#transcriptcontrols").height());
 				editor = CodeMirror.fromTextArea(document.getElementById("code"), {lineWrapping: true, lineNumbers: true});
 				if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
-				editor.setSize($(window).width()-$('#left').width(), $("#transcripttext").parent().parent().height()-49);
+				editor.setSize($(window).width()-$('#left').width(), $("#transcripttext").height());
 				editor.refresh();
 			}
 			editor.setValue(doctext);
-			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
+			adjustTextSpace();
 			editor.refresh();
 		}	
 		pnode.activate();
@@ -773,53 +880,91 @@ function initPrevDtree() {
 	});
 }
 
+function changeSplitVert(change) {
+		var changeleft=Math.ceil(change/2);
+		var changeright=Math.floor(change-changeleft);
+		var oldtr=$('#topright').width();
+		var oldlr=$('#lowerright').width();
+		if (oldtr+changeleft<=minframewidth) {
+			var oldtrc=minframewidth-oldtr;
+			changeright+=(changeleft-oldtrc);
+			changeleft=oldtrc;
+		} 
+		if (oldlr+changeright<=minframewidth) {
+			var oldlrc=minframewidth-oldlr;
+			changeleft+=(changeright-oldlrc);
+			changeright=oldlrc;
+		}
+		//maths has to be: if tr+lr is less than 6px less than right, won't float!
+		while ($('#right').width()<$('#topright').width()+changeleft+$('#lowerright').width()+changeright+24) {
+			if ($('#topright').width()+changeleft>=minframewidth+0.5) changeleft-=0.5;
+			if ($('#lowerright').width()+changeright>=minframewidth+0.5) changeright-=0.5;
+		}
+		//final adjustment: to keep right edge exactly where we want it
+		var rightWidth=$('#right').width();
+		var adjust=rightWidth-oldtr-oldlr-changeleft-changeright-16;
+		if (changeleft>changeright) changeleft+=adjust; else changeright+=adjust;
+		$('#topright').width($('#topright').width()+changeleft);
+		$('#lowerright').width($('#lowerright').width()+changeright);
+}
+             
 function hideTOC(){
 	var leftWidth=$('#left').width();
 	$('#left').hide();
-	var wholeWidth=$('body').width()-6;
+	var wholeWidth=$(window).width()-6;
+	if (wholeWidth<minwidth) wholeWidth=minwidth;
 	$('#right').width(wholeWidth);
 	$('#openpanel').show();
-	$( "#right" ).css("left", '0px');
-	$( "#right" ).css("position", 'relative');
-	$( "#right" ).css("top", '-19px');
-	$( "#right" ).css( "maxWidth",wholeWidth);
+	$( "#right" ).css("left", '2px');
+	$( "#right" ).css("top", '2px');
+//	$( "#right" ).css( "maxWidth",wholeWidth);
 	$( "#right" ).css( "float", "left");
-	if ($('#splitright').attr('name')=="ishorizontal") {
-		$( "#topright" ).width(wholeWidth-12);
+	if ($('#splitright').attr('name')=="isvertical") {
+//	 	$( "#topright").css( "top", '-45px');
+//		$( "#lowerright").css( "top", '-45px');
+		$( "#topright" ).resizable( "option", "maxWidth", $(window).width()-(minframewidth)-18);
+		changeSplitVert(leftWidth);
 	} else {
-		$( "#topright" ).width($( "#topright" ).width()+leftWidth/2);
-		$( "#lowerright" ).width($( "#lowerright" ).width()+leftWidth/2);
-//		$('#image').width($("#image").parent().width()-8);
+		$( "#topright" ).width(wholeWidth-8);
+		$( "#lowerright" ).width(wholeWidth-8);
 	}
-	$("#transcripttext").width($("#transcripttext").parent().parent().width());
-	if (editor) editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
-	else {
-			$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
-			$('#mergely-resizer').width($("#transcripttext").parent().width());
-			$('#compare').mergely('resize');
-		}
+	adjustTextSpace();
+	$.cookie("tocvisible", 0, { expires: 365 });
 }
 
 var imageLoaded=0;
 function loadTCDocIdText(pageid, pagekey) {
     if (!imageLoaded) {
-        var imagecall='<script type="text/javascript">'
-            + 'var $imageMap = $(".image_map");'
-            + 'var options = {zoom: 2 , minZoom: 1, maxZoom: 5};'
-            + 'imageMap = new ImageMap($imageMap[0], '
-            +   '"http://textualcommunities.usask.ca/api/docs/'
-            +   pageid +'/has_image/", options);<' + '/script>';
-            $('#docimage').html(imagecall);
-            imageLoaded=1;
-    }
+    	//if no image don't try and load it!
+    	$.ajax({
+			type: 'HEAD',
+			url: url+'docs/'+pageid+'/has_image/',
+			success: function() {
+					// page exists
+				var imagecall='<script type="text/javascript">'
+					+ 'var $imageMap = $(".image_map");'
+					+ 'var options = {zoom: 2 , minZoom: 1, maxZoom: 5};'
+					+ 'imageMap = new ImageMap($imageMap[0], '
+					+   '"http://textualcommunities.usask.ca/api/docs/'
+					+   pageid +'/has_image/", options);<' + '/script>';
+				$('#docimage').html(imagecall);
+				imageLoaded=1;
+			},
+			error: function() {
+				$('#docimage').html("<div style='position: absolute; top: 50%; left: 48%; transform: translateX(-50%) translateY(-48%);'>No image of this page</div>");
+			}
+		});
+ 	}	
     if (curUser) {
-        var $buttons = $('.btn.commit, .btn.publish, .btn.save, .btn.new');
-        $buttons.prop('disabled', true);
+        var $buttons = $('.btn.commit, .btn.submit, .btn.save');
+       	setEditorButtons(curUser)
         $.getJSON(
             url + 'users/' + curUser.id + '/can_edit/' + pageid + '/', 
             function(data) {
                 if (data.editable) {
                     $buttons.prop('disabled', false);
+                } else {
+                	$buttons.prop('disabled', true);
                 }
             }
         );
@@ -827,51 +972,43 @@ function loadTCDocIdText(pageid, pagekey) {
     //this version for getting the current revision:
     //test: is there a revision? if so... show it
     //set up menus for showing revisions, etc
-    $.getJSON(url+'docs/'+pageid+'/?format=json',function(thetext) {
-        if (thetext.cur_rev) {
-            currentTranscript=thetext.cur_rev; //but what exactly is cur_rev???
-            //if we have several versions -- call up the revision system
-            //first, test how many revisions we have
-            $.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
-                if (versions.length==1) {
-                    $.getJSON(url+'docs/'+pageid+'/cur_revision/?page_size=0&format=json',function(thetext){
-                        $.getJSON(url+'users/'+thetext.user+'/?page_size=0&format=json',function(user) {
-                            $('#transcriptinf').html('Only one edited version ('+thetext.create_date+', '+user.first_name+' '+user.last_name+').  <a href="javascript:compareToDb('+pageid+', '+thetext.id+')">Compare to database.</a>');
-                            loadTCDocumentText(thetext.text, pagekey);
-                            createTranscriptMenus(pageid, thetext.id, -1).done(function (menus) {
-                                    $('#revinf1').html(menus.left);
-                                    $('#revinf2').html(menus.right);
-                            });
-                            imageLoaded=0;
-                        });
-                    });
-                } else {
-                    //we have more than one revision -- prepare compare view
-                    //$.getJSON(url+'docs/'+pageid+'/cur_revision/?format=json',function(thetext){
-                    $('#transcriptinf').html('Several versions.  Compare with each other, and the database.');
-                    loadTCDocumentText(versions[0].text, pagekey);
-                    createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
-                        $('#revinf1').html(menus.left);
-                        $('#revinf2').html(menus.right);
-                    });
-                    imageLoaded=0;
-                    //	});
-                }
-            });
-        } else {
-            $.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+    //not at all sure what cur_rev does. rewrite ignoring for now...
+    //instead: check if has_revisions has content; else just load the db
+    $.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json',function(thetext) {
+		if (thetext.length==0) {
+			$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
                 $.getJSON(url+'texts/'+hastextin.id+'/xml',function(thetext){
                         $('#transcriptinf').html('No edited versions: as loaded in database');
                         loadTCDocumentText(thetext, pagekey);
                         createTranscriptMenus(pageid, 0, -1).done(function (menus) {
                                         $('#revinf1').html(menus.left);
                                         $('#revinf2').html(menus.right);
+                                        setTranscriptHeight();
                         });
                         imageLoaded=0;		
                 });
             });
-        }
-    });
+		} else {
+         //   currentTranscript=thetext.cur_rev; //but what exactly is cur_rev???
+            //if we have several versions -- call up the revision system
+            //first, test how many revisions we have; put the latest one in the window
+                    $('#transcriptinf').html('Several versions.  Compare with each other, and the database.');
+                    loadTCDocumentText(thetext[0].text, pagekey);
+                    createTranscriptMenus(pageid, thetext[0].id, -1).done(function (menus) {
+                        $('#revinf1').html(menus.left);
+                        $('#revinf2').html(menus.right);
+                        setTranscriptHeight();
+                    });
+                    imageLoaded=0;
+          }
+     });
+     //write the cookies! so we can go there again...
+     $.getJSON(url + 'docs/' + pageid + '/', function(pageinf) {
+     	$.cookie('pageName', pageinf.name, { expires: 365 });
+     	$.getJSON(url + 'docs/' + pageid + '/parent/', function(parent) {
+     	 	$.cookie('docName', parent.name, { expires: 365 });
+     	});
+     });
 }
 
 function setupMergely(text1, text2) {
@@ -1004,6 +1141,12 @@ function createTranscriptMenus (pageid, left, right) {
     });
 }
 
+function getTranscriptHeight() {
+	return ($("#lowerright").height()-$("#transcriptHeader").height()-$("#transcriptcontrols").height()-5);
+} 
+function setTranscriptHeight() {
+	$( "#transcripttext").height(getTranscriptHeight());
+}
 //1: not comparing; 2: left compare; 3: right compare
 function SaveTranscript(which) {
 	if (which==1) {
@@ -1019,6 +1162,7 @@ function SaveTranscript(which) {
 						createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
 							$('#revinf1').html(menus.left);
 							$('#revinf2').html(menus.right);
+							setTranscriptHeight();
 					});
 				});
 			}).fail(function(xhr){
@@ -1036,6 +1180,7 @@ function SaveTranscript(which) {
 						createTranscriptMenus(pageid, versions[0].id, $('#tcntSaveRight').attr('data-version')).done(function (menus) {
 							$('#revinf1').html(menus.left);
 							$('#revinf2').html(menus.right);
+							setTranscriptHeight();
 					});
 				});
 			});fail(function(xhr){
@@ -1052,6 +1197,7 @@ function SaveTranscript(which) {
 						createTranscriptMenus(pageid, $('#tcntSaveLeft').attr('data-version'), versions[0].id).done(function (menus) {
 							$('#revinf1').html(menus.left);
 							$('#revinf2').html(menus.right);
+							setTranscriptHeight();
 					});
 				});
 			});fail(function(xhr){
@@ -1060,7 +1206,13 @@ function SaveTranscript(which) {
 	}
 }
 
+function SubmitTranscript () {
+	alert("Not yet implemented. Coming very soon!");
+	return;
+}
 function commitTranscript () {
+	alert("Not yet implemented. Coming very soon!");
+	return;
 	validateTranscript ().done (function (results) {
 		if (!results.success) return;
 		if (results.errorMessage!='') {
@@ -1090,8 +1242,10 @@ function commitTranscript () {
 function validateTranscript () {
 	//fix needed... if starts <text><front ... append dummy body; or prepend dummy body if it starts <text><back
 	var myxml=editor.getValue();
+	myxml=myxml.replace('</front></text>', '</front><body><p></p></body></text>');
+	myxml=myxml.replace('<text><back>', '<text><body><p></p></body><back>');
 	return $.post(url+'communities/'+communityID+'/xmlvalidate/', {
-		xml: editor.getValue()
+		xml: myxml
 	}).success(function(xhr){
 		//carry on silently
 		xhr.success=true;
@@ -1103,7 +1257,6 @@ function validateTranscript () {
 		alert(xhr.responseText);
 		xhr.success=false;
 	}); 
-
 }
 
 function PreviewTranscript () {
@@ -1170,6 +1323,37 @@ function doPreview(errorMessage, title) {
 	});
 }
 
+//forced to be brutal as different browsers interpret spaces, margins, etc, all a bit differently
+function placeTopRight(rightHeight) {
+	var topTR = $("#topright").offset().top;
+	var currtop=parseInt($("#topright").css('top'),10);
+	var moveTR=6-topTR+currtop;
+	$( "#topright" ).css("top", moveTR+'px');
+	if ($("#splitright").attr("name")=="isvertical" )
+		$( "#topright" ).height(rightHeight-6);
+	else 
+		$( "#topright" ).height(rightHeight/2-8);
+}
+
+
+function placeLowerRight(rightHeight) {
+	var topLR = $("#lowerright").offset().top;
+	if ($("#splitright").attr("name")=="isvertical" ) {
+		var currtop=parseInt($("#lowerright").css('top'),10);
+		var movebTR = 6-topLR+currtop;
+		var lrHeight= rightHeight-9;
+	} else {
+		var currtop=parseInt($("#lowerright").css('top'),10);
+		var bottomTR = $("#topright").offset().top + $("#topright").height();
+		//calculate relative position to move
+		var movebTR = 5+bottomTR-topLR+currtop;
+		var lrHeight=rightHeight-topLR-movebTR-2+currtop;
+	}
+	$( "#lowerright" ).css("top", movebTR+'px');
+	//height of lowerright: leave margin at base
+	$( "#lowerright" ).height(lrHeight);
+}
+    
 function makePreview(jslink, p4, errorMessage, csslink, title) {
 	if (errorMessage=="") {
 		p4=p4.replace(/<row/g, "<tr");
@@ -1239,6 +1423,7 @@ function compareToDb(pageid, versionid) {
 									$('#revinf1').html(menus.left);
 									$('#revinf2').html(menus.right);
 									setupMergely(dbtext, mytext);
+									adjustTextSpace();
 								});
 							}
 						});
@@ -1402,9 +1587,7 @@ function loadTranscripts(pageid, leftPage, rightPage) {
 			$('#mergely-resizer').remove();
 			$('#transcripttext').html('<textarea id="code"></textarea>');
 			editor = CodeMirror.fromTextArea(document.getElementById("code"), {lineWrapping: true, lineNumbers: true});
-			editor.setSize($(window).width()-$('#left').width(), $("#transcripttext").parent().parent().height()-49);
-			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
-			editor.refresh();
+			adjustTextSpace();
 		}
 		if (leftPage==0) {
 			//get db
@@ -1427,6 +1610,7 @@ function loadTranscripts(pageid, leftPage, rightPage) {
 						$.each(versions, function(i, thisrevision) {
 							if (thisrevision.id==rightPage) {
 								setupMergely(dbtext, thisrevision.text);
+								adjustTextSpace();
 							}
 						});
 					});
@@ -1442,6 +1626,7 @@ function loadTranscripts(pageid, leftPage, rightPage) {
 							$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
 								$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext) {
 									setupMergely(thisrevision.text, dbtext);
+									adjustTextSpace();
 								});
 							});
 						} else {
@@ -1449,6 +1634,7 @@ function loadTranscripts(pageid, leftPage, rightPage) {
 								$.each(versions2, function(i, thisrevision2) {
 									if (thisrevision2.id==rightPage) {
 										setupMergely(thisrevision.text, thisrevision2.text);
+										adjustTextSpace();
 									}	
 								});
 							});
@@ -1461,54 +1647,40 @@ function loadTranscripts(pageid, leftPage, rightPage) {
 	createTranscriptMenus(pageid, leftPage, rightPage).done(function (menus) {
 			$('#revinf1').html(menus.left);
 			$('#revinf2').html(menus.right);
+			setTranscriptHeight();
 	});
 }
 
 
 //topright: becomes left, lowerright goes to the right
 
-var saveWinSpecs = {};
 function splitvertical () {
  	if ($('#splitright').attr('name')=="ishorizontal") {
  		$("#splitright").attr("name", "isvertical" );
 		$('#split').attr('src', 'splithoriz.png');
  		$('#split').attr('title', 'Image and text above and below');
- 		saveWinSpecs.toprightheight=$("#topright").height();
- 		saveWinSpecs.lowerrightheight=$("#lowerright").height();		
-		var wholeWidth=$("#right").width();
-		$("#topright").width(wholeWidth/2 -8);
-		$("#lowerright").width(wholeWidth/2 - 10);
+ 		var bodyWidth=$(window).width();
+ 		if ($('#left').is(':visible')) {
+			var leftWidth = $("#left").width();
+			var rightWidth=bodyWidth-leftWidth-12;
+		}  else {
+			var leftWidth = 0;
+ 			var rightWidth=bodyWidth-leftWidth-6;
+ 		}
 		var rightheight=$('#right').height();
-		$("#right").css({'height': rightheight});
-		$("#topright").css({'height': rightheight-10});
+		$("#right").width(rightWidth);
+		$("#topright").width(rightWidth/2-8);
+		$("#lowerright").width(rightWidth/2-8);
+		$("#topright").height(rightheight-9);
 		$("#topright").css({'float':'left'});
-		$("#topright").css({'margin-right':'0px'});
-//		$('#image').height(rightheight-20);
-		$("#lowerright").css({'margin-right':'0px'});
 		$("#lowerright").css({'float':'left'});
-		$("#lowerright").css({'height': rightheight-10});
-		$( "#transcripttext").width($("#transcripttext").parent().width());
-		$( "#transcript").height($("#transcript").parent().height());
-		$( "#transcripttext").height($("#transcripttext").parent().height()-84);
-		$( "#topright" ).css("top", '-54px');
-		$( "#topright" ).css("maxHeight", '');
-		$( "#lowerright" ).css("top", '-54px');
-		$( "#transcript").css("position", "relative");
-		$( "#transcript").css("top", "12px");
-	//		$('#image').width($("#topright").width()-8);
-		if (editor)  {
-			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-49);
-			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
-			editor.refresh();
-		}
-		else {
-			$('#mergely-resizer').height($("#transcripttext").parent().height()-49);
-			$('#mergely-resizer').width($("#transcripttext").parent().width());
-			$('#compare').mergely('resize');
-		}
+		placeLowerRight(rightheight);
+		adjustTextSpace();
 		$( "#topright" ).resizable( "destroy" );
 		$( "#topright").resizable({   
 			handles: 'e', 
+			maxWidth: bodyWidth-leftWidth-minframewidth-36,
+			minWidth: minframewidth,
 			resize: function(event, ui) {
 			ui.size.height = ui.originalSize.height;
 			}
@@ -1516,113 +1688,88 @@ function splitvertical () {
 		 $("#topright").off("resize", "");
 		 $("#topright").on("resize", function (event, ui) {
 			if ($('#left').is(':visible'))
-				var setWidth = $("#left").width();
-			else var setWidth = 0;
-			var wholeWidth=$('body').width()-6;
-			var leftWidth = $("#topright").width();
-			$('#lowerright').width(wholeWidth-setWidth - leftWidth -20);
-			$( "#transcripttext").width($("#transcripttext").parent().width()-5);
-			$( "#transcripttext").height($("#transcripttext").parent().height()-67);
-			$('#docimage').css( "minWidth", '200px');
-			$( "#topright").css( "minWidth", '200px');
-	//		$( "#topright").css("maxWidth", (wholeWidth-setWidth-230)+'px');
-			$( "#lowerright" ).css( "minWidth",'200px');
-	//		$( "#lowerright" ).css( "maxWidth", (wholeWidth-setWidth-220)+'px');
-	//		$('#image').width($('#image').parent().width());
-	//		$('#docimage').width($('#docimage').parent().parent().width());
-	});
+				var leftWidth = $("#left").width();
+			else var leftWidth = 0;
+			var rightWidth=$("#right").width();
+			var bodyWidth=$(window).width();
+			var imageWidth=ui.size.width;
+			var transcriptWidth=rightWidth-imageWidth-16;
+			if (transcriptWidth<minframewidth) {
+				transcriptWidth=minframewidth;
+				changeSplitVert(0);
+			}
+			if (imageWidth<minframewidth) {
+				imageWidth=minframewidth;
+				changeSplitVert(0);
+			}
+			$("#topright").width(imageWidth);
+			$("#lowerright").width(transcriptWidth);
+			adjustTextSpace();
+			changeSplitVert(0)
+			$('#docimage').css( "minWidth", '300px');
+			$( "#topright").css( "minWidth", '300px');
+			$( "#lowerright" ).css( "minWidth",'300px');
+		});
+		$.cookie("ishorizontal", "isvertical", { expires: 365 });
 	} else {
 		$("#splitright").attr("name", "ishorizontal" );
 		$('#split').attr('src', 'splitvert.png');
  		$('#split').attr('title', 'Image and text side by side');
- 		var proportion=(saveWinSpecs.toprightheight+saveWinSpecs.lowerrightheight)/$('#right').height();
-		var infdivheight=$("#info").height()+26;
-		saveWinSpecs.toprightwidth=$("#topright").width();
- 		saveWinSpecs.lowerrightwidth=$("#lowerright").width();		
- 		$("#topright").height(proportion*saveWinSpecs.toprightheight);
- 		$( "#topright" ).css("top", '-'+infdivheight+'px');
- 		$("#topright").width($("#right").width()-12);
- 		$("#lowerright").width($("#right").width()-12);
-		$("#lowerright").height(proportion*saveWinSpecs.lowerrightheight+20);
+		var infdivheight=$("#info").height();
+		var rightHeight=$("#right").height();
+		placeTopRight(rightHeight);
+ 		$("#topright").width($("#right").width()-8);
+ 		$("#lowerright").width($("#right").width()-8);
 		$( "#transcripttext").width($("#transcripttext").parent().width());
- //		$('#image').height($('#image').parent().height());
- //		$('#image').width($('#image').parent().width());
- //		$('#docimage').height($('#docimage').parent().parent().height());
-//		$('#docimage').width($('#docimage').parent().parent().width());
-		$("#topright").css({'float':''});
- 		$("#lowerright").css({'float':''});
- 		$( "#lowerright" ).css("top", '-'+infdivheight+'px');
- 		$( "#transcript").css("top", "");
- 		$( "#transcripttext").height($("#transcripttext").parent().height()-62);
- 		if (editor)
-			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-44);
-		else {
-			$('#mergely-resizer').height($("#transcripttext").parent().height()-44);
-			$('#mergely-resizer').width($("#transcripttext").parent().width());
-			$('#compare').mergely('resize');
-		}
+		$("#topright").css({'float':'none'});
+ 		$("#lowerright").css({'float':'none'});
+		placeLowerRight(rightHeight);
+		adjustTextSpace();
 		$("#topright").resizable( "destroy");
 		$("#topright").resizable({   
 			handles: 's', 
+			minHeight:minframeimageheight,
+    		maxHeight:$(window).height()-minframetextheight-7,
 			resize: function(event, ui) {
 			ui.size.height = ui.originalSize.height;
 			}
 		 });
 		 $("#topright").off("resize", "");
 		 $("#topright").on("resize", function (event, ui) {
-			if ($('#left').is(':visible'))
-				var setWidth = $("#left").width();
-			else var setWidth = 0;
-			var wholeWidth=$('body').width()-6;
 			var topHeight = ui.size.height;
-			var wholeHeight=$("#right").height()-6;
-	//		var imageDivHeight=$('#docimage').parent().parent().height();
-	//		$('#docimage').height(imageDivHeight);
 			$('#topright').height(topHeight);
-			$('#lowerright').height(wholeHeight-topHeight - 14);
-			$('#transcript').height(wholeHeight-topHeight- 16);
-			$( "#transcripttext").height($("#transcripttext").parent().parent().height()-62);
-			if (editor)
-				editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
-			else {
-				$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
-				$('#mergely-resizer').width($("#transcripttext").parent().width());
-				$('#compare').mergely('resize');
-			}
-		   	$('#topright').width(wholeWidth-setWidth-12);
-			$( "#topright").css( "minHeight", '200px');
-			$( "#topright").css("maxHeight", (wholeHeight-213)+'px');
-			$( "#lowerright" ).css( "minHeight",'200px');
+			placeLowerRight($(window).height()-8);
+			adjustTextSpace();
 		});
+		$.cookie("ishorizontal", "ishorizontal", { expires: 365 });
 	}
+	if (imageMap) {
         var map = imageMap.map;
         google.maps.event.trigger(map, 'resize');
         map.setZoom(map.getZoom());
+    }
 }
 
 function showTOC(){
-	var wholeWidth=$('body').width()-6;
+	var wholeWidth=$(window).width()-10;
 	$('#left').show();
 	var leftwidth=$('#left').width();
 	$('#openpanel').hide();
-	$('#right').width(wholeWidth-leftwidth - 6);
-	$( "#right" ).css("left", '0px');
-	$( "#right" ).css("top", '0px');
+	var newWidth=wholeWidth-leftwidth-4;
+	var change=newWidth-$('#right').width();
+	$('#right').width(newWidth);
+	$( "#right" ).css("left", leftwidth+10+'px');
+	$( "#right" ).css("top", '2px');
 	$( "#closepanel" ).css("left", (leftwidth - 18)+'px');
 	if ($('#splitright').attr('name')=="ishorizontal") {
-		$( "#topright" ).width(wholeWidth-leftwidth - 18);
+		$( "#topright" ).width(wholeWidth-12-leftwidth);
+		$( "#lowerright" ).width(wholeWidth-12-leftwidth);
 	} else {
-		$( "#topright" ).width($( "#topright" ).width()-leftwidth/2 - 3);
-		$( "#lowerright" ).width($( "#lowerright" ).width()-leftwidth/2 - 3);
-//		$('#image').width($("#image").parent().width()-8);
+		//might take either frame below minimum when we restore the size
+        changeSplitVert(change);
 	}
-	$( "#transcripttext").width($("#transcripttext").parent().width()-5);
-	if (editor) editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
-	else {
-			$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
-			$('#mergely-resizer').width($("#transcripttext").parent().width());
-			$('#compare').mergely('resize');
-		}
+	adjustTextSpace();
+	$.cookie("tocvisible", 1, { expires: 365 })
 }
 
 function togglepageitem() {
@@ -1687,28 +1834,6 @@ function toggleWordWrap() {
 	}
 }
 
-function fliptextimage() {
-	editorstring = editor.getValue();
-	var oldeditor=editor.getWrapperElement();
-	oldeditor.parentNode.removeChild(oldeditor);
-	editor=null;
-	var infdivheight=$("#info").height()+26;
-	var origtop=$('#image').html();
-	var origbelow=$('#transcript').html();
-	var origtopheight=$('#topright').height();
-	var origbelowheight=$('#lowerright').height();
-	$('#image').html(origbelow);
-	$('#transcript').html(origtop);
-	$('#image').height(origbelowheight);
-	$('#transcript').height(origtopheight);
-	$('#topright').height(origbelowheight);
-	$('#lowerright').height(origtopheight);
-	$( "#transcripttext").width($("#transcripttext").parent().width()-5);
-	//have to refresh the editor each time...
-	editor = CodeMirror.fromTextArea(document.getElementById("code"), {lineWrapping: true,  lineNumbers: true});
-	editor.setValue(editorstring);
-	editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-44);
-}
 </script>
 
 </head>
@@ -1732,9 +1857,9 @@ function fliptextimage() {
 				   </div>
 			</div>
 	</div>
-	<div id="right" style="position:relative; z-index:1;">
+	<div id="right" style="position:absolute; z-index:1;">
             <div id="info"><p><span  id="pageinf">
-                        <span id="prevpage"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="docid"></span>; Folio <span id="ptitle"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="nextpage"></span></span><a id="splitright" name="ishorizontal" style="float: right; margin-right:10px" href="javascript:splitvertical()" title="Image and text side by side"><img id="split" src="splitvert.png"></a><!--a style="float: right; margin-right:10px" href="javascript:fliptextimage()" title="Transpose image and transcript"><img id="spin" src="spin.png"></a--></p></div>
+                        <span id="prevpage"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="docid"></span>; Folio <span id="ptitle"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="nextpage"></span></span><a id="splitright" name="ishorizontal" style="float: right; margin-right:10px" href="javascript:splitvertical()" title="Image and text side by side"><img id="split" src="splitvert.png"></a></p></div>
 		<div id="topright">
 			 <div id="image">
 				 <div id="docimage" class="image_map">
@@ -1748,22 +1873,23 @@ function fliptextimage() {
 			    <textarea id="code"></textarea>
 			</div>
 			<div id="transcriptcontrols">
-			    <table width="100%"><tr>
-                                <td class="tcnt" id="tcnt1">
-                                  <button id="tcntSaveLeft" class="btn save" value="0" data-version="0" title="Save left transcript page (not to database)" onclick="javascript:SaveTranscript(2)">Save</button></td>
-                                <td class="tcnt2" id="tcnt2">
-                                    <button id="tcntSave" class="btn save" value="0" title="Save transcript page (not to database)" 
-                                        onclick="javascript:SaveTranscript(1)">Save</button>
-                                    <button id="tcntSave" class="btn submit" value="0" title="Submit transcript page for approval" 
-                                        onclick="javascript:SubmitTranscript(1)">Submit</button>
-                                   <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
-                                    <button class="btn commit" title="Parse and save to database"
-                                        onclick="javascript:commitTranscript()">Commit</button>
-                                    <span id="pww">&nbsp;&nbsp;&nbsp;<span id="wwoffbutton"><a id="wwoffb">Word Wrap Off</a></span><span id="wwonbutton"><a href="javascript:toggleWordWrap()" id="wwonb">Word Wrap On</a></span></span></td>
-                                  <td  class="tcnt" id="tcnt3">
-                                    <button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3)">Save</button>
-                                  </td>
-                            </tr></table>
+			    <table width="100%">
+			    	<tr>
+						<td class="tcnt" id="tcnt1">
+						  <button id="tcntSaveLeft" class="btn save" value="0" data-version="0" title="Save left transcript page (not to database)" onclick="javascript:SaveTranscript(2)">Save</button></td>
+						<td class="tcnt2" id="tcnt2">
+							<button id="tcntSave" class="btn save" value="0" title="Save transcript page (not to database)" 
+								onclick="javascript:SaveTranscript(1)">Save</button>
+							<button id="tcntSave" class="btn submit" value="0" title="Submit transcript page for approval" 
+								onclick="javascript:SubmitTranscript(1)">Submit</button>
+						   <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
+							<button class="btn commit" title="Parse and save to database"
+								onclick="javascript:commitTranscript()">Commit</button>
+							<!-- span id="pww">&nbsp;&nbsp;&nbsp;<span id="wwoffbutton"><a id="wwoffb">Word Wrap Off</a></span><span id="wwonbutton"><a href="javascript:toggleWordWrap()" id="wwonb">Word Wrap On</a></span></span--></td>
+						  <td  class="tcnt" id="tcnt3">
+							<button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3)">Save</button>
+						  </td>
+					</tr></table>
 			</div>
 		    </div>
 		</div>
@@ -1781,146 +1907,163 @@ function fliptextimage() {
 </div>
 <div id="previewdiv" title="Preview"></div>
 <script type="text/javascript">
-    function init() {
+function init() {
  	editor = CodeMirror.fromTextArea(document.getElementById("code"),{lineWrapping: true, lineNumbers: true});
   	var setWidth1 = $("#left").width();
- 	var infdivheight=$("#info").height()+26;
+ 	var infdivheight=$("#info").height();
 	var leftwidth=$('#left').width();
   	var containerheight=$(window).height()-80;
- 	var containerwidth=$(window).width();
- 	if (containerheight<640) containerheight=640;
- 	var toprightheight=containerheight*48/100;
- 	var lowerrightheight=containerheight*48/100;
+ 	containerwidth=$(window).width();
+ 	if (containerheight<minheight-80) containerheight=minheight-80;
+ 	if (containerwidth<minwidth) {
+ 		containerwidth=minwidth; }
+ 	var toprightheight=containerheight/2;
+ 	var lowerrightheight=containerheight/2;
+ 	var transHdHeight=$('#transcriptHeader').height();
+ 	var transContHeight=$('#transcriptcontrols').height();
+ 	$( "#right").width(containerwidth-setWidth1-12);
  	$( "#closepanel").css("left", (setWidth1 - 18)+'px');
-//     $( "#left").height(containerheight-18);
-     $( "#tree").height(containerheight-18);
-     $( "#texttree").height(containerheight-18);
-     $( "#entitytree").height(containerheight-2);
-     $( ".dynatree-container").height(containerheight-200);
-    $( "#left").resizable({ handles: 'e'});
-     $( "#topright" ).css("position", 'relative');
-	$( "#topright" ).css("top", '-'+infdivheight+'px');
+     $( "#left").height(containerheight+73);
+     $( "#left").resizable({ handles: 'e', minWidth:mintocwidth,
+    	maxWidth:300});
+    $( "#topright" ).css("position", 'relative');
+	$( "#topright" ).css("top", "-"+(infdivheight-3)+'px');
 	$( "#docimage").css("top", '-5px');
     $( "#docimage").css("position", 'relative');
- 	$( "#topright" ).height(toprightheight+infdivheight/2+12);
- //  	$( "#image").width($('#topright').width()-14);
-//    $( "#image").height($('#topright').height());
-   $( "#lowerright" ).css("position", 'relative');
-	$( "#lowerright" ).css("top", '-'+infdivheight+'px');
-	$( "#lowerright" ).height(containerheight-toprightheight+18);
-	$( "#right" ).height(containerheight+72);
-	$( "#transcripttext").height($("#transcripttext").parent().height()-60);
-	var rightsize=$("#right").width();
-	editor.setSize(containerwidth-leftwidth, $("#transcripttext").parent().parent().height()-60);
-	if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
-	editor.refresh();
-	 $( "#topright").resizable({   
+ 	$( "#topright" ).height(toprightheight+infdivheight/2+30);
+ 	//got to figure out where top lowerleft, and its height
+	$( "#right" ).height(containerheight+73);
+	$( "#right").css("left", $( "#left").width()+8+'px');
+ 	placeLowerRight(containerheight+73);
+	$( "#topright").resizable({   
     	handles: 's', 
+    	minHeight:minframeimageheight,
+    	maxHeight:containerheight-minframetextheight+80,
     	resize: function(event, ui) {
           ui.size.width = ui.originalSize.width;
 	}
 	 });
     $("#left ").on("resize", function (event, ui) {
             var setWidth = $("#left").width();
-            var wholeWidth=$('body').width()-6;
-            $('#right').width(wholeWidth-setWidth);
-            $('#topright').width(wholeWidth-setWidth-12);
-            $( "#right" ).css( "minWidth", (mintocwidth)+'px');
-            $( "#left" ).css( "minWidth", (mintocwidth)+'px');
+            var wholeWidth=$(window).width()-10;
+			var newWidth=wholeWidth-setWidth;
+			var change=newWidth-$('#right').width();
+            $('#right').width(newWidth);
+            if ($("#splitright").attr("name")=="isvertical") {
+            	changeSplitVert(change);
+            } else {
+           		 $('#topright').width(newWidth-6);
+           		 $('#lowerright').width(newWidth-6);
+           	}
+            $( "#right" ).css( "left", setWidth+8+'px');
             $( "#closepanel" ).css("left", (setWidth - 18)+'px');
         });
-    $("#topright").on("resize", function (event, ui) {
-   		if ($('#left').is(':visible'))
-        	var setWidth = $("#left").width();
-        else var setWidth = 0;
-        var wholeWidth=$('body').width()-6;
+   	 $("#topright").on("resize", function (event, ui) {
+       var wholeWidth=$('body').width()-6;
 		var topHeight = $("#topright").height();
 		var wholeHeight=$("#right").height()-6;
-//		var imageDivHeight=$('#docimage').parent().parent().height();
-//		$('#docimage').height(imageDivHeight);
-		$('#lowerright').height(wholeHeight-topHeight - 14);
-		$('#transcript').height(wholeHeight-topHeight- 16);
-		$( "#transcripttext").height($("#transcripttext").parent().parent().height()-62);
-		if (editor) {
-			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-62);
-			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
-			editor.refresh();
-		}
-		else {
-			if (communityFont) $(".CodeMirror").css({'font-family':communityFont}); 
-			$('#mergely-resizer').height($("#transcripttext").parent().height()-62);
-			$('#mergely-resizer').width($("#transcripttext").parent().width());
-			$('#compare').mergely('resize');
-		}
-       $('#topright').width(wholeWidth-setWidth-12);
- 		$( "#topright").css( "minHeight", '200px');
- 		$( "#topright").css("maxHeight", (wholeHeight-213)+'px');
-		$( "#lowerright" ).css( "minHeight",'200px');
+		$('#lowerright').height(wholeHeight-topHeight - 7);
+		adjustTextSpace();
+ //		$( "#topright").css( "minHeight", '200px');
+//		$( "#lowerright" ).css( "minHeight",'200px');
 	});
 
     $(window).resize(function (event) {
- //      alert("resizing");
- 		var wholeWidth=$('body').width()-6;
+ 		var wholeWidth=$(window).width()-6;
+ 		var wholeHeight=$(window).height()-6;
+ 		if ($('#left').is(":visible"))
+ 			var origleft=$("#left").width();
+ 		else var origleft=0;
+		var origright=$("#right").width();
+		var origheight=$("#right").height();
+		if ($('#left').is(':visible')) {
+			var origwidth=origleft+origright+7;
+		} else {var origwidth=origright+7;}
  		var whichEl =event.target;
  		var topright=$('#topright')[0];
  		if (whichEl==topright) return;
- 		if ($('#splitright').attr('name')=="ishorizontal") {
- 	 		if ($('#left').is(':visible'))  {
- 			//lots of calculating to do... 
- 			var origleft=$("#left").width();
- 			var origright=$("#right").width();
- 			 $('#right').height(wholeheight-24);
- //				 
-// 			$( "#transcripttext").height($("#transcripttext").parent().parent().height()-80);
-// 			editor.setSize($("#transcripttext").parent().parent().width(), $("#transcripttext").parent().parent().height()-80);
- 			//window growing!
- 			if (wholeWidth>=origleft+origright) {
- 				//grow editing panel only
-				 $( "#right" ).css( "maxWidth", '');
- 				 $('#right').width(wholeWidth-origleft);
- 				 $('#topright').width(wholeWidth-origleft-12);
- 				 $( "#topright").css( "maxHeight", "");
- 				 var wholeheight=$(window).height()-6;
- 				 if (wholeheight>minheight) {
- 				 	 $('#left').height(wholeheight-12);
-  				 	 $( ".dynatree-container").height(wholeheight-26);
-	
-				 	 //have to test whether windows are vert or horiz
-					 var toprightheight= $('#topright').height();
-					 var infdivheight=$("#info").height()+12;
-					  $('#lowerright').height(wholeheight-toprightheight-18);
-					  //does the lowerright contain the image div?
-					  if ($('#docimage').parent().attr('id')=='transcript') {
-					  	 $('#docimage').height(wholeheight-toprightheight-infdivheight);
-					  }
- 				 }
- 			} else {
- 				//steal size from left panel until it reaches min-width (100 px)
- 				var subtract = (origleft+origright)-wholeWidth;
- 				if ( (origleft-subtract)< mintocwidth) {
- 					if (origleft>mintocwidth) {
-						subtract=mintocwidth+subtract-origleft;
-						 $('#left').width(mintocwidth);
-						 $( "#closepanel" ).css("left", 82+'px');
-						 $('#right').width(origright-subtract);
-					} else {
-						$('#right').width(origright-subtract );
-					}
- 				} else {
- 					//make left panel smaller
- 					$('#left').width(origleft-subtract);
- 					$( "#closepanel" ).css("left", (origleft-subtract-18)+'px');
- 					$('#right').width(origright+subtract);
- 				}
- 			}
- 		} else {
- 			$( "#right" ).css( "maxWidth", '');
- 			$('#right').width($('body').width()-6);
- 		}
-	}
-        if ($('#showcollation').is(':visible')) {
-          $('#showcollation').height($('#right').height());
-          $('#showcollation')[0].contentWindow.postMessage($('#right').width());
+		if ($('#splitright').attr('name')=="ishorizontal") {
+			//lots of calculating to do... 
+			if (wholeWidth>=origleft+origright) { //window growing horizontally
+					widthRightWindows(1, wholeWidth-origleft-origright);
+			} else if (wholeWidth<origleft+origright) {  //window shrinking horizontally!
+				if (wholeWidth<minwidth) {
+					if ($("left").width()+$("right").width() !=minwidth) $("right").width(minwidth-origleft);
+					return;
+				}
+				//steal size from left panel until it reaches min-width (200 px)
+				var subtract = (origleft+origright)-wholeWidth;
+				if (origleft>0) {
+					//cases: 1. subtract by so little as to be able to do this just by contracting the left window
+					if (subtract<=origleft - mintocwidth) {
+						$('#left').width(origleft-subtract);
+						$( "#closepanel" ).css("left", origleft-subtract-18+'px');
+					}  else if ( (origleft-subtract)< mintocwidth) { //case 2. we are going down to minwidth. can't make it smaller
+						if (origleft>mintocwidth) {  //got a bit to subtract!
+							subtract=mintocwidth+subtract-origleft;
+							 $('#left').width(mintocwidth);
+							 $( "#closepanel" ).css("left", mintocwidth-18+'px');
+							 widthRightWindows(0, subtract); //take the rest out of the right window
+						} else { // case 3. we are already at minwidth.  just make the windows narrower
+							 widthRightWindows(0, subtract);
+						}
+					} 
+				} else {
+					widthRightWindows(0, subtract);
+				}
+			}
+		   if (wholeHeight<=origheight)  {//window shrinking vertically, to minimum height and no more
+				var subtract=origheight-wholeHeight;
+				if (origheight-subtract<minheight) {
+					subtract=origheight-minheight; }
+				if (subtract>0) {
+					heightRightWindows(0, subtract);
+					$('#left').height(origheight-subtract);
+					$( ".dynatree-container").height(origheight-subtract-86);
+					$('#right').height(origheight-subtract);
+				}
+		   }
+		   if (wholeHeight>origheight)  {//window growing vertically
+				var incr=wholeHeight-origheight;
+				heightRightWindows(1, incr);
+				$('#left').height(origheight+incr);
+				$( ".dynatree-container").height(origheight+incr-86);
+				$('#right').height(origheight+incr);
+		   }
+		} else { //window is vertically split
+			if (wholeHeight>=origheight) { //window growing vertically 
+				//do nothing if window is smaller than minheight
+				var incr=wholeHeight-origheight;
+				$('#left').height($('#left').height()+incr);
+				$('#right').height($('#right').height()+incr);
+				$('#topright').height($('#topright').height()+incr);
+				$('#lowerright').height($('#lowerright').height()+incr);
+				$( ".dynatree-container").height(origheight+incr-86);
+			}  
+			if (wholeHeight<origheight && wholeHeight>minheight) { //window shrinking vertically 
+				var incr=origheight-wholeHeight;
+				$('#left').height($('#left').height()-incr);
+				$('#right').height($('#right').height()-incr);
+				$('#topright').height($('#topright').height()-incr);
+				$('#lowerright').height($('#lowerright').height()-incr);
+				$( ".dynatree-container").height(origheight-incr-86);
+			} 
+			if (wholeWidth>=origwidth) { //window growing horizontally. Ignore tocwindow! 
+				var incr=wholeWidth-origwidth;
+				$('#right').width(origright+incr);
+				changeSplitVert(incr);
+			} 
+			if (wholeWidth<origwidth && wholeWidth>minwidth) { //window shrinking horizontally. Ignore tocwindow! 
+				var incr=wholeWidth-origwidth;
+				$('#right').width(origright+incr);
+				changeSplitVert(incr);
+			} 
+
+		}
+	adjustTextSpace();
+       if ($('#showcollation').is(':visible')) {
+        	$('#showcollation').height($('#right').height());
+        	$('#showcollation')[0].contentWindow.postMessage($('#right').width());
         }
  });
 
@@ -1942,16 +2085,26 @@ function fliptextimage() {
                     }
                 }
             });
-
-
             getDefaultFont(community);
             loadPages(community);
             loadTexts(community);
             loadEntities(community);
             getUsers();
+            if ($.cookie("ishorizontal")) {
+				if ($.cookie("ishorizontal")=="ishorizontal") { }
+				else {
+					splitvertical ();
+				}
+			} else {
+				$.cookie("ishorizontal", "ishorizontal", { expires: 365 });
+			}
+			if ($.cookie("tocvisible")) {
+				if ($.cookie("tocvisible")==0) {
+					hideTOC(); }
+			} else $.cookie("tocvisible", 1, { expires: 365 }); 
 
+		    	//restore toc, split vert/horizontal
     }
-
     $(document).ready(function(){
         $('#tcnt1').hide();
         $('#tcnt3').hide();
@@ -1968,16 +2121,12 @@ function fliptextimage() {
                     }
                     curUser = user;
                     setEditorButtons(user);
-//                    curUserLeader=isCurUserLeader(user);
-//                    $buttons.prop('disabled', false);
                     init();
                   }
                 );
               } else {
                 curUser = user;
                 setEditorButtons(user)
-//                curUserLeader=isCurUserLeader(user);
-//                $buttons.prop('disabled', false);
                 init();
               }
             },
