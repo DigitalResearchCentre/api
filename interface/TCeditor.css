@@ -1,6 +1,7 @@
 #container {
 	min-width: 410px;
 	height: 100%;
+	margin:0px;
 }
 
 
@@ -9,8 +10,13 @@
         float: left;
         border-style:solid;
 		border-width:1px;
+		overflow: scroll;
+		min-width: 200px;
 }
 
+
+
+body {margin-right: 2px; margin-left: 4px; margin-bottom: 2px; margin-top: 2px; min-width: 880px; min-height: 400px};
 #tree {
 	width: 100%;
 	overflow: auto;
@@ -73,16 +79,17 @@
 
 
 #right {
-	min-height: 600px;
-	min-width: 300px;
+	min-height: 500px;
+	min-width: 250px;
 	height:100%;
     float: right;
     border-style:solid;
 	border-width:1px;
-	margin-bottom: 5px;
-
+	margin: 0px;
 }
 
+#transcriptHeader { margin:0; padding:0;}
+#transcripttext { margin:0; padding:0;}
 #info {
 	margin: 0px;
 	text-align: center;
@@ -101,12 +108,18 @@
 
 
 #topright {
-	min-height: 300px;
-	height: 48%;
+//	min-height: 230px;
+//	height: 48%;
 	border-style:solid;
 	border-width:1px;
 //	vertical-align: top;
-	margin: 5px;
+	position: relative;
+	top: 0px;
+	margin-left: 3px;
+	margin-right: 3px;
+	margin-bottom: 3px;
+	margin-top: 0px;
+	padding: 0px;
 }
 
 #docimage {
@@ -118,19 +131,35 @@
 	margin-left: 0px;
 	margin-right: 0px;
 	margin-top: 5px;
+	margin-bottom: 0px;
 	height: 100%;
 }
 
+#info {
+	position: relative;
+	top: 6px;
+}
+
+
 #lowerright {
-	min-height: 300px;
-	height: 49%;
+	min-height: 250px;
+	min-width: 250px;
 	border-style:solid;
 	border-width:1px;
-	margin: 5px;
+	position: relative;
+	top: 0px;
+	margin-left: 3px;
+	margin-right: 3px;
+	margin-bottom: 3px;
+	margin-top: 0px;
+	padding: 0px;
 }
+
+#info,p { margin: 0px;}
 
 #transcript {
 	margin: 5px;
+	padding: 0px;
 	height: 100%;
 }
 
@@ -158,12 +187,12 @@ td.revinf2 {
 	overflow:auto;
 //	margin-top: 18px;
 	width:100%;
+	padding: 0px;
 }
 
-#transcriptcontrols {
+textarea {
 	margin: 0px;
 	padding: 0px;
-	height: 13px;
 }
 
 
