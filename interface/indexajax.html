@@ -1889,8 +1889,10 @@ function fliptextimage() {
  			$('#right').width($('body').width()-6);
  		}
 	}
-        $('#showcollation').height($('#right').height());
-        $('#showcollation')[0].contentWindow.postMessage($('#right').width());
+        if ($('#showcollation').is(':visible')) {
+          $('#showcollation').height($('#right').height());
+          $('#showcollation')[0].contentWindow.postMessage($('#right').width());
+        }
  });
 
 

@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 
-from rest_framework import status
+from rest_framework import status, filters
 from rest_framework import permissions
 from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
@@ -465,6 +465,12 @@ class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
 class TaskDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Task
     serializer_class = TaskSerializer
+
+
+class TaskList(generics.ListCreateAPIView):
+    model = Task
+    serializer_class = TaskSerializer
+    filter_fields = ('doc', )
 
 
 class UserList(generics.ListCreateAPIView):
