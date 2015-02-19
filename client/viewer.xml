@@ -26,10 +26,10 @@
                 groupId + '/?format=json';
             var search = parent.location.search.substr(1);
             function resize(){
-              gadgets.window.adjustHeight($(window).height() - 160);
+              gadgets.window.adjustHeight($(parent.window).height() - 180);
             }
             resize();
-            $(window).resize(resize);
+            $(parent.window).resize(resize);
             $.get(url, function(data){
                 var community = data.abbr;
                 var docName = null;
