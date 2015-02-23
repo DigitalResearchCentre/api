@@ -104,17 +104,31 @@ if (search)  {
         }
     }
 } else {
-	if ($.cookie('community')) {community=$.cookie('community')} else {
-		community="CTP2"; $.cookie('community', 'CTP2', { expires: 365 });}
-	if ($.cookie('communityID')) {communityID=$.cookie('communityID')} else {
-		communityID=4; $.cookie('communityID', '4', { expires: 365 });}
+  if ($.cookie('community')) {
+    community=$.cookie('community')
+  } else {
+    community="CTP2";
+    $.cookie('community', 'CTP2', { expires: 365 });
+  }
+  if ($.cookie('communityID')) {
+    communityID=$.cookie('communityID')
+  } else {
+    communityID=4;
+    $.cookie('communityID', '4', { expires: 365 });
+  }
+  if ($.cookie('docName')) {
+    docName=$.cookie('docName')
+  } else {
+    docName="Hg";
+    $.cookie('docName', 'Hg', { expires: 365 });
+  }
+  if ($.cookie('pageName')) {
+    pageName=$.cookie('pageName')
+  } else {
+    pageName="1r";  $.cookie('pageName', '1r', { expires: 365 });
+  }
 }
-	if ($.cookie('docName')) {docName=$.cookie('docName')} else {
-		docName="Hg"; $.cookie('docName', 'Hg', { expires: 365 });}
-	if ($.cookie('pageName')) {pageName=$.cookie('pageName')} else {
-		pageName="1r";  $.cookie('pageName', '1r', { expires: 365 });}
 
-    
 function loadTexts (mycommunity) {
 	var rootMenu="[";
 	var doccount=0;

@@ -28,6 +28,8 @@ class SSOBackend(ModelBackend):
                 user = User.objects.create_user(email, email=data['email'])
             UserMapping.objects.create(
                 partner=partner, user=user, mapping_id=data['user_id'])
+        for membership in user.membership_set.all():
+            membership.sync()
         user.first_name = data.get('first_name')
         user.last_name = data.get('last_name')
         user.save()
