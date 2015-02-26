@@ -880,11 +880,13 @@ function initPrevDtree() {
 	});
 }
 
+//really complicated -- keeping this all in place with shifting font sizes
 function changeSplitVert(change) {
+		var rightWidth=$('#right').width();
 		var changeleft=Math.ceil(change/2);
 		var changeright=Math.floor(change-changeleft);
-		var oldtr=$('#topright').width();
-		var oldlr=$('#lowerright').width();
+		var oldtr=$('#topright').outerWidth();
+		var oldlr=$('#lowerright').outerWidth();
 		if (oldtr+changeleft<=minframewidth) {
 			var oldtrc=minframewidth-oldtr;
 			changeright+=(changeleft-oldtrc);
@@ -896,13 +898,15 @@ function changeSplitVert(change) {
 			changeright=oldlrc;
 		}
 		//maths has to be: if tr+lr is less than 6px less than right, won't float!
-		while ($('#right').width()<$('#topright').width()+changeleft+$('#lowerright').width()+changeright+24) {
+/*		while (rightWidth<$('#topright').width()+changeleft+$('#lowerright').width()+changeright+24) {
 			if ($('#topright').width()+changeleft>=minframewidth+0.5) changeleft-=0.5;
 			if ($('#lowerright').width()+changeright>=minframewidth+0.5) changeright-=0.5;
-		}
+		} */
 		//final adjustment: to keep right edge exactly where we want it
-		var rightWidth=$('#right').width();
-		var adjust=rightWidth-oldtr-oldlr-changeleft-changeright-16;
+		//set margin as proportion of rightWindow width
+		var margin=rightWidth/150;
+		if (margin<9) margin=9;
+		var adjust=rightWidth-oldtr-oldlr-changeleft-changeright-margin;
 		if (changeleft>changeright) changeleft+=adjust; else changeright+=adjust;
 		$('#topright').width($('#topright').width()+changeleft);
 		$('#lowerright').width($('#lowerright').width()+changeright);
@@ -924,6 +928,7 @@ function hideTOC(){
 //		$( "#lowerright").css( "top", '-45px');
 		$( "#topright" ).resizable( "option", "maxWidth", $(window).width()-(minframewidth)-18);
 		changeSplitVert(leftWidth);
+		placeLowerRight($('#right').height());
 	} else {
 		$( "#topright" ).width(wholeWidth-8);
 		$( "#lowerright" ).width(wholeWidth-8);
@@ -1328,7 +1333,7 @@ function placeTopRight(rightHeight) {
 	var topTR = $("#topright").offset().top;
 	var currtop=parseInt($("#topright").css('top'),10);
 	var moveTR=6-topTR+currtop;
-	$( "#topright" ).css("top", moveTR+'px');
+//	$( "#topright" ).css("top", moveTR+'px');
 	if ($("#splitright").attr("name")=="isvertical" )
 		$( "#topright" ).height(rightHeight-6);
 	else 
@@ -1336,12 +1341,26 @@ function placeTopRight(rightHeight) {
 }
 
 
+//problem: currtop value is NOT valid for lower right when switching from one vert mode to another
+// real simple in vertical: top of lr is same as tr
 function placeLowerRight(rightHeight) {
 	var topLR = $("#lowerright").offset().top;
+	var topTR = $("#topright").offset().top;
 	if ($("#splitright").attr("name")=="isvertical" ) {
-		var currtop=parseInt($("#lowerright").css('top'),10);
-		var movebTR = 6-topLR+currtop;
+		//set the top of the LR to zero:
+		$( "#lowerright" ).css("top", '0px');
+		var rightwidth=$('#right').outerWidth(true);
+		topLR = $("#lowerright").offset().top;
+		movebTR=topTR-topLR;
 		var lrHeight= rightHeight-9;
+		$( "#lowerright" ).css("left", '0px');
+		var currlr=$("#lowerright").offset().left;
+		if ($('#left').is(":visible")) var leftwidth=$('#left').outerWidth();
+		else var leftwidth = -3;
+		var trw=$("#topright").outerWidth();
+		var lrw=$("#lowerright").outerWidth();
+		var margin = (rightwidth-$("#topright").width()-$("#lowerright").width());
+		$( "#lowerright" ).css("left", (margin*4/5)+leftwidth+$("#topright").outerWidth()-currlr+'px');
 	} else {
 		var currtop=parseInt($("#lowerright").css('top'),10);
 		var bottomTR = $("#topright").offset().top + $("#topright").height();
@@ -1672,8 +1691,9 @@ function splitvertical () {
 		$("#topright").width(rightWidth/2-8);
 		$("#lowerright").width(rightWidth/2-8);
 		$("#topright").height(rightheight-9);
-		$("#topright").css({'float':'left'});
-		$("#lowerright").css({'float':'right'});
+//		$("#topright").css({'float':'left'});
+//		$("#lowerright").css({'float':'right'});
+		changeSplitVert(0);
 		placeLowerRight(rightheight);
 		adjustTextSpace();
 		$( "#topright" ).resizable( "destroy" );
@@ -1697,15 +1717,18 @@ function splitvertical () {
 			if (transcriptWidth<minframewidth) {
 				transcriptWidth=minframewidth;
 				changeSplitVert(0);
+				placeLowerRight($("#right").height());
 			}
 			if (imageWidth<minframewidth) {
 				imageWidth=minframewidth;
 				changeSplitVert(0);
+				placeLowerRight($("#right").height());
 			}
 			$("#topright").width(imageWidth);
 			$("#lowerright").width(transcriptWidth);
 			adjustTextSpace();
-			changeSplitVert(0)
+			changeSplitVert(0);
+			placeLowerRight($("#right").height());
 			$('#docimage').css( "minWidth", '300px');
 			$( "#topright").css( "minWidth", '300px');
 			$( "#lowerright" ).css( "minWidth",'300px');
@@ -1717,12 +1740,13 @@ function splitvertical () {
  		$('#split').attr('title', 'Image and text side by side');
 		var infdivheight=$("#info").height();
 		var rightHeight=$("#right").height();
-		placeTopRight(rightHeight);
+		placeTopRight(rightHeight);  
  		$("#topright").width($("#right").width()-8);
  		$("#lowerright").width($("#right").width()-8);
 		$( "#transcripttext").width($("#transcripttext").parent().width());
-		$("#topright").css({'float':'none'});
- 		$("#lowerright").css({'float':'none'});
+//		$("#topright").css({'float':'none'});
+// 		$("#lowerright").css({'float':'none'});
+		$( "#lowerright" ).css("left", '0px');
 		placeLowerRight(rightHeight);
 		adjustTextSpace();
 		$("#topright").resizable( "destroy");
@@ -1767,6 +1791,7 @@ function showTOC(){
 	} else {
 		//might take either frame below minimum when we restore the size
         changeSplitVert(change);
+        placeLowerRight($('#right').height());
 	}
 	adjustTextSpace();
 	$.cookie("tocvisible", 1, { expires: 365 })
@@ -2039,6 +2064,7 @@ function init() {
 				$('#topright').height($('#topright').height()+incr);
 				$('#lowerright').height($('#lowerright').height()+incr);
 				$( ".dynatree-container").height(origheight+incr-86);
+				placeLowerRight($('#right').height());
 			}  
 			if (wholeHeight<origheight && wholeHeight>minheight) { //window shrinking vertically 
 				var incr=origheight-wholeHeight;
@@ -2047,16 +2073,19 @@ function init() {
 				$('#topright').height($('#topright').height()-incr);
 				$('#lowerright').height($('#lowerright').height()-incr);
 				$( ".dynatree-container").height(origheight-incr-86);
+				placeLowerRight($('#right').height());
 			} 
 			if (wholeWidth>=origwidth) { //window growing horizontally. Ignore tocwindow! 
 				var incr=wholeWidth-origwidth;
 				$('#right').width(origright+incr);
 				changeSplitVert(incr);
+				placeLowerRight($('#right').height());
 			} 
 			if (wholeWidth<origwidth && wholeWidth>minwidth) { //window shrinking horizontally. Ignore tocwindow! 
 				var incr=wholeWidth-origwidth;
 				$('#right').width(origright+incr);
 				changeSplitVert(incr);
+				placeLowerRight($('#right').height());
 			} 
 
 		}
