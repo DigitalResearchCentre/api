@@ -73,6 +73,13 @@ var search = location.search.substr(1);
 var imageMap = null;
 var login = null;
 var userId = null;
+if ($.cookie('community')) {community=$.cookie('community')} else {
+	community="CTP2"; $.cookie('community', 'CTP2', { expires: 365 });}
+if ($.cookie('docName')) {docName=$.cookie('docName')} else {
+		docName="Hg"; $.cookie('docName', 'Hg', { expires: 365 });}
+if ($.cookie('pageName')) {pageName=$.cookie('pageName')} else {
+		pageName="1r";  $.cookie('pageName', '1r', { expires: 365 });}
+
 if (search)  {
     var params = search.split('&');
     for (var i=0; i<params.length; i++) {
@@ -81,15 +88,7 @@ if (search)  {
         var value = param[1];
         if (key == 'community') {
             community = value;
-            $.cookie('community', community, { expires: 365 });
-            $.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
-            	$.each(data, function(h, thiscommunity){
-            		if (thiscommunity.abbr==community) {
-            			communityID=thiscommunity.id};
-            			$.cookie('communityID', communityID, { expires: 365 });
-            	});
-            });
-        }
+         }
         if (key == 'login') {
             login = value;
         }
@@ -98,23 +97,24 @@ if (search)  {
         }
         if (key == 'docName') {
           docName = value;
+           $.cookie('docName', docName, { expires: 365 });
         }
         if (key == 'pageName') {
           pageName = value;
+          $.cookie('pageName', pageName, { expires: 365 });
         }
     }
-} else {
-	if ($.cookie('community')) {community=$.cookie('community')} else {
-		community="CTP2"; $.cookie('community', 'CTP2', { expires: 365 });}
-	if ($.cookie('communityID')) {communityID=$.cookie('communityID')} else {
-		communityID=4; $.cookie('communityID', '4', { expires: 365 });}
-}
-	if ($.cookie('docName')) {docName=$.cookie('docName')} else {
-		docName="Hg"; $.cookie('docName', 'Hg', { expires: 365 });}
-	if ($.cookie('pageName')) {pageName=$.cookie('pageName')} else {
-		pageName="1r";  $.cookie('pageName', '1r', { expires: 365 });}
+} 
 
-    
+$.cookie('community', community, { expires: 365 });
+$.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
+	$.each(data, function(h, thiscommunity){
+		if (thiscommunity.abbr==community) {
+			communityID=thiscommunity.id};
+			$.cookie('communityID', communityID, { expires: 365 });
+	});
+});
+
 function loadTexts (mycommunity) {
 	var rootMenu="[";
 	var doccount=0;
@@ -1152,6 +1152,20 @@ function getTranscriptHeight() {
 function setTranscriptHeight() {
 	$( "#transcripttext").height(getTranscriptHeight());
 }
+
+//from the user and the page: identify the task and update its status
+function updateTaskStatus(context,pageid, user) {
+	//first, find the transcription tasks for this page
+	$.getJSON(url+'tasks/?doc='+pageid+'&page_size=0&format=json', function(tasks) {
+		//locate each membership. If a leader/or lead transcriber is transcribing there will be no task assigned to a membership. 
+		$.each(tasks, function(h, task){
+			$.getJSON(url+'memberships/'+task+'/?page_size=0&format=json', function(membership) {
+				//there will be only one result
+				var fred=0;
+			});
+		});
+	});
+}
 //1: not comparing; 2: left compare; 3: right compare
 function SaveTranscript(which) {
 	if (which==1) {
@@ -1170,6 +1184,8 @@ function SaveTranscript(which) {
 							setTranscriptHeight();
 					});
 				});
+				//housekeeping: update task status; calculate time spent on the transcription
+				updateTaskStatus(1,pageid, curUser.id);
 			}).fail(function(xhr){
 					xhr.success=false;
 					alert(xhr.responseText);
@@ -1188,6 +1204,7 @@ function SaveTranscript(which) {
 							setTranscriptHeight();
 					});
 				});
+				updateTaskStatus(1,pageid, curUser.id);
 			});fail(function(xhr){
 					alert(xhr.responseText);
 			});
@@ -1205,6 +1222,7 @@ function SaveTranscript(which) {
 							setTranscriptHeight();
 					});
 				});
+				updateTaskStatus(1,pageid,curUser.id);
 			});fail(function(xhr){
 					alert(xhr.responseText);
 			});
@@ -2154,6 +2172,7 @@ function init() {
                   }
                 );
               } else {
+              	//coz /auth returns currently logged in user
                 curUser = user;
                 setEditorButtons(user)
                 init();
