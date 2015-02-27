@@ -20,6 +20,7 @@
             var base = 'http://textualcommunities.usask.ca';
             var url = base + '/api/partner/1/get_community/' + 
                 groupId + '/?format=json';
+
             $.get(url, function(data){
                 window.location = base + 
                     '/api/client/index.html?community=' + data.id;

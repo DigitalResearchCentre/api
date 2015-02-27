@@ -104,6 +104,7 @@ if (search)  {
           $.cookie('pageName', pageName, { expires: 365 });
         }
     }
+
 } 
 
 $.cookie('community', community, { expires: 365 });
@@ -886,7 +887,7 @@ function changeSplitVert(change) {
 		var changeleft=Math.ceil(change/2);
 		var changeright=Math.floor(change-changeleft);
 		var oldtr=$('#topright').outerWidth();
-		var oldlr=$('#lowerright').outerWidth();
+		var oldlr=$('#lowerright').outerWidth();		
 		if (oldtr+changeleft<=minframewidth) {
 			var oldtrc=minframewidth-oldtr;
 			changeright+=(changeleft-oldtrc);
@@ -898,6 +899,7 @@ function changeSplitVert(change) {
 			changeright=oldlrc;
 		}
 		//maths has to be: if tr+lr is less than 6px less than right, won't float!
+
 /*		while (rightWidth<$('#topright').width()+changeleft+$('#lowerright').width()+changeright+24) {
 			if ($('#topright').width()+changeleft>=minframewidth+0.5) changeleft-=0.5;
 			if ($('#lowerright').width()+changeright>=minframewidth+0.5) changeright-=0.5;
@@ -907,6 +909,7 @@ function changeSplitVert(change) {
 		var margin=rightWidth/150;
 		if (margin<9) margin=9;
 		var adjust=rightWidth-oldtr-oldlr-changeleft-changeright-margin;
+		
 		if (changeleft>changeright) changeleft+=adjust; else changeright+=adjust;
 		$('#topright').width($('#topright').width()+changeleft);
 		$('#lowerright').width($('#lowerright').width()+changeright);
@@ -928,7 +931,9 @@ function hideTOC(){
 //		$( "#lowerright").css( "top", '-45px');
 		$( "#topright" ).resizable( "option", "maxWidth", $(window).width()-(minframewidth)-18);
 		changeSplitVert(leftWidth);
+
 		placeLowerRight($('#right').height());
+
 	} else {
 		$( "#topright" ).width(wholeWidth-8);
 		$( "#lowerright" ).width(wholeWidth-8);
@@ -1351,7 +1356,9 @@ function placeTopRight(rightHeight) {
 	var topTR = $("#topright").offset().top;
 	var currtop=parseInt($("#topright").css('top'),10);
 	var moveTR=6-topTR+currtop;
+
 //	$( "#topright" ).css("top", moveTR+'px');
+
 	if ($("#splitright").attr("name")=="isvertical" )
 		$( "#topright" ).height(rightHeight-6);
 	else 
@@ -1379,6 +1386,7 @@ function placeLowerRight(rightHeight) {
 		var lrw=$("#lowerright").outerWidth();
 		var margin = (rightwidth-$("#topright").width()-$("#lowerright").width());
 		$( "#lowerright" ).css("left", (margin*4/5)+leftwidth+$("#topright").outerWidth()-currlr+'px');
+
 	} else {
 		var currtop=parseInt($("#lowerright").css('top'),10);
 		var bottomTR = $("#topright").offset().top + $("#topright").height();
@@ -1712,6 +1720,7 @@ function splitvertical () {
 //		$("#topright").css({'float':'left'});
 //		$("#lowerright").css({'float':'right'});
 		changeSplitVert(0);
+
 		placeLowerRight(rightheight);
 		adjustTextSpace();
 		$( "#topright" ).resizable( "destroy" );
@@ -1735,16 +1744,21 @@ function splitvertical () {
 			if (transcriptWidth<minframewidth) {
 				transcriptWidth=minframewidth;
 				changeSplitVert(0);
+
 				placeLowerRight($("#right").height());
+
 			}
 			if (imageWidth<minframewidth) {
 				imageWidth=minframewidth;
 				changeSplitVert(0);
+
 				placeLowerRight($("#right").height());
+
 			}
 			$("#topright").width(imageWidth);
 			$("#lowerright").width(transcriptWidth);
 			adjustTextSpace();
+
 			changeSplitVert(0);
 			placeLowerRight($("#right").height());
 			$('#docimage').css( "minWidth", '300px');
@@ -1765,6 +1779,7 @@ function splitvertical () {
 //		$("#topright").css({'float':'none'});
 // 		$("#lowerright").css({'float':'none'});
 		$( "#lowerright" ).css("left", '0px');
+
 		placeLowerRight(rightHeight);
 		adjustTextSpace();
 		$("#topright").resizable( "destroy");
@@ -1809,7 +1824,9 @@ function showTOC(){
 	} else {
 		//might take either frame below minimum when we restore the size
         changeSplitVert(change);
+
         placeLowerRight($('#right').height());
+
 	}
 	adjustTextSpace();
 	$.cookie("tocvisible", 1, { expires: 365 })
@@ -2082,7 +2099,9 @@ function init() {
 				$('#topright').height($('#topright').height()+incr);
 				$('#lowerright').height($('#lowerright').height()+incr);
 				$( ".dynatree-container").height(origheight+incr-86);
+
 				placeLowerRight($('#right').height());
+
 			}  
 			if (wholeHeight<origheight && wholeHeight>minheight) { //window shrinking vertically 
 				var incr=origheight-wholeHeight;
@@ -2091,19 +2110,25 @@ function init() {
 				$('#topright').height($('#topright').height()-incr);
 				$('#lowerright').height($('#lowerright').height()-incr);
 				$( ".dynatree-container").height(origheight-incr-86);
+
 				placeLowerRight($('#right').height());
+
 			} 
 			if (wholeWidth>=origwidth) { //window growing horizontally. Ignore tocwindow! 
 				var incr=wholeWidth-origwidth;
 				$('#right').width(origright+incr);
 				changeSplitVert(incr);
+
 				placeLowerRight($('#right').height());
+
 			} 
 			if (wholeWidth<origwidth && wholeWidth>minwidth) { //window shrinking horizontally. Ignore tocwindow! 
 				var incr=wholeWidth-origwidth;
 				$('#right').width(origright+incr);
 				changeSplitVert(incr);
+
 				placeLowerRight($('#right').height());
+
 			} 
 
 		}

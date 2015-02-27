@@ -11,7 +11,11 @@
     </ModulePrefs>
     <Content type="html">
         <![CDATA[
-        <script>gadgets.window.adjustHeight();</script>
+        <script>
+            //gadgets.util.registerOnLoadHandler(function(){
+            //    gadgets.window.adjustHeight();
+            //});
+        </script>
         <script src="http://code.jquery.com/jquery-1.10.2.min.js"
             type="text/javascript"></script>
         <script type="text/javascript">
@@ -21,6 +25,11 @@
             var url = base + '/api/partner/1/get_community/' + 
                 groupId + '/?format=json';
             var search = parent.location.search.substr(1);
+            function resize(){
+              gadgets.window.adjustHeight($(parent.window).height() - 180);
+            }
+            resize();
+            $(parent.window).resize(resize);
             $.get(url, function(data){
                 var community = data.abbr;
                 var docName = null;

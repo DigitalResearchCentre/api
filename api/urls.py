@@ -14,7 +14,7 @@ from api.views import (
     api_root, CommunityList, CommunityDetail, APIView, DocList,
     EntityList, TextDetail, TextList, UserList, UserDetail, RefsDeclList,
     RefsDeclDetail, UserInfo, DocDetail, MembershipDetail, MembershipList,
-    RoleDetail, TaskDetail, )
+    RoleDetail, TaskDetail, TaskList,)
 from django.conf.urls.static import static
 from api.resource import v1_api
 
@@ -137,6 +137,7 @@ urlpatterns = patterns(
                 'serializer_class': MembershipSerializer,
             },
         ], extra={'model': APIUser, 'serializer_class': APIUserSerializer}))),
+    url(r'^tasks/$', TaskList.as_view()),
     url(r'^tasks/(?P<pk>\d+)/$', TaskDetail.as_view()),
     url(r'^memberships/$', MembershipList.as_view()),
     url(r'^memberships/(?P<pk>\d+)/$', MembershipDetail.as_view()),
