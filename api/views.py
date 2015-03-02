@@ -462,9 +462,20 @@ class RefsDeclDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RefsDeclSerializer
 
 
+class TaskPermission(permissions.IsAuthenticatedOrReadOnly):
+
+    def has_object_permission(self, request, view, obj):
+        return (
+            super(TaskPermission, self).has_object_permission(
+                request, view, obj) or
+            obj.has_permission(self.request.user)
+        )
+
+
 class TaskDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Task
     serializer_class = TaskSerializer
+    permission_classes = (TaskPermission,)
 
 
 class TaskList(generics.ListCreateAPIView):
