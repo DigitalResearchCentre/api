@@ -66,6 +66,8 @@ var editorstring="";
 //in full application -- set next from params
 var docName="";
 var pageName="";
+var pageKey="";
+var pageID=""
 var currentDocId;
 var pwidth=0;
 var pheight=0;
@@ -124,7 +126,7 @@ function loadTexts (mycommunity) {
 		$.each(docdata, function(i, thisdoc) {
 			doccount+=1;
 			rootMenu+="{title:'"+thisdoc.name+" <span title=\"XML for this document\" onclick=javascript:doThisOne(\"" +
-				thisdoc.id+"\")>gettext<"+"/span>', isLazy: true, url:'"+thisdoc.id+"'}";
+				thisdoc.id+"\")><"+"/span>', isLazy: true, url:'"+thisdoc.id+"'}";
 			if (doccount==numdocs) {
 				rootMenu+="]";
 				makeTextMenu(rootMenu);
@@ -385,8 +387,17 @@ function setEditorButtons(user) {
 				if (i==userlist.length-1 && !isLeader) {
 					$.each(userlist, function(j, thisuser) {
 						if (thisuser.user==curUser.id && thisuser.community==communityID && (thisuser.role==4 || thisuser.role==3)) {
-							//transcriber
+							//transcriber   -- check too this task has not been submitted, if it has: hide save and submit buttons
+							//check tasks for this page... find the task status for this page for this user
 								$('.btn.commit').hide();
+								$.getJSON(url+'tasks/?doc='+$('#tcntSave').attr('value')+'&page_size=0&format=json', function(tasks) {
+									$.each(tasks, function(h, task){
+										$.getJSON(url+'memberships/'+task.membership+'/?page_size=0&format=json', function(membership) {
+											if (membership.user==curUser.id && task.status>1) 
+												$('.btn.submit .btn.save').hide();
+										});
+									});
+								});
 								return;
 						}
 					});
@@ -828,6 +839,8 @@ function loadTCDocumentText (doctext, pagekey) {
 		$('#ptitle').html(pnode.data.title);	
 		docName=pnode.getParent().data.title;
 		pageName=pnode.data.title;  
+		pageKey=pnode.data.key;
+		pageID=pnode.data.pageid;
 		if ($('#previewdiv').hasClass('ui-dialog-content')) PreviewTranscript();
 		prevnode=pnode.getPrevSibling();
 		if 	(prevnode) {
@@ -1164,9 +1177,16 @@ function updateTaskStatus(context,pageid, user) {
 	$.getJSON(url+'tasks/?doc='+pageid+'&page_size=0&format=json', function(tasks) {
 		//locate each membership. If a leader/or lead transcriber is transcribing there will be no task assigned to a membership. 
 		$.each(tasks, function(h, task){
-			$.getJSON(url+'memberships/'+task+'/?page_size=0&format=json', function(membership) {
-				//there will be only one result
-				var fred=0;
+			$.getJSON(url+'memberships/'+task.membership+'/?page_size=0&format=json', function(membership) {
+				if (membership.user==user) { //set to in process
+					return $.post(url+'tasks/'+task.id+'/', {
+						status: context
+					}).success(function(){
+						alert("Yes!. it worked");
+					}).fail(function(xhr){
+						alert(xhr.responseText);
+					});
+				}
 			});
 		});
 	});
@@ -1210,7 +1230,7 @@ function SaveTranscript(which) {
 					});
 				});
 				updateTaskStatus(1,pageid, curUser.id);
-			});fail(function(xhr){
+			}).fail(function(xhr){
 					alert(xhr.responseText);
 			});
 	}
@@ -1228,44 +1248,75 @@ function SaveTranscript(which) {
 					});
 				});
 				updateTaskStatus(1,pageid,curUser.id);
-			});fail(function(xhr){
+			}).fail(function(xhr){
 					alert(xhr.responseText);
 			});
 	}
 }
 
+//what to do.. validate; warn no longer available, update status on this task
 function SubmitTranscript () {
-	alert("Not yet implemented. Coming very soon!");
-	return;
-}
-function commitTranscript () {
-	alert("Not yet implemented. Coming very soon!");
-	return;
+	//validate it first...
 	validateTranscript ().done (function (results) {
 		if (!results.success) return;
-		if (results.errorMessage!='') {
-			 doPreview(results.errorMessage, 'Commit');
-			 return;
+		else  {
+			if (results.errorMessage!="") doPreview(results.errorMessage, 'Preview');
+			else {
+				$('#dlog-confirm-text').html("Page validates and may be submitted. You can transcript to the transcription leader for approval.  You will not be able to edit this page after submission.");
+				$( "#dialog-confirm" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
+					"OK": function() {
+					  $( this ).dialog( "close" );
+						SaveTranscript(1);
+						updateTaskStatus(2, $('#tcntSave').attr('value'), curUser.id);
+					},
+					Cancel: function() {
+					  $( this ).dialog( "close" );
+					}
+				  }
+				});
+			}
 		}
-		//first save...
-		SaveTranscript(1).done (function(results) {
-			if (!results.success) return;
-			//go get the versions, get the current one
-			var pageid=$('#tcntSave').attr('value');
+	});	
+}
+
+function linkPages () {
+	var pageid=$('#tcntSave').attr('value');
+	thispageXML=editor.getValue();
+	
+}
+
+function commitTranscript () {
+	validateTranscript ().done (function (results) {
+		if (!results.success) return;
+		else  {
+			if (results.errorMessage!="") doPreview(results.errorMessage, 'Preview');
+			else {
+				$('#dlog-confirm-text').html("Page validates and may be committed to the database.");
+				$( "#dialog-confirm" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
+					"OK": function() {
+					  $( this ).dialog( "close" );
+//						SaveTranscript(1);
+						//reconcile with preceding pages
+						linkPages();
+						updateTaskStatus(3, $('#tcntSave').attr('value'), curUser.id);
+					},
+					Cancel: function() {
+					  $( this ).dialog( "close" );
+					}
+				  }
+				});
+			}
+		}
+	});
+}
+
+
+/*			var pageid=$('#tcntSave').attr('value');
 			$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
 				var revision_id=versions[0].id;
 				$.post(url+'revision/'+revision_id+'/commit/', {
 				}).success(function(){
-					alert('success');
-					//when we get here -- revise transcript menus and other housekeeping tasks
-				}).fail(function(xhr){
-						alert(xhr.responseText);
-				});
-			});
-		});
-	});
-}
-
+*/
 
 function validateTranscript () {
 	//fix needed... if starts <text><front ... append dummy body; or prepend dummy body if it starts <text><back
@@ -1401,6 +1452,8 @@ function placeLowerRight(rightHeight) {
     
 function makePreview(jslink, p4, errorMessage, csslink, title) {
 	if (errorMessage=="") {
+		p4=p4.replace(/<head/g, "<h3");
+		p4=p4.replace(/<\/head/g, "</h3");
 		p4=p4.replace(/<row/g, "<tr");
 		p4=p4.replace(/<\/row/g, "</tr");
 		p4=p4.replace(/<cell/g, "<td");
@@ -1427,8 +1480,14 @@ function makePreview(jslink, p4, errorMessage, csslink, title) {
 		}
 			if (communityFont) $iframe.contents().find('body').css({"font-family": communityFont});
 			$iframe.contents().find('body')[0].appendChild(ifpreview);
-			if (errorMessage!="") $iframe.contents().find('body').html(errorMessage);
-			else  $iframe.contents().find('body').html(p4);
+			if (errorMessage!="") {
+				$iframe.contents().find('body').html(errorMessage);
+				$("#previewdiv").attr("title","XML parse failed");
+			}
+			else  {
+				$iframe.contents().find('body').html(p4);
+				$("#previewdiv").attr("title","Preview");
+			}
 		});
 		$( "#previewdiv" ).dialog( "option", "title", title+" "+docName+", "+pageName);
 		$('#previewdiv').append($iframe);
@@ -1940,7 +1999,7 @@ function toggleWordWrap() {
 						<td class="tcnt2" id="tcnt2">
 							<button id="tcntSave" class="btn save" value="0" title="Save transcript page (not to database)" 
 								onclick="javascript:SaveTranscript(1)">Save</button>
-							<button id="tcntSave" class="btn submit" value="0" title="Submit transcript page for approval" 
+							<button id="tcntSubmit" class="btn submit" value="0" title="Submit transcript page for approval" 
 								onclick="javascript:SubmitTranscript(1)">Submit</button>
 						   <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
 							<button class="btn commit" title="Parse and save to database"
@@ -1965,7 +2024,11 @@ function toggleWordWrap() {
 			<fieldset style="text-align:center"><form><input type="button" onclick="javascript:confirmNP()" value="Confirm">&nbsp;&nbsp;&nbsp;&nbsp;<input type="button" onclick="javascript:cancelNP()" value="Cancel"></fieldset></form>
 		</div>
 </div>
-<div id="previewdiv" title="Preview"></div>
+<div id="previewdiv" title="Preview" style="display:none"></div>
+<div id="dialog-confirm" title="Submit transcript" style="display:none">
+  <p id="dlog-confirm-text">Page validates and may be submitted. You can transcript to the transcription leader for approval.  You will not be able to edit this page after submission.</p>
+</div>
+
 <script type="text/javascript">
 function init() {
  	editor = CodeMirror.fromTextArea(document.getElementById("code"),{lineWrapping: true, lineNumbers: true});
@@ -2185,6 +2248,18 @@ function init() {
             dataType: "json",
             url: url + 'auth/',
             success: function(user){
+         //get csrf token
+				var csrftoken = $.cookie('csrftoken');
+			   $.ajaxSetup({
+				 crossDomain: false,
+				 beforeSend: function(xhr, settings) {
+				   // these HTTP methods do not require CSRF protection
+				   if (!(/^(GET|HEAD|OPTIONS|TRACE)$/.test(settings.type))) {
+					 xhr.setRequestHeader("X-CSRFToken", csrftoken);
+				   }
+				 },
+				 dataType: 'json'
+			   });
               if (login == 1) {
                 $.get(url + 'v1/user/' + user.id + '/?fields=usermapping',
                   function(u){
@@ -2214,7 +2289,7 @@ function init() {
                 }
             }
         });
-    })
+     })
 </script>
 </body>
 </html> 
