@@ -215,6 +215,11 @@ class Membership(models.Model):
         except CommunityMapping.DoesNotExist:
             pass
 
+    def has_permission(self, user):
+        return self.user == user or \
+            self.community.get_membership(
+                user=user, role__name__in=('Leader', 'Co Leader')).exists()
+
 
 def get_last(qs):
     lst = list(qs.reverse()[:1])
@@ -1358,6 +1363,9 @@ class Task(models.Model):
 
     class Meta:
         unique_together = ('doc', 'membership', )
+
+    def has_permission(self, user):
+        return self.membership.has_permission(user)
 
 class Partner(models.Model):
     name = models.CharField(max_length=80, unique=True, db_index=True)

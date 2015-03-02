@@ -2264,7 +2264,7 @@ function init() {
                 $.get(url + 'v1/user/' + user.id + '/?fields=usermapping',
                   function(u){
                     if (parseInt(u.usermapping.mapping_id) != userId) {
-                      window.location = url + '/auth/logout/?partner=1&next=' + encodeURIComponent(window.location.href);
+                      window.location = url + 'auth/logout/?partner=1&next=' + encodeURIComponent(window.location.href);
                     }
                     curUser = user;
                     setEditorButtons(user);
@@ -2280,7 +2280,7 @@ function init() {
             },
             error: function() {
                 if (login == 1)  {
-                    window.location = url + '/auth/login/?partner=1&next=' +
+                    window.location = url + 'auth/login/?partner=1&next=' +
                       encodeURIComponent(window.location.href);
                 }else{
                 	setEditorButtons(null);
