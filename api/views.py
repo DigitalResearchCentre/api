@@ -14,6 +14,7 @@ from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
+from django.db.models import Manager
 
 from rest_framework import status, filters
 from rest_framework import permissions
@@ -86,7 +87,7 @@ class RelationView(
     def api_handler(self, request, *args, **kwargs):
         obj = self.get_object()
         result = getattr(obj, self.func)
-        if callable(result):
+        if not isinstance(result, Manager) and callable(result):
             kwargs = dict(self.kwargs)
             for k in self.reserve_kwargs:
                 kwargs.pop(k, None)
@@ -476,6 +477,9 @@ class TaskDetail(generics.RetrieveUpdateDestroyAPIView):
     model = Task
     serializer_class = TaskSerializer
     permission_classes = (TaskPermission,)
+
+    def post(self, *args, **kwargs):
+        return self.put(*args, **kwargs)
 
 
 class TaskList(generics.ListCreateAPIView):
