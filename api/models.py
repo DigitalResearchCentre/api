@@ -995,12 +995,13 @@ class Header(models.Model):
 
 
 class Revision(models.Model):
-    ASSIGNED, IN_PROGRESS, SUBMITTED, COMMITTED= range(4)
+    ASSIGNED, IN_PROGRESS, SUBMITTED, COMMITTED, PREVIOUS_DB = range(5)
     STATUS_CHOICES = (
         (ASSIGNED, 'assigned'),
         (IN_PROGRESS, 'in_progress'),
         (SUBMITTED, 'submitted'),
         (COMMITTED, 'committed'),
+        (PREVIOUS_DB, 'previous_db'),
     )
     status = models.IntegerField(choices=STATUS_CHOICES, default=ASSIGNED)
     # only support page level document
