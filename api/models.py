@@ -995,6 +995,14 @@ class Header(models.Model):
 
 
 class Revision(models.Model):
+    ASSIGNED, IN_PROGRESS, SUBMITTED, COMMITTED= range(4)
+    STATUS_CHOICES = (
+        (ASSIGNED, 'assigned'),
+        (IN_PROGRESS, 'in_progress'),
+        (SUBMITTED, 'submitted'),
+        (COMMITTED, 'committed'),
+    )
+    status = models.IntegerField(choices=STATUS_CHOICES, default=ASSIGNED)
     # only support page level document
     # TODO: add check to make sure doc is a page
     doc = models.ForeignKey(Doc)
@@ -1004,6 +1012,7 @@ class Revision(models.Model):
     create_date = models.DateTimeField(auto_now_add=True)
     commit_date = models.DateTimeField(null=True, blank=True)
     text = models.TextField(blank=True)
+    spent_time = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['-create_date', ]
