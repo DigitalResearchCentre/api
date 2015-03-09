@@ -448,6 +448,7 @@ class UserInfo(UserDetail):
 class RefsDeclList(generics.ListCreateAPIView):
     model = RefsDecl
     serializer_class = RefsDeclSerializer
+    filter_fields = ('text', )
 
     def post(self, request, *args, **kwargs):
         resp = super(RefsDeclList, self).post(request, *args, **kwargs)
