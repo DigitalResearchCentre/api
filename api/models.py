@@ -1108,8 +1108,10 @@ class Revision(models.Model):
                 mp = re.sub(r'\([^\)]+\)', '%s', match)
                 if re.findall(r'^(?:\w+:)+entity', mp):
                     entity_xpath[mp] = xpath
+        print entity_xpath
 
         for mp, xpath in entity_xpath.items():
+            print mp, xpath
             for el in root_el.xpath(xpath):
                 path = (el.get('n'),)
                 for ancestor in el.iterancestors():

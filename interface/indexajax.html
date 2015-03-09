@@ -29,6 +29,7 @@
         <script type="text/javascript" src="map.js"></script>
         <script type="text/javascript" src="env.js"></script>
         <script type="text/javascript" src="mergely-3.3.3/lib/mergely.js"></script>
+        <script src="idle-timer.js" type="text/javascript"></script>
         <link type="text/css" rel="stylesheet" href="mergely-3.3.3/lib/mergely.css" />
         <link href="TCeditor.css" rel="stylesheet" type="text/css"/>
         <style type="text/css" media="all">
@@ -57,7 +58,7 @@ var urlstatic = "http://textualcommunities.usask.ca/media/tc/";
 //    var community="JDP1";   
 var community="BD32";  
 //var community="EE";  
-var TCid="TCUsask";
+var TCid="TCUSask";
 var communityID=0;
 var communityFont="";
 var editor=null;	
@@ -67,7 +68,7 @@ var editorstring="";
 var docName="";
 var pageName="";
 var pageKey="";
-var pageID=""
+var pageID=0;
 var currentDocId;
 var pwidth=0;
 var pheight=0;
@@ -75,6 +76,35 @@ var search = location.search.substr(1);
 var imageMap = null;
 var login = null;
 var userId = null;
+var currentDate; //store time in secs here
+var currentTimer=0;
+var startTime;
+var timerId;
+var editorActive=1;
+timerId = setInterval(update, 1000);
+//format milliseconds as hh:mm:ss.sss
+function msToTime(s) {
+  function addZ(n) {
+    return (n<10? '0':'') + n;
+  }
+  var ms = s % 1000;
+  s = (s - ms) / 1000;
+  var secs = s % 60;
+  s = (s - secs) / 60;
+  var mins = s % 60;
+  var hrs = (s - mins) / 60;
+  return addZ(hrs) + ':' + addZ(mins) + ':' + addZ(secs) + '.' + ms;
+}
+
+function update() {
+	if (currentTimer!=0 && editorActive) {
+		var currTime = new Date();
+		currentTimer+=currTime.getTime()-startTime;
+		startTime=currTime.getTime();
+		$("#timer").html(msToTime(currentTimer));
+	}
+}
+
 if ($.cookie('community')) {community=$.cookie('community')} else {
 	community="CTP2"; $.cookie('community', 'CTP2', { expires: 365 });}
 if ($.cookie('docName')) {docName=$.cookie('docName')} else {
@@ -212,7 +242,7 @@ function doLazyRead (node, editpage) {
 					var pagecount=0;
 					 $.each(thisdoc, function(i, pageurl) {
 						pagecount+=1;
-						children+="{title:'"+pageurl.name+"', pageid:'"+pageurl.id+"'}";
+						children+="{title:'"+pageurl.name+"', label:'"+pageurl.label+"', pageid:'"+pageurl.id+"'}";
 						if (pagecount==thisdoc.length) {
 							children+="]";
 							node.setLazyNodeStatus(DTNodeStatus_Ok);
@@ -372,7 +402,7 @@ function setEditorButtons(user) {
 	//don't deal with members.  what are they?
 	if (user==null) {
 		//visitor
-		$('.btn.submit, .btn.commit, .btn.save').hide();
+		$('.btn.submit, .btn.commit, .btn.save, .btn.checklinks').hide();
 	} else {
 		var isLeader=0;
 		$.getJSON(url+'memberships/?page_size=0&format=json', function (userlist) {
@@ -386,19 +416,29 @@ function setEditorButtons(user) {
 				//not found as leader; check as transcriber..
 				if (i==userlist.length-1 && !isLeader) {
 					$.each(userlist, function(j, thisuser) {
-						if (thisuser.user==curUser.id && thisuser.community==communityID && (thisuser.role==4 || thisuser.role==3)) {
-							//transcriber   -- check too this task has not been submitted, if it has: hide save and submit buttons
-							//check tasks for this page... find the task status for this page for this user
-								$('.btn.commit').hide();
-								$.getJSON(url+'tasks/?doc='+$('#tcntSave').attr('value')+'&page_size=0&format=json', function(tasks) {
-									$.each(tasks, function(h, task){
-										$.getJSON(url+'memberships/'+task.membership+'/?page_size=0&format=json', function(membership) {
-											if (membership.user==curUser.id && task.status>1) 
-												$('.btn.submit .btn.save').hide();
+						if (thisuser.user==curUser.id && thisuser.community==communityID) {
+							if (thisuser.role==4 || thisuser.role==3) {
+								//transcriber, not a leader in this community
+								//check tasks for this page... find the task status for this page for this user. if no tasks, or not assigned, hide buttons
+									$('.btn.commit, .btn.checklinks').hide();
+									var fred=pageID;
+									$.getJSON(url+'tasks/?doc='+pageID+'&page_size=0&format=json', function(tasks) {
+										if (tasks.length==0) $('.btn.submit, .btn.save, .btn.checklinks').hide();
+										$.each(tasks, function(h, task){
+											$.getJSON(url+'memberships/'+task.membership+'/?page_size=0&format=json', function(membership) {
+												if (membership.user==curUser.id) {
+													if (task.status>1) 
+														$('.btn.submit, .btn.save, .btn.checklinks').hide();
+													else $('.btn.submit, .btn.save, .btn.checklinks').show();
+												} else {
+													if (h==tasks.length-1) 
+														$('.btn.submit, .btn.save, .btn.checklinks').hide();
+												}
+											});
 										});
-									});
-								});
-								return;
+									}); 
+									return;
+							 }
 						}
 					});
 				}
@@ -757,9 +797,9 @@ function makeEntMenu(rootMenu) {
 			if ( node.data.lineid) {
 				var entityText="";
 				var numdocs=0;
-                                $('#showcollation').attr('src', url + 'regularize/?entity=' + node.data.lineid);
-                                $('#showcollation').height($('#right').height());
-                                $('#showcollation')[0].contentWindow.postMessage($('#right').width());
+				$('#showcollation').attr('src', url + 'regularize/?entity=' + node.data.lineid);
+				$('#showcollation').height($('#right').height());
+				$('#showcollation')[0].contentWindow.postMessage($('#right').width());
 			}
 		},
       onLazyRead: function(node){
@@ -802,9 +842,9 @@ function loadTCDocumentText (doctext, pagekey) {
 		doctext=newtext;
 		var tree =$("#tree").dynatree("getTree");
 		var pnode=tree.getNodeByKey(pagekey);
-		if (editor && editor.getValue()!="") {
+/*		if (editor && editor.getValue()!="") {
 			if (docName==pnode.getParent().data.title && pageName==pnode.data.title) return; //already got it
-		}
+		} */
 		var tabindex=$("#tabs").tabs('option', 'selected');
 		if (tabindex==1) {
 			editorstring=doctext;
@@ -837,10 +877,6 @@ function loadTCDocumentText (doctext, pagekey) {
 		}
 		$('#docid').html(pnode.getParent().data.title);
 		$('#ptitle').html(pnode.data.title);	
-		docName=pnode.getParent().data.title;
-		pageName=pnode.data.title;  
-		pageKey=pnode.data.key;
-		pageID=pnode.data.pageid;
 		if ($('#previewdiv').hasClass('ui-dialog-content')) PreviewTranscript();
 		prevnode=pnode.getPrevSibling();
 		if 	(prevnode) {
@@ -978,7 +1014,14 @@ function loadTCDocIdText(pageid, pagekey) {
 			}
 		});
  	}	
-    if (curUser) {
+ 	var tree =$("#tree").dynatree("getTree");
+ 	var pnode=tree.getNodeByKey(pagekey);
+	docName=pnode.getParent().data.title;
+	pageName=pnode.data.title;  
+	pageKey=pnode.data.key;
+	pageID=pnode.data.pageid;
+	setEditorButtons(curUser);
+/*    if (curUser) {
         var $buttons = $('.btn.commit, .btn.submit, .btn.save');
        	setEditorButtons(curUser)
         $.getJSON(
@@ -991,7 +1034,7 @@ function loadTCDocIdText(pageid, pagekey) {
                 }
             }
         );
-    }
+    } */
     //this version for getting the current revision:
     //test: is there a revision? if so... show it
     //set up menus for showing revisions, etc
@@ -1101,18 +1144,26 @@ function getUsers() {
 }
 //left and right will be revision ids for comparison; if 0 then compare to database; if -1 set to none
 function createTranscriptMenus (pageid, left, right) {
+	//only make these when setting up a new transcript. So set the time to nil now
+	var currTime = new Date();
+	currentTimer=1;
+	startTime=currTime.getTime();
     return $.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
         //do the left first
         var leftMenu='<select id="leftSelTranscript" onchange="javascript:doTranscriptVersions('+pageid+')">';
         for (var i=0; i < versions.length; i++) {
             var userInf=getUserInf(versions[i].user);
+            var status="";
+            if (versions[i].status==2) status= " [submitted]";
+            if (versions[i].status==3) status= " [committed]";
+            if (versions[i].status==4) status= " [previousDB]";
             if (versions[i].id!=right) {
                 if (versions[i].id==left) {
                     var d = Date.parse(versions[i].create_date);
                     var x= moment(versions[i].create_date).format('LLL');
-                    leftMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+                    leftMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+status+'</option>';
                 }
-                else leftMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+                else leftMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+status+'</option>';
             }
         }
         //append database version
@@ -1128,10 +1179,14 @@ function createTranscriptMenus (pageid, left, right) {
         else  rightMenu+='<option value="-1">[Nothing]</option>';
         for (var i=0; i < versions.length; i++) {
             var userInf=getUserInf(versions[i].user);
+            var status="";
+            if (versions[i].status==2) status= " [submitted]";
+            if (versions[i].status==3) status= " [committed]";
+            if (versions[i].status==4) status= " [previousDB]";
             if (versions[i].id!=left) {
                 if (versions[i].id==right) 
-                    rightMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
-                else rightMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+'</option>';
+                    rightMenu+='<option value="'+versions[i].id+'" selected="selected">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+status+'</option>';
+                else rightMenu+='<option value="'+versions[i].id+'">'+moment(versions[i].create_date).format('MMMM Do YYYY, h:mm:ss a')+': '+userInf.first_name+' '+userInf.last_name+status+'</option>';
             }
         }
         if (left!=0) {
@@ -1179,10 +1234,17 @@ function updateTaskStatus(context,pageid, user) {
 		$.each(tasks, function(h, task){
 			$.getJSON(url+'memberships/'+task.membership+'/?page_size=0&format=json', function(membership) {
 				if (membership.user==user) { //set to in process
-					return $.post(url+'tasks/'+task.id+'/', {
-						status: context
-					}).success(function(){
-						alert("Yes!. it worked");
+					task.status=context;
+					return $.post(url+'tasks/'+task.id+'/', task
+					).success(function(){	
+						setEditorButtons(curUser);
+						//redo transcript menus
+						$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+							createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
+								$('#revinf1').html(menus.left);
+								$('#revinf2').html(menus.right);
+							});
+						});
 					}).fail(function(xhr){
 						alert(xhr.responseText);
 					});
@@ -1191,13 +1253,20 @@ function updateTaskStatus(context,pageid, user) {
 		});
 	});
 }
-//1: not comparing; 2: left compare; 3: right compare
-function SaveTranscript(which) {
+//1: not comparing; 2: left compare; 3: right compare; context: we are in process 1 /submitting 2/committing 3
+//to eliminate synchronicity problems -- committing etc is all done through callbacks
+//use prev field to give transcript status	
+function SaveTranscript(which, context) {
+	var currTime = new Date();
+	currentTimer+=currTime.getTime()-startTime;
+	var timeCommit=currentTimer;
 	if (which==1) {
 		var pageid=$('#tcntSave').attr('value');
 		return $.post(url+'docs/'+pageid+'/transcribe/', {
 				text: editor.getValue(),
-				user: curUser.id
+				user: curUser.id,
+				status: context,
+				spent_time: currentTimer
 			}).success(function(result){
 				//redo the transcript menus here
 				//get the latest revision we have here
@@ -1210,7 +1279,41 @@ function SaveTranscript(which) {
 					});
 				});
 				//housekeeping: update task status; calculate time spent on the transcription
-				updateTaskStatus(1,pageid, curUser.id);
+				if (context==3) { //  commit this one!
+					//save existing database as revision; mark with status 4, then commit latest revision to database
+					//pull the existing database page and add it to the transcripts
+					$.getJSON(url+'docs/'+pageid+'/has_text_in?format=json',function(hastextin){
+						$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext){
+							return $.post(url+'docs/'+pageid+'/transcribe/', {
+								text: dbtext,
+								user: curUser.id,
+								status: 4,
+								spent_time: 0
+							}).success(function(result){
+								//now write the last revision to the database
+								$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
+									//have to identify the last committed... might not be first or second version etc
+									$.each(versions, function(h, version){ 
+										if (version.spent_time==timeCommit && version.status==3) {
+											$.post(url+'revision/'+version.id+'/commit/', {
+											}).success(function(){
+												createTranscriptMenus(pageid, versions[0].id, -1).done(function (menus) {
+													$('#revinf1').html(menus.left);
+													$('#revinf2').html(menus.right);
+													setTranscriptHeight();
+												});
+												loadTexts (community);
+												var texttree=$("#texttree").dynatree("getTree")
+												texttree.reload();
+											});
+										}
+									});
+								});
+							});
+						});
+					});
+				}	else updateTaskStatus(context,pageid, curUser.id);
+				
 			}).fail(function(xhr){
 					xhr.success=false;
 					alert(xhr.responseText);
@@ -1220,7 +1323,9 @@ function SaveTranscript(which) {
 		var pageid=$('#tcntSaveLeft').attr('value');
 		$.post(url+'docs/'+pageid+'/transcribe/', {
 				text: $('#compare').mergely('get', 'lhs'),
-				user: curUser.id
+				user: curUser.id,
+				status: context,
+				spent_time: currentTimer
 			}).success(function(){
 				$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
 						createTranscriptMenus(pageid, versions[0].id, $('#tcntSaveRight').attr('data-version')).done(function (menus) {
@@ -1238,7 +1343,9 @@ function SaveTranscript(which) {
 		var pageid=$('#tcntSaveRight').attr('value');
 		$.post(url+'docs/'+pageid+'/transcribe/', {
 				text: $('#compare').mergely('get', 'rhs'),
-				user: curUser.id
+				user: curUser.id,
+				status: context,
+				time_spent: currentTimer
 			}).success(function(){
 				$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
 						createTranscriptMenus(pageid, $('#tcntSaveLeft').attr('data-version'), versions[0].id).done(function (menus) {
@@ -1257,17 +1364,17 @@ function SaveTranscript(which) {
 //what to do.. validate; warn no longer available, update status on this task
 function SubmitTranscript () {
 	//validate it first...
+	return alert("Not yet implemented");
 	validateTranscript ().done (function (results) {
 		if (!results.success) return;
 		else  {
 			if (results.errorMessage!="") doPreview(results.errorMessage, 'Preview');
 			else {
-				$('#dlog-confirm-text').html("Page validates and may be submitted. You can transcript to the transcription leader for approval.  You will not be able to edit this page after submission.");
+				$('#dlog-confirm-text').html("Page validates. Press OK to submit this transcript to the transcription leader for approval.  You will not be able to edit this page after submission.");
 				$( "#dialog-confirm" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
 					"OK": function() {
 					  $( this ).dialog( "close" );
-						SaveTranscript(1);
-						updateTaskStatus(2, $('#tcntSave').attr('value'), curUser.id);
+						SaveTranscript(1, 2);
 					},
 					Cancel: function() {
 					  $( this ).dialog( "close" );
@@ -1279,25 +1386,97 @@ function SubmitTranscript () {
 	});	
 }
 
+function checkInterPageLinks(thispageXML, prevXML, nextXML, prevNode, nextNode) {
+	if (prevXML) {//check entities in previous page
+		$.getJSON(url+'docs/'+prevNode.data.pageid+'/has_entities/?page_size=0&format=json',function(preventities){
+			if (preventities.length==0)  {// no enties. Save the page, write it to the db, updating the task
+				SaveTranscript(1, 3);  //context 3 advises -- put this in the database.  
+			} else {
+
+			}	
+		});
+	}
+	if (nextXML) {
+		//have we got some entities?
+		$.getJSON(url+'docs/'+nextNode.data.pageid+'/has_entities/?page_size=0&format=json',function(nextentities){
+			if (nextentities.length>0)  {// entities on next page.  Warn to link those
+					$('#dlog-alert-text').html("The next page contains entities which might need linking with this page. Click Check Links on this page, or Commit on the next page. ");
+					$( "#dialog-alert" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
+					"OK": function() {$( this ).dialog( "close" );} } });
+			}
+			SaveTranscript(1, 3);  //context 3 advises -- put this in the database. 
+		});
+	}
+}
+
+function dlogAlert (title, advice, height, width) {
+	$('#dialog-alert').attr("title", title);
+	$('#dlog-alert-text').html(advice);
+	$( "#dialog-alert" ).dialog({resizable: false, height:height, width: width, modal: true, buttons: {
+		"OK": function() {$( this ).dialog( "close" );} } 
+	});
+}
+
 function linkPages () {
-	var pageid=$('#tcntSave').attr('value');
-	thispageXML=editor.getValue();
-	
+	var thispageXML=editor.getValue();
+	var tree =$("#tree").dynatree("getTree");
+	var pnode=tree.getNodeByKey(pageKey);
+	var prevnode=pnode.getPrevSibling();
+	var nextnode=pnode.getNextSibling();
+	if (prevnode) {
+		$.getJSON(url+'docs/'+prevnode.data.pageid+'/has_text_in?format=json',function(hastextin){
+			$.getJSON(url+'texts/'+hastextin.id+'/xml',function(prevtext){
+				if (nextnode)  {
+					$.getJSON(url+'docs/'+nextnode.data.pageid+'/has_text_in?format=json',function(hasnexttextin){
+						$.getJSON(url+'texts/'+hasnexttextin.id+'/xml',function(nexttext){
+							checkInterPageLinks(thispageXML, prevtext, nexttext, prevnode, nextnode);
+						});
+					});
+				} else {
+					checkInterPageLinks(thispageXML, prevtext, null, prevnode, null);
+				}
+			});
+		});
+	} else {
+		if (nextnode) {
+			$.getJSON(url+'docs/'+nextnode.data.pageid+'/has_text_in?format=json',function(hasnexttextin){
+				$.getJSON(url+'texts/'+hasnexttextin.id+'/xml',function(nexttext){
+					checkInterPageLinks(thispageXML, null, nexttext, null, nextnode);
+				});
+			});
+		} else {
+			//neither next or previous page
+		}
+	}
 }
 
 function commitTranscript () {
+	return alert("Not yet implemented");
 	validateTranscript ().done (function (results) {
 		if (!results.success) return;
 		else  {
 			if (results.errorMessage!="") doPreview(results.errorMessage, 'Preview');
 			else {
+				//check -- if this page contains a <pb we cannot handle it
+				var thispageXML=editor.getValue();
+				if (thispageXML.indexOf("<pb") > -1) {
+					$('#dlog-alert-text').html("This transcript contains a &lt;pb> element. Remove this &lt;pb> element before committing to the database. To add a page (&lt;pb>), go to the Documents->Edit page in the Profile. ");
+					$( "#dialog-alert" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
+						"OK": function() {
+							 $( this ).dialog( "close" );
+						}
+					  }
+					});
+					return;
+				}
 				$('#dlog-confirm-text').html("Page validates and may be committed to the database.");
 				$( "#dialog-confirm" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
 					"OK": function() {
 					  $( this ).dialog( "close" );
 //						SaveTranscript(1);
-						//reconcile with preceding pages
+						//reconcile with preceding pages; this sets off a chain of commands culminating in commit via saveTranscript
 						linkPages();
+						//move this
 						updateTaskStatus(3, $('#tcntSave').attr('value'), curUser.id);
 					},
 					Cancel: function() {
@@ -1755,6 +1934,138 @@ function loadTranscripts(pageid, leftPage, rightPage) {
 	});
 }
 
+//we are only because on the way down, entity names and labels matched. So if the line checks, everything checks
+function checkEntLink(entsarray, thisentity, thispage, pnode, prevMatched) {
+	$.getJSON(url+'entities/'+thisentity+'/has_docs/'+thispage+'?page_size=0&format=json', function (entplaces) {
+		//possibly, we are at too high a level -- might have to go down the parts and dig deeper
+		if (entplaces.length==0) {
+			return $.getJSON(url+'entities/'+thisentity+'/has_parts?page_size=0&format=json', function (entparts) {
+				$.each(entparts, function(i,entpart) {
+					var checkEnt=entsarray[entsarray.length-1];
+					if (entpart.label==checkEnt.label && entpart.name==checkEnt.n)
+				 		checkEntLink(entsarray, entpart.id, thispage, pnode, prevMatched);
+				 });
+			});
+		}
+		var thisent=entplaces[entplaces.length-1];
+		for (i=0; i<entsarray.length; i++) {
+			var thisprev=entsarray[i];
+			var thisDETref="urn:det:"+TCid+":"+community+":document="+pnode.parent.data.title+":"+pnode.data.label+"="+pnode.data.title+":"+thisent.label+"="+thisent.name+":"+prevMatched+":"+thisprev.label+"="+thisprev.n;
+			if (thisDETref==thisprev.prev) thisprev.matched=1;
+			prevMatched+=":"+thisprev.label+"="+thisprev.n;
+		}
+		var allMatched=true;
+		var message="Links between this page and the previous found: "
+		$.each(entsarray, function(i,obj) {if (obj.matched === 0) { allMatched = false; return false;} else {
+			if (i>0) message+="; "
+			message+=" &lt;"+obj.gi+' n="'+obj.n+'"> on '+pnode.data.label+ ' '+pageName+ ' and on '+pnode.data.label+ ' '+pnode.data.title;
+		} });
+		if (allMatched) { dlogAlert("Check links succeeded", message, 250, 700); return;}	
+		else  { dlogAlert("Check links error", "Error found in checking links", 200, 500); return;}							
+	});
+}
+
+//call this recursively until we get as far as we need to go
+function descendEntityHierarchy(entity, index, entitiesarray, prevnode, has_parts, prevmatched) {
+	if (!has_parts) {
+		dlogAlert("Check links error", "Error: No children found for &lt;"+entitiesarray[index-1].gi+' n="'+ entitiesarray[index-1].n+'">', 200, 500); return;
+	} else {
+		$.getJSON(url+'entities/'+entity+'/has_parts?format=json',function(entparts){
+			$.each(entparts, function(i, entity) {
+				if (entity.label==entitiesarray[index-1].label && entity.name==entitiesarray[index-1].n) {
+				 	if (index==entitiesarray.length) return checkEntLink(entitiesarray, entity.id, prevnode.data.pageid, prevnode, prevmatched);
+				 	else return descendEntityHierarchy(entity.id, index+1, entitiesarray, prevnode, entity.has_parts, prevmatched);
+				}  
+			});
+		});
+	}
+}
+
+//look at prev links on this and next page
+function checkLinks () {
+	//do we have prev links on this page?
+	var tree =$("#tree").dynatree("getTree");
+	var pnode=tree.getNodeByKey(pageKey);
+	var prevnode=pnode.getPrevSibling();
+	if (prevnode) {
+		//get the XML for the current committed database version; get elements with n and prev attrs.  Note!!! no jQuery, odd javascripty stuff
+		$.getJSON(url+'docs/'+pageID+'/has_text_in?format=json',function(hastextin){
+			$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext){ 
+				var xmlDoc = $.parseXML( dbtext );
+				var prevEls= xmlDoc.querySelectorAll('[prev]');
+				var prevElsArray = [].slice.call(prevEls);
+				var entitiesarray=new Array();
+				prevElsArray.forEach(function(index) {
+					var elGI=index.localName;
+					var nattr;
+					var prevattr;
+					var indexArray= [].slice.call(index.attributes);
+					indexArray.forEach(function (attribute) {
+						if (attribute.localName =="n") nattr=attribute.nodeValue;
+						if (attribute.localName =="prev") prevattr=attribute.nodeValue;
+					});
+					var lastlabel=prevattr.slice(prevattr.lastIndexOf(":")+1, prevattr.lastIndexOf("="));
+					// add to list of entities to check
+					entitiesarray.push(JSON.parse('{"gi":"'+elGI+'", "n":"'+nattr+'", "prev":"'+prevattr+'", "matched":0, "label":"'+lastlabel+'"}'));
+				});
+				//now, check these against previous page...find each entity on previous page, match n and prev values, if they match, perfect
+				//so, grab entities from previous page; we need to do this hierarchically.  We are going to figure that only one object continues...
+				//way to do this: look for the DEEPEST nested entity on the page. Reason -- this will be on the page. higher level div might begin 
+				//pages before, and so NOT be returned by entities/entityid/has_text_of/pageid.  
+				//get lowest entity: dig down till we get its id.  So go down the entity trail till we find it
+			//	var position = entitiesarray[0].prev.indexOf(":entity:")
+				if (entitiesarray[0].prev.indexOf(":", entitiesarray[0].prev.indexOf(":entity=")+1)!=-1) 
+					var entName=entitiesarray[0].prev.slice(entitiesarray[0].prev.indexOf(":entity=")+8, entitiesarray[0].prev.indexOf(":", entitiesarray[0].prev.indexOf(":entity=")+1));
+				else var entName=entitiesarray[0].prev.slice(entitiesarray[0].prev.indexOf(":entity=")+8, entitiesarray[0].prev.length);
+				$.getJSON(url+'communities/'+communityID+'/entities?page_size=0&format=json',function(entities){ 
+					$.each(entities, function(i, entity) {
+						if (entity.label=="entity" && entity.name==entName) {
+							//might be the only one we are checking...
+							var prevmatched="entity="+entName;
+							if (entitiesarray.length==1) return checkEntLink(entitiesarray, entity.id, prevnode.data.pageid, prevnode, prevmatched);
+							else {//go dig deeper
+								return descendEntityHierarchy(entity.id, 1, entitiesarray, prevnode, entity.has_parts, prevmatched );
+							}
+						} 
+						if (i==entities.length-1) dlogAlert("Check links error", "Error: &lt;"+ entitiesarray[0].gi+' n="'+ entitiesarray[0].n+'"> not found on previous page', 200, 500);
+					});
+				});
+				
+				
+		/*		$.getJSON(url+'docs/'+prevnode.data.pageid+'/has_entities',function(docentities){ 
+					$.each(docentities, function(i, docentity) {
+						$.getJSON(url+'entities/'+docentity.id+'/has_text_of/'+prevnode.data.pageid+'?page_size=0&format=json',function(thisdocentities){
+							$.each(thisdocentities, function(i, thisdocentity) {
+								//have we got a match with an entity on this page with the previous value?
+								entitiesarray.forEach(function (entity) {
+									//first check the n value matches...
+							//		var entity=JSON.parse(oneentity);
+									var thisEnt='<'+entity.gi+' n="'+entity.n+'">';
+									if (thisdocentity.element.indexOf(thisEnt)==0) { //n value and element match
+										$.getJSON(url+'entities/'+docentity.id+'/has_docs/'+prevnode.data.pageid+'?page_size=0&format=json',function(linedocentities){
+											$.each(linedocentities, function(j, thislinedocent) {
+												var thisDETref="urn:det:"+TCid+":"+community+":document="+pnode.parent.data.title+":"+prevnode.data.label+"="+prevnode.data.title+":"+thislinedocent.label+"="+thislinedocent.name+":entity="+docentity.name;
+												if (thisDETref==entity.prev) entity.matched=1;
+												var allMatched=true;
+												var message="Links between this page and the previous found: "
+												$.each(entitiesarray, function(i,obj) {if (obj.matched === 0) { allMatched = false; return false;} else {message+=" &lt;"+obj.gi+' n="'+obj.n+"> linked to "+obj.prev} });
+												if (allMatched) {
+													dlogAlert("Check links", message, 250, 700);
+													return;
+												}
+											});
+										});
+									}
+								});
+							});
+						});
+						var bill=1;
+					});
+				}); */
+			});
+		});
+	}
+}
 
 //topright: becomes left, lowerright goes to the right
 
@@ -1923,36 +2234,6 @@ function togglepageitem() {
 	}
 }
 
-function toggleWordWrap() {
-	if ($('#wwonb').is('[href]')) {
-		editor.setOption("lineWrapping", true);
-		$('#wwonb').removeAttr('href');
-		$('#wwoffb').attr('href','javascript:toggleWordWrap()');
-		$('#wwoffb').css({'cursor':'pointer', 'background-color':'#D2D2D2', 'color':'#999'});
-		$('#wwonb').css({'cursor':'default', 'background-color':'#999', 'color':'#fff'});
-		$('#wwoffb').hover(function() {
-			  $('#wwoffb').css({'background-color':'#BDBDBD', 'color':'#fff'}); 
-		   }, 
-		   function() {
-			   $('#wwoffb').css({'background-color':'#D2D2D2', 'color':'#999'})
-		   })
-		$("#wwonb").off('mouseenter mouseleave');
-	} else {
-		editor.setOption("lineWrapping", false);
-		$('#wwoffb').removeAttr('href');
-		$('#wwonb').attr('href','javascript:toggleWordWrap()');
-		$('#wwonb').css({'cursor':'pointer', 'background-color':'#D2D2D2', 'color':'#999'});
-		$('#wwoffb').css({'cursor':'default', 'background-color':'#999', 'color':'#fff'});
-		$('#wwonb').hover(function() {
-			  $('#wwonb').css({'background-color':'#BDBDBD', 'color':'#fff'}); 
-		   }, 
-		   function() {
-			   $('#wwonb').css({'background-color':'#D2D2D2', 'color':'#999'})
-		   })
-		$('#wwoffb').off('mouseenter mouseleave');
-	}
-}
-
 </script>
 
 </head>
@@ -1978,7 +2259,7 @@ function toggleWordWrap() {
 	</div>
 	<div id="right" style="position:absolute; z-index:1;">
             <div id="info"><p><span  id="pageinf">
-                        <span id="prevpage"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="docid"></span>; Folio <span id="ptitle"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="nextpage"></span></span><a id="splitright" name="ishorizontal" style="float: right; margin-right:10px" href="javascript:splitvertical()" title="Image and text side by side"><img id="split" src="splitvert.png"></a></p></div>
+                        <span id="prevpage"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="docid"></span> Folio <span id="ptitle"></span>&nbsp;&nbsp;<span id="timer"></span>&nbsp;&nbsp;<span id="nextpage"></span></span><a id="splitright" name="ishorizontal" style="float: right; margin-right:10px" href="javascript:splitvertical()" title="Image and text side by side"><img id="split" src="splitvert.png"></a></p></div>
 		<div id="topright">
 			 <div id="image">
 				 <div id="docimage" class="image_map">
@@ -1995,18 +2276,19 @@ function toggleWordWrap() {
 			    <table width="100%">
 			    	<tr>
 						<td class="tcnt" id="tcnt1">
-						  <button id="tcntSaveLeft" class="btn save" value="0" data-version="0" title="Save left transcript page (not to database)" onclick="javascript:SaveTranscript(2)">Save</button></td>
+						  <button id="tcntSaveLeft" class="btn save" value="0" data-version="0" title="Save left transcript page (not to database)" onclick="javascript:SaveTranscript(2, 1)">Save</button></td>
 						<td class="tcnt2" id="tcnt2">
 							<button id="tcntSave" class="btn save" value="0" title="Save transcript page (not to database)" 
-								onclick="javascript:SaveTranscript(1)">Save</button>
+								onclick="javascript:SaveTranscript(1, 1)">Save</button>
 							<button id="tcntSubmit" class="btn submit" value="0" title="Submit transcript page for approval" 
 								onclick="javascript:SubmitTranscript(1)">Submit</button>
 						   <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
 							<button class="btn commit" title="Parse and save to database"
 								onclick="javascript:commitTranscript()">Commit</button>
-							<!-- span id="pww">&nbsp;&nbsp;&nbsp;<span id="wwoffbutton"><a id="wwoffb">Word Wrap Off</a></span><span id="wwonbutton"><a href="javascript:toggleWordWrap()" id="wwonb">Word Wrap On</a></span></span--></td>
+							<button class="btn checklinks" title="Check Links"
+								onclick="javascript:checkLinks()">Check Links</button>
 						  <td  class="tcnt" id="tcnt3">
-							<button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3)">Save</button>
+							<button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3, 1)">Save</button>
 						  </td>
 					</tr></table>
 			</div>
@@ -2028,6 +2310,10 @@ function toggleWordWrap() {
 <div id="dialog-confirm" title="Submit transcript" style="display:none">
   <p id="dlog-confirm-text">Page validates and may be submitted. You can transcript to the transcription leader for approval.  You will not be able to edit this page after submission.</p>
 </div>
+<div id="dialog-alert" title="Submit transcript" style="display:none">
+  <p id="dlog-alert-text"></p>
+</div>
+
 
 <script type="text/javascript">
 function init() {
@@ -2267,14 +2553,14 @@ function init() {
                       window.location = url + 'auth/logout/?partner=1&next=' + encodeURIComponent(window.location.href);
                     }
                     curUser = user;
-                    setEditorButtons(user);
+                    if (pageID!=0) setEditorButtons(user);
                     init();
                   }
                 );
               } else {
               	//coz /auth returns currently logged in user
                 curUser = user;
-                setEditorButtons(user)
+                if (pageID!=0) setEditorButtons(user)
                 init();
               }
             },
@@ -2290,6 +2576,24 @@ function init() {
             }
         });
      })
+     $( "#right" ).on( "idle.idleTimer", function(event, elem, obj){
+     	var currTime = new Date();
+     	editorActive=0;
+		currentTimer+=currTime.getTime()-startTime;
+		$("#timer").html(msToTime(currentTimer));
+	});
+	$( "#right"  ).on( "active.idleTimer", function(event, elem, obj, triggerevent){
+		//restart the clock. Start it every time we load a new transcript. Save value and restart when we save a transcript
+		var currTime = new Date();
+		startTime=currTime.getTime();
+		editorActive=1;
+		$("#timer").html(msToTime(currentTimer));
+	});
+	$( "#right" ).idleTimer( {
+			timeout:10000, 
+			events:'mousemove keydown wheel mousewheel mousedown touchstart touchmove MSPointerDown MSPointerMove'
+	});
+
 </script>
 </body>
 </html> 
