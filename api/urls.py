@@ -114,6 +114,7 @@ urlpatterns = patterns(
     url(r'^texts/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
             {},
+            {'func': 'root'},
             {'func': 'next'},
             {'func': 'prev'},
             {'func': 'parent'},

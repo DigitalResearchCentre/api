@@ -241,6 +241,9 @@ class Node(NS_Node):
     def parent(self):
         return self.get_parent()
 
+    def root(self):
+        return self.get_root()
+
     # deep first prev (include ancestor)
     def get_df_prev(self):
         return get_first(self.__class__.objects
