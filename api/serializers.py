@@ -72,8 +72,16 @@ class CSSSerializer(serializers.ModelSerializer):
 
 
 class RefsDeclSerializer(serializers.ModelSerializer):
+    urn = serializers.SerializerMethodField('get_urn')
+
     class Meta:
         model = RefsDecl
+
+    def get_urn(self, obj):
+        if obj.text:
+            return obj.text.get_urn()
+        else:
+            return ''
 
 
 class GroupSerializer(serializers.ModelSerializer):

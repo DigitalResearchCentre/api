@@ -79,6 +79,12 @@ class Community(models.Model):
     def get_refsdecls(self):
         return self.refsdecls.all()
 
+    def get_text_refsdecls(self):
+        return RefsDecl.objects.filter(
+            type=RefsDecl.TEXT_TYPE,
+            text__doc__community=self
+        )
+
     def memberships(self):
         return self.membership_set.all()
 

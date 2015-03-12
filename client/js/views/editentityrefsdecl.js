@@ -4,7 +4,7 @@ define([
   'use strict';
   var ENTITY_REFSDECL_TYPE= 1;
 
-  var EditDocRefsDeclView = EditRefsDeclView.extend({
+  var EditEntityRefsDeclView = EditRefsDeclView.extend({
     onRefsDeclAdd: function(refsdecl) {
       if (refsdecl.get('type') === ENTITY_REFSDECL_TYPE) {
         EditRefsDeclView.prototype.onRefsDeclAdd.apply(this, arguments);
@@ -21,7 +21,7 @@ define([
         'We use the Text Encoding Initiative "RefDecls" element to map ' +
         'textual entity sections ' + 
         '(chapters, paragraphs; poems, stanzas, lines) to encodings ' +
-        '(&lt;div/&gt;, &lt;p/&gt;, &lt;lg/&gt;, &lt;l/&gt;, etc.).');
+        '(<div/>, <p/>, <lg/>;, <l/>;, etc.).');
       return this;
     },
     onSave: function() {
@@ -33,6 +33,6 @@ define([
       return EditRefsDeclView.prototype.onSave.apply(this, arguments);
     }
   });
-  return EditDocRefsDeclView;
+  return EditEntityRefsDeclView;
 });
 

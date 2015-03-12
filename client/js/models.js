@@ -62,6 +62,14 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
       }
       return this._refsdecls;
     },
+    getTextRefsdecls: function() {
+      if (!this._text_refsdecls) {
+        this._text_refsdecls = new (Collection.extend({
+          rest: ['community:text_refsdecls', {pk: this.id}], model: RefsDecl
+        }))();
+      }
+      return this._text_refsdecls;
+    },
     getMemberships: function() {
       if (!this._memberships) {
         this._memberships = new (Collection.extend({

@@ -1,14 +1,14 @@
 define([
   'jquery', 'underscore', 'urls', 'auth',
   './modal', './editdoc',
-  './editdocrefsdecl', './editentityrefsdecl', './editpages',
-  './fileupload', 
+  './editdocrefsdecl', './editentityrefsdecl', './edittextrefsdecl',
+  './editpages', './fileupload', 
   './members', './management', './invite', 'text!tmpl/communityedit.html'
 ], function(
   $, _, urls, auth,
   ModalView, EditDocView,
-  EditDocRefsDeclView, EditEntityRefsDeclView, EditPagesView,
-  FileUploadView, MembersView, ManagementView, InviteView, tmpl
+  EditDocRefsDeclView, EditEntityRefsDeclView, EditTextRefsDeclView,
+  EditPagesView, FileUploadView, MembersView, ManagementView, InviteView, tmpl
 ) {
   var mediaURL = urls.mediaURL;
 
@@ -292,6 +292,7 @@ define([
       'click .delete-doc-text': 'onDeleteDocTextClick',
       'click .edit-doc-refsdecl': 'onEditDocRefsDeclClick',
       'click .edit-entity-refsdecl': 'onEditEntityRefsDeclClick',
+      'click .edit-text-refsdecl': 'onEditTextRefsDeclClick',
       'click .add-js': 'onAddJSClick',
       'click .add-css': 'onAddCSSClick',
       'click .add-dtd': 'onAddDTDClick',
@@ -353,6 +354,11 @@ define([
     },
     onEditEntityRefsDeclClick: function(){
         return this.openSubView('EditEntityRefsDecl', EditEntityRefsDeclView, {
+            community: this.model, onBack: _.bind(this.render, this)
+        });
+    },
+    onEditTextRefsDeclClick: function(){
+        return this.openSubView('EditTextRefsDecl', EditTextRefsDeclView, {
             community: this.model, onBack: _.bind(this.render, this)
         });
     },

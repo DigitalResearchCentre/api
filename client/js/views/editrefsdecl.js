@@ -19,7 +19,8 @@ define([
         ],
         initialize: function(options) {
             this.options = options;
-            this.refsdecls = this.options.community.getRefsdecls();
+            this.community = this.options.community;
+            this.refsdecls = this.getRefsdecls();
             this.listenTo(baseRefsDecls, 'add', this.onBaseRefsDeclAdd);
             this.listenTo(this.refsdecls, 'add', this.onRefsDeclAdd);
             this.model = new RefsDecl();
@@ -30,6 +31,9 @@ define([
                 this.refsdecls.fetch();
             }
         },
+        getRefsdecls: function() {
+          return this.community.getRefsdecls();
+        },
         onRefsDeclAdd: function(refsdecl) {
             this.$('.refsdecl-dropdown').append(
                 $('<option value="'+refsdecl.id+'"/>')
@@ -37,22 +41,25 @@ define([
             );
         },
         onBaseRefsDeclAdd: function(refsdecl) {
-            this.$('.base-refsdecl-dropdown').append(
-                $('<option value="'+refsdecl.id+'"/>')
-                .text(refsdecl.get('name') + ' ' + refsdecl.get('description'))
+          var $dropdown = this.$('.base-refsdecl-dropdown');
+          if ($dropdown.length > 0) {
+            $dropdown.append(
+              $('<option value="'+refsdecl.id+'"/>').text(
+                refsdecl.get('name') + ' ' + refsdecl.get('description'))
             );
+          }
         },
         onRefsDeclChange: function() {
-            var refsdecl = this.refsdecls.get(this.$('.refsdecl-dropdown').val());
-            if (refsdecl) {
-                this.model = refsdecl;
-            }else{
-                refsdecl = this.model = new RefsDecl();
-            }
-            this.$('#form-field-name').val(refsdecl.get('name'));
-            this.$('#form-field-description').val(refsdecl.get('description'));
-            this.$('#form-field-xml').val(refsdecl.get('xml'));
-            this.$('#form-field-template').val(refsdecl.get('template'));
+          var refsdecl = this.refsdecls.get(this.$('.refsdecl-dropdown').val());
+          if (refsdecl) {
+              this.model = refsdecl;
+          }else{
+              refsdecl = this.model = new RefsDecl();
+          }
+          this.$('#form-field-name').val(refsdecl.get('name'));
+          this.$('#form-field-description').val(refsdecl.get('description'));
+          this.$('#form-field-xml').val(refsdecl.get('xml'));
+          this.$('#form-field-template').val(refsdecl.get('template'));
         },
         onBaseRefsDeclChange: function() {
             var id = this.$('.base-refsdecl-dropdown').val()
