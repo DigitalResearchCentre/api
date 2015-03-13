@@ -402,7 +402,7 @@ function setEditorButtons(user) {
 	//don't deal with members.  what are they?
 	if (user==null) {
 		//visitor
-		$('.btn.submit, .btn.commit, .btn.save, .btn.checklinks').hide();
+		$('.btn.submit, .btn.commit, .btn.save, .btn.checklinks, .btn.makelinks').hide();
 	} else {
 		var isLeader=0;
 		$.getJSON(url+'memberships/?page_size=0&format=json', function (userlist) {
@@ -416,23 +416,27 @@ function setEditorButtons(user) {
 				//not found as leader; check as transcriber..
 				if (i==userlist.length-1 && !isLeader) {
 					$.each(userlist, function(j, thisuser) {
+						if (thisuser.user==curUser.id) {
+							var bill=1;
+						}
 						if (thisuser.user==curUser.id && thisuser.community==communityID) {
 							if (thisuser.role==4 || thisuser.role==3) {
 								//transcriber, not a leader in this community
 								//check tasks for this page... find the task status for this page for this user. if no tasks, or not assigned, hide buttons
-									$('.btn.commit, .btn.checklinks').hide();
-									var fred=pageID;
+									$('.btn.commit, .btn.checklinks, .btn.makelinks').hide();
 									$.getJSON(url+'tasks/?doc='+pageID+'&page_size=0&format=json', function(tasks) {
-										if (tasks.length==0) $('.btn.submit, .btn.save, .btn.checklinks').hide();
+										if (tasks.length==0) $('.btn.submit, .btn.save, .btn.checklinks, .btn.makelinks').hide();
+										var gotit=false;
 										$.each(tasks, function(h, task){
 											$.getJSON(url+'memberships/'+task.membership+'/?page_size=0&format=json', function(membership) {
 												if (membership.user==curUser.id) {
+													gotit=true;
 													if (task.status>1) 
-														$('.btn.submit, .btn.save, .btn.checklinks').hide();
-													else $('.btn.submit, .btn.save, .btn.checklinks').show();
-												} else {
+														$('.btn.submit, .btn.save, .btn.checklinks, .btn.makelinks').hide();
+													else $('.btn.submit, .btn.save').show();
+												} else if (!gotit) {
 													if (h==tasks.length-1) 
-														$('.btn.submit, .btn.save, .btn.checklinks').hide();
+														$('.btn.submit, .btn.save, .btn.checklinks, .btn.makelinks').hide();
 												}
 											});
 										});
@@ -1364,7 +1368,6 @@ function SaveTranscript(which, context) {
 //what to do.. validate; warn no longer available, update status on this task
 function SubmitTranscript () {
 	//validate it first...
-	return alert("Not yet implemented");
 	validateTranscript ().done (function (results) {
 		if (!results.success) return;
 		else  {
@@ -1400,6 +1403,7 @@ function checkInterPageLinks(thispageXML, prevXML, nextXML, prevNode, nextNode) 
 		//have we got some entities?
 		$.getJSON(url+'docs/'+nextNode.data.pageid+'/has_entities/?page_size=0&format=json',function(nextentities){
 			if (nextentities.length>0)  {// entities on next page.  Warn to link those
+					$('#dialog-alert').attr("title", "Make links between pages");
 					$('#dlog-alert-text').html("The next page contains entities which might need linking with this page. Click Check Links on this page, or Commit on the next page. ");
 					$( "#dialog-alert" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
 					"OK": function() {$( this ).dialog( "close" );} } });
@@ -1451,8 +1455,9 @@ function linkPages () {
 }
 
 function commitTranscript () {
-	return alert("Not yet implemented");
-	validateTranscript ().done (function (results) {
+		alert("Not yet implemented");
+		return;
+		validateTranscript ().done (function (results) {
 		if (!results.success) return;
 		else  {
 			if (results.errorMessage!="") doPreview(results.errorMessage, 'Preview');
@@ -1935,7 +1940,7 @@ function loadTranscripts(pageid, leftPage, rightPage) {
 }
 
 //we are only because on the way down, entity names and labels matched. So if the line checks, everything checks
-function checkEntLink(entsarray, thisentity, thispage, pnode, prevMatched) {
+function checkEntLink(entsarray, thisentity, thispage, pnode, prevMatched, context) {
 	$.getJSON(url+'entities/'+thisentity+'/has_docs/'+thispage+'?page_size=0&format=json', function (entplaces) {
 		//possibly, we are at too high a level -- might have to go down the parts and dig deeper
 		if (entplaces.length==0) {
@@ -1943,7 +1948,7 @@ function checkEntLink(entsarray, thisentity, thispage, pnode, prevMatched) {
 				$.each(entparts, function(i,entpart) {
 					var checkEnt=entsarray[entsarray.length-1];
 					if (entpart.label==checkEnt.label && entpart.name==checkEnt.n)
-				 		checkEntLink(entsarray, entpart.id, thispage, pnode, prevMatched);
+				 		checkEntLink(entsarray, entpart.id, thispage, pnode, prevMatched, context);
 				 });
 			});
 		}
@@ -1955,115 +1960,268 @@ function checkEntLink(entsarray, thisentity, thispage, pnode, prevMatched) {
 			prevMatched+=":"+thisprev.label+"="+thisprev.n;
 		}
 		var allMatched=true;
-		var message="Links between this page and the previous found: "
-		$.each(entsarray, function(i,obj) {if (obj.matched === 0) { allMatched = false; return false;} else {
-			if (i>0) message+="; "
+		var message="Links between this page and the previous found: <br/>"
+		$.each(entsarray, function(i,obj) {if (obj.matched === 0) { allMatched = false; message="No match found on previous page for:<br/>"+obj.prev; return false;} else {
+			if (i>0) message+="<br/>"
 			message+=" &lt;"+obj.gi+' n="'+obj.n+'"> on '+pnode.data.label+ ' '+pageName+ ' and on '+pnode.data.label+ ' '+pnode.data.title;
 		} });
-		if (allMatched) { dlogAlert("Check links succeeded", message, 250, 700); return;}	
-		else  { dlogAlert("Check links error", "Error found in checking links", 200, 500); return;}							
+		if (allMatched) { if (context==0) dlogAlert("Check links succeeded", message, 225, 600); return true;}	
+		else  { 
+			message+="<br/><br/>Make sure you commit the current transcript before checking links.";
+			dlogAlert("Check links error", message, 230, 800); return false;}							
 	});
 }
 
 //call this recursively until we get as far as we need to go
-function descendEntityHierarchy(entity, index, entitiesarray, prevnode, has_parts, prevmatched) {
+function descendEntityHierarchy(entity, index, entitiesarray, prevnode, has_parts, prevmatched, context) {
 	if (!has_parts) {
-		dlogAlert("Check links error", "Error: No children found for &lt;"+entitiesarray[index-1].gi+' n="'+ entitiesarray[index-1].n+'">', 200, 500); return;
+		dlogAlert("Check links error", "Error: No children found for &lt;"+entitiesarray[index-1].gi+' n="'+ entitiesarray[index-1].n+'">', 200, 500); return false;
 	} else {
 		$.getJSON(url+'entities/'+entity+'/has_parts?format=json',function(entparts){
 			$.each(entparts, function(i, entity) {
 				if (entity.label==entitiesarray[index-1].label && entity.name==entitiesarray[index-1].n) {
 				 	if (index==entitiesarray.length) return checkEntLink(entitiesarray, entity.id, prevnode.data.pageid, prevnode, prevmatched);
-				 	else return descendEntityHierarchy(entity.id, index+1, entitiesarray, prevnode, entity.has_parts, prevmatched);
+				 	else return descendEntityHierarchy(entity.id, index+1, entitiesarray, prevnode, entity.has_parts, prevmatched, context);
 				}  
 			});
 		});
 	}
 }
 
+function unLinkPageEls(i, j) {
+	for (++i;i<j;i++) {
+		var myradio='input[name="link'+i+'"]';
+		var thisLink="#unLinkP"+i;
+		$(thisLink).attr("checked", "checked")
+	}
+}
+
+function linkPageEls(i, j) {
+	var src_link="#unLinkP"+i;
+	for (var k=0;k<i;k++) {
+		var myradio='input[name="link'+i+'"]';
+		var thisLink="#nLinkP"+k;
+		var ischecked=$(thisLink).is(':checked');
+		if  (!$(thisLink).is(':checked')) $(myradio).attr("checked", "checked");
+	}
+}
+
+//now get the entities; find if there is a match between the last entity on the previous page and the first on this page
+function chooseContinuingElements(entitiesarray, pageid, prevnode, thisent) {
+	//right.  let's get the last line number of the last entity on the page.  Not straightforward!
+	$.getJSON(url+'entities/'+thisent+'/has_docs/'+prevnode.data.pageid+'?page_size=0&format=json', function (docparts) {
+		//in case we don't have any parts for this one -- go up an entity and do it again...
+		if (docparts.length==0) {
+			$.getJSON(url+'entities/'+thisent+'/parent?page_size=0&format=json', function (docents) {
+				chooseContinuingElements(entitiesarray, pageid, prevnode, docents.id)
+			});
+		} else {
+			var lastlabel=docparts[docparts.length-1].label;
+			var lastline=docparts[docparts.length-1].name;
+			var xmlsrc =editor.getValue();
+			var $xmlDoc=$($.parseXML(xmlsrc));
+			//got to be one of these!!!
+			var currEl=$xmlDoc.find('body');
+			if  (currEl.length==0) currEl=$xmlDoc.find('front');
+			if  (currEl.length==0) currEl=$xmlDoc.find('back');
+			//does last element on prev page match the first elements on this page?
+			var highest_matched=-1;
+			for (var i=0;i<entitiesarray.length; i++) {
+				var currEl=currEl.eq(0).find(entitiesarray[i].gi);
+				var currEln=currEl.eq(0).attr("n");
+				if (currEln==entitiesarray[i].n) {
+					entitiesarray[i].matched=true;
+					highest_matched=i;
+				}
+			}
+			//now make a nice dialogue showing what is going on
+			if (entitiesarray.length>1) {var suffix=""} else {var suffix="s"};
+			var prevels="<p>The following appear"+suffix+" on "+prevnode.data.label+"s "+prevnode.data.title+" and "+pageName+"<br/>"+"<table style='width:615px; margin: 10px; font-family:"+communityFont+"'>";
+			var nmatches=0
+			for (var i=0;i<entitiesarray.length; i++) {
+				if (entitiesarray[i].matched) {
+					prevels+="<tr><td><input n='"+i+"' id='nLinkP"+i+"' onchange='javascript:linkPageEls("+i+", "+entitiesarray.length+")' type='radio' name='link"+i+"' value='link' checked>Link</input></td><td><input n='"+i+"' id='unLinkP"+i+"' onchange='javascript:unLinkPageEls("+i+", "+entitiesarray.length+")' type='radio' name='link"+i+"' value='unlink' >Unlink</input></td><td>&lt;"+entitiesarray[i].gi+' n="'+entitiesarray[i].n+'"></td></tr>';
+					nmatches++;
+				}
+			}
+			$.getJSON(url+'entities/'+thisent+'/xml/'+prevnode.data.pageid, function (doctext) {
+				var doctext2=doctext[0].replace("<lb/>","");
+				var $last_txt=$($.parseXML(doctext2)).find(entitiesarray[entitiesarray.length-1].gi);
+				var last_txt=stripText(0, 40, $last_txt.eq(0));
+				var this_text=stripText(1, 40, currEl.eq(0));
+				height=nmatches*25;
+				prevels+="</table>";
+				prevels+="&lt;"+entitiesarray[highest_matched].gi+' n="'+entitiesarray[highest_matched].n+'"> on '+prevnode.data.label+' '+prevnode.data.title+' ends <font color="red">'+last_txt.trim()+'</font>, continuing <font color="red">'+this_text.trim()+'</font> on '+pageName+"<br/>"
+				prevels+='Keep <b>Link</b> to have the text flow from page to page. Click <b>Unlink</b> to close these entities on the previous page and reopen them on the next page'
+				$('#dlog-alert-text').html(prevels);
+				$( "#dialog-alert" ).dialog({resizable: false, height:275+height, width: 800, modal: true, buttons: {
+				"OK": function() {$( this ).dialog( "close" );} } });
+			});
+		}
+	});
+} 
+
+function stripText (start, extent, txt) {
+	var test=txt.clone().children().remove().end().text();
+	if (extent>test.length) extent=test.length;
+	if (start) return test.slice(0,extent);
+	else return test.slice(test.length-extent, test.length);
+}
+function digDownPage(entID, entitiesarray, pageid, prevnode) {
+	$.getJSON(url+'docs/'+pageid+'/has_entities/'+entID+'?page_size=0&format=json', function (pageentities) {
+		$.getJSON(url+'entities/'+pageentities[pageentities.length-1].id+'/has_text_of?page_size=0&format=json', function (penttext) {
+			var tt=penttext[penttext.length-1].element;
+			var elGI=tt.slice(tt.indexOf("<")+1, tt.indexOf(" "));
+			var elN=tt.slice(tt.indexOf(' n="')+4, tt.indexOf('"', tt.indexOf(' n="')+5));
+			entitiesarray.push(JSON.parse('{"gi":"'+elGI+'", "n":"'+elN+'", "matched":0}'));	
+			//down the tree we go...
+			if (pageentities[pageentities.length-1].has_parts)
+				digDownPage(pageentities[pageentities.length-1].id, entitiesarray, prevnode.data.pageid, prevnode);
+			else {
+				chooseContinuingElements(entitiesarray, pageid, prevnode, pageentities[pageentities.length-1].id);
+			}
+		});
+	});
+}
+
+//function: link up this and previous page by identifying cases where 
+function makeLinks () {
+	// validate it first
+	validateTranscript ().done (function (results) {
+		if (!results.success) return;
+		else  {
+			if (results.errorMessage!="") doPreview(results.errorMessage, 'Preview');
+			else {
+		//get the last elements from the previous page
+				var tree =$("#tree").dynatree("getTree");
+				var pnode=tree.getNodeByKey(pageKey);
+				var prevnode=pnode.getPrevSibling();
+				var entitiesarray=new Array();
+				if (!validPrevs()) return(false);
+				$.getJSON(url+'docs/'+prevnode.data.pageid+'/has_entities?page_size=0&format=json', function (pageentities) {
+					if (pageentities.length==0) {
+						dlogAlert("Make links error", 'Error: the database entry for the previous page contains no entities to link to. Check the transcription for that page and commit it to the database before proceeding.', 200, 600);
+						return false;
+					} else {
+						$.getJSON(url+'entities/'+pageentities[pageentities.length-1].id+'/has_text_of?page_size=0&format=json', function (penttext) {
+							//pull the element and attribute out
+							var tt=penttext[penttext.length-1].element;
+							var elGI=tt.slice(tt.indexOf("<")+1, tt.indexOf(" "));
+							var elN=tt.slice(tt.indexOf(' n="')+4, tt.indexOf('"', tt.indexOf(' n="')+5));
+							entitiesarray.push(JSON.parse('{"gi":"'+elGI+'", "n":"'+elN+'"}'));	
+							//down the tree we go...
+							if (pageentities[pageentities.length-1].has_parts)
+								digDownPage(pageentities[pageentities.length-1].id, entitiesarray, prevnode.data.pageid, prevnode);
+							else chooseContinuingElements(entitiesarray, prevnode.data.pageid, prevnode, pageentities[pageentities.length-1].id); 
+						});
+					}
+				});
+			}
+		}
+	});
+}
+
+//identify inconsistencies like:  Devotion=1:**Secton**=meditation 1 AND Devotion=1:**Section**=meditation 1:Para=6
+//caused by error in the entities refsdcl, of course. we can pick these up in checkLinks.  But how could we test the whole DB for consistency...???
+function validEntityHierarchy(entitiesarray) {
+	//if there is only one, and it is an entity -- chuck it back.  You can't have a prev attribute on an entity by definition? well, we aren't going to stand for it...
+	//hmm -- might need this 
+	if (entitiesarray.length==0) {
+		dlogAlert("Check links error", 'Error: No "prev" attributes on any elements. Choose Link Pages first.', 175, 600);
+		return false;
+	}
+
+	if (entitiesarray.length==1 && entitiesarray[0].label=="entity") {
+		dlogAlert("Check links error", 'Error: the only prev attribute given is for a top-level entity. You need to link elements lower in the document hierarchy.', 175, 600);
+		return false;
+	}
+	for (var i = 1; i < entitiesarray.length; i++) {
+		//remove last label and name from prev value, and match with previous prev.  If we don't have a match we do have a problem!
+		var thisprev=entitiesarray[i].prev;
+		var removeprev=":"+entitiesarray[i].label+"="+entitiesarray[i].n;
+		thisprev=thisprev.slice(0,thisprev.lastIndexOf(removeprev));
+		if (thisprev!=entitiesarray[i-1].prev) {
+			//problem Houston! does not match... let's match up 
+			for (var j=0, fnd=0; j<thisprev.length && fnd==0; j++) {if (thisprev[j]!=entitiesarray[i-1].prev[j]) fnd=1;}
+			var thisprevbit=thisprev.slice(thisprev.lastIndexOf(":", j)+1, thisprev.length);
+			var nowprevbit=entitiesarray[i-1].prev.slice(entitiesarray[i-1].prev.lastIndexOf(":", j)+1, entitiesarray[i-1].prev.length);
+			dlogAlert("Check links error", 'Error: entity "<b>'+thisprevbit+'</b>" in <br/>"'+entitiesarray[i].prev+'"<br/>does not match entity "<b>'+nowprevbit+'</b>" in <br/>"'+entitiesarray[i-1].prev+'". <br/>This is likely an error in the entities reference declaration involving the label given this entity. You should fix this.', 350, 800);
+			return false;
+		}
+	}
+	return true;
+}
+
+function makePrevsArray() {
+	var entitiesarray=new Array();
+	var xmlsrc =editor.getValue();
+	var $xmlDoc = $($.parseXML(xmlsrc));
+	var prevEls= $xmlDoc.find('[prev]');
+	var prevElsArray = [].slice.call(prevEls);
+	prevElsArray.forEach(function(index) {
+		var elGI=index.localName;
+		var nattr;
+		var prevattr;
+		var indexArray= [].slice.call(index.attributes);
+		indexArray.forEach(function (attribute) {
+			if (attribute.localName =="n") nattr=attribute.nodeValue;
+			if (attribute.localName =="prev") prevattr=attribute.nodeValue;
+		});
+		var lastlabel=prevattr.slice(prevattr.lastIndexOf(":")+1, prevattr.lastIndexOf("="));
+		// add to list of entities to check
+		entitiesarray.push(JSON.parse('{"gi":"'+elGI+'", "n":"'+nattr+'", "prev":"'+prevattr+'", "matched":0, "label":"'+lastlabel+'"}'));
+	});
+	return entitiesarray;
+}
+
+function validPrevs() {
+	var entitiesarray=new Array();
+	entitiesarray=makePrevsArray();
+	if (entitiesarray.length>0 && !validEntityHierarchy(entitiesarray)) return false;
+	else return true;
+}
 //look at prev links on this and next page
-function checkLinks () {
+function checkLinks (context) {
 	//do we have prev links on this page?
 	var tree =$("#tree").dynatree("getTree");
 	var pnode=tree.getNodeByKey(pageKey);
 	var prevnode=pnode.getPrevSibling();
 	if (prevnode) {
 		//get the XML for the current committed database version; get elements with n and prev attrs.  Note!!! no jQuery, odd javascripty stuff
-		$.getJSON(url+'docs/'+pageID+'/has_text_in?format=json',function(hastextin){
-			$.getJSON(url+'texts/'+hastextin.id+'/xml',function(dbtext){ 
-				var xmlDoc = $.parseXML( dbtext );
-				var prevEls= xmlDoc.querySelectorAll('[prev]');
-				var prevElsArray = [].slice.call(prevEls);
-				var entitiesarray=new Array();
-				prevElsArray.forEach(function(index) {
-					var elGI=index.localName;
-					var nattr;
-					var prevattr;
-					var indexArray= [].slice.call(index.attributes);
-					indexArray.forEach(function (attribute) {
-						if (attribute.localName =="n") nattr=attribute.nodeValue;
-						if (attribute.localName =="prev") prevattr=attribute.nodeValue;
-					});
-					var lastlabel=prevattr.slice(prevattr.lastIndexOf(":")+1, prevattr.lastIndexOf("="));
-					// add to list of entities to check
-					entitiesarray.push(JSON.parse('{"gi":"'+elGI+'", "n":"'+nattr+'", "prev":"'+prevattr+'", "matched":0, "label":"'+lastlabel+'"}'));
-				});
-				//now, check these against previous page...find each entity on previous page, match n and prev values, if they match, perfect
-				//so, grab entities from previous page; we need to do this hierarchically.  We are going to figure that only one object continues...
-				//way to do this: look for the DEEPEST nested entity on the page. Reason -- this will be on the page. higher level div might begin 
-				//pages before, and so NOT be returned by entities/entityid/has_text_of/pageid.  
-				//get lowest entity: dig down till we get its id.  So go down the entity trail till we find it
-			//	var position = entitiesarray[0].prev.indexOf(":entity:")
-				if (entitiesarray[0].prev.indexOf(":", entitiesarray[0].prev.indexOf(":entity=")+1)!=-1) 
-					var entName=entitiesarray[0].prev.slice(entitiesarray[0].prev.indexOf(":entity=")+8, entitiesarray[0].prev.indexOf(":", entitiesarray[0].prev.indexOf(":entity=")+1));
-				else var entName=entitiesarray[0].prev.slice(entitiesarray[0].prev.indexOf(":entity=")+8, entitiesarray[0].prev.length);
-				$.getJSON(url+'communities/'+communityID+'/entities?page_size=0&format=json',function(entities){ 
-					$.each(entities, function(i, entity) {
-						if (entity.label=="entity" && entity.name==entName) {
-							//might be the only one we are checking...
-							var prevmatched="entity="+entName;
-							if (entitiesarray.length==1) return checkEntLink(entitiesarray, entity.id, prevnode.data.pageid, prevnode, prevmatched);
-							else {//go dig deeper
-								return descendEntityHierarchy(entity.id, 1, entitiesarray, prevnode, entity.has_parts, prevmatched );
-							}
-						} 
-						if (i==entities.length-1) dlogAlert("Check links error", "Error: &lt;"+ entitiesarray[0].gi+' n="'+ entitiesarray[0].n+'"> not found on previous page', 200, 500);
-					});
-				});
-				
-				
-		/*		$.getJSON(url+'docs/'+prevnode.data.pageid+'/has_entities',function(docentities){ 
-					$.each(docentities, function(i, docentity) {
-						$.getJSON(url+'entities/'+docentity.id+'/has_text_of/'+prevnode.data.pageid+'?page_size=0&format=json',function(thisdocentities){
-							$.each(thisdocentities, function(i, thisdocentity) {
-								//have we got a match with an entity on this page with the previous value?
-								entitiesarray.forEach(function (entity) {
-									//first check the n value matches...
-							//		var entity=JSON.parse(oneentity);
-									var thisEnt='<'+entity.gi+' n="'+entity.n+'">';
-									if (thisdocentity.element.indexOf(thisEnt)==0) { //n value and element match
-										$.getJSON(url+'entities/'+docentity.id+'/has_docs/'+prevnode.data.pageid+'?page_size=0&format=json',function(linedocentities){
-											$.each(linedocentities, function(j, thislinedocent) {
-												var thisDETref="urn:det:"+TCid+":"+community+":document="+pnode.parent.data.title+":"+prevnode.data.label+"="+prevnode.data.title+":"+thislinedocent.label+"="+thislinedocent.name+":entity="+docentity.name;
-												if (thisDETref==entity.prev) entity.matched=1;
-												var allMatched=true;
-												var message="Links between this page and the previous found: "
-												$.each(entitiesarray, function(i,obj) {if (obj.matched === 0) { allMatched = false; return false;} else {message+=" &lt;"+obj.gi+' n="'+obj.n+"> linked to "+obj.prev} });
-												if (allMatched) {
-													dlogAlert("Check links", message, 250, 700);
-													return;
-												}
-											});
-										});
-									}
-								});
-							});
-						});
-						var bill=1;
-					});
-				}); */
+		//add sanity check: if labels and names don't match on the way down, we have a problem.. better fix it.
+		//example: Devotion=1:**Secton**=meditation 1 and Devotion=1:**Section**=meditation 1:Para=6	
+		var entitiesarray=new Array();
+		entitiesarray=makePrevsArray();
+		if (!validEntityHierarchy(entitiesarray)) return;
+		//now, check these against previous page...find each entity on previous page, match n and prev values, if they match, perfect
+		//so, grab entities from previous page; we need to do this hierarchically.  We are going to figure that only one object continues...
+		//way to do this: look for the DEEPEST nested entity on the page. Reason -- this will be on the page. higher level div might begin 
+		//pages before, and so NOT be returned by entities/entityid/has_text_of/pageid.  
+		//get lowest entity: dig down till we get its id.  So go down the entity trail till we find it
+	//	var position = entitiesarray[0].prev.indexOf(":entity:")
+		if (entitiesarray[0].prev.indexOf(":", entitiesarray[0].prev.indexOf(":entity=")+1)!=-1) 
+			var entName=entitiesarray[0].prev.slice(entitiesarray[0].prev.indexOf(":entity=")+8, entitiesarray[0].prev.indexOf(":", entitiesarray[0].prev.indexOf(":entity=")+1));
+		else var entName=entitiesarray[0].prev.slice(entitiesarray[0].prev.indexOf(":entity=")+8, entitiesarray[0].prev.length);
+		return $.getJSON(url+'communities/'+communityID+'/entities?page_size=0&format=json',function(entities){ 
+			var gotit=false;
+			$.each(entities, function(i, entity) {
+				if (entity.label=="entity" && entity.name==entName) {
+					//might be the only one we are checking...
+					var prevmatched="entity="+entName;
+					if (entitiesarray.length==1) {
+						gotit=true;
+						return checkEntLink(entitiesarray, entity.id, prevnode.data.pageid, prevnode, prevmatched, context);
+					}  else {//go dig deeper
+						gotit=true;
+						return descendEntityHierarchy(entity.id, 1, entitiesarray, prevnode, entity.has_parts, prevmatched, context );
+					}
+				} 
+				if (i==entities.length-1 && !gotit) dlogAlert("Check links error", "Error: &lt;"+ entitiesarray[0].gi+' n="'+ entitiesarray[0].n+'"> not found on previous page', 200, 500);
 			});
 		});
+	} else {
+		dlogAlert("Check links advice", "No previous page. You can only check links between a page and the previous page", 150, 800);
+		return false;
 	}
 }
 
@@ -2285,8 +2443,10 @@ function togglepageitem() {
 						   <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
 							<button class="btn commit" title="Parse and save to database"
 								onclick="javascript:commitTranscript()">Commit</button>
+							<button class="btn makelinks" title="Link elements running across page breaks"
+								onclick="javascript:makeLinks()">Link Pages</button>
 							<button class="btn checklinks" title="Check Links"
-								onclick="javascript:checkLinks()">Check Links</button>
+								onclick="javascript:checkLinks(0)">Check Links</button>
 						  <td  class="tcnt" id="tcnt3">
 							<button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3, 1)">Save</button>
 						  </td>
