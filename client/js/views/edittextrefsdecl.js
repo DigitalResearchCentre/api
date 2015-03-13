@@ -7,7 +7,7 @@ define([
   var EditTextRefsDeclView = EditRefsDeclView.extend({
     onRefsDeclAdd: function(refsdecl) {
       if (refsdecl.get('type') === TEXT_REFSDECL_TYPE) {
-        var name = refsdecl.get('name') || refsdecl.get('urn');
+        var name = refsdecl.get('urn');
         this.$('.refsdecl-dropdown').append(
             $('<option value="'+refsdecl.id+'"/>').text(
               name + ' ' + refsdecl.get('description'))

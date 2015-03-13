@@ -191,3 +191,4 @@ if settings.DEBUG:
                           document_root=settings.ROOT_PATH + '/../interface')
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
+
