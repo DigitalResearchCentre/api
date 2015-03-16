@@ -387,9 +387,6 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
-
-
-
 #    has_image = serializers.URLField(source='has_image')
 #    has_transcript = serializers.HyperlinkedRelatedField(
 #        many=True, read_only=True, view_name='transcript-detail')
