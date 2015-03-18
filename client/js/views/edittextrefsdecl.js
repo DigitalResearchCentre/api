@@ -1,10 +1,12 @@
 define([
-  'jquery', 'underscore', './modal', './editrefsdecl'
-], function($, _, ModalView, EditRefsDeclView) {
+  'jquery', 'underscore', './modal', './editrefsdecl',  
+  'text!tmpl/edittextrefsdecl.html'
+], function($, _, ModalView, EditRefsDeclView, tmpl) {
   'use strict';
   var TEXT_REFSDECL_TYPE= 2;
 
   var EditTextRefsDeclView = EditRefsDeclView.extend({
+    bodyTemplate: _.template(tmpl),
     onRefsDeclAdd: function(refsdecl) {
       if (refsdecl.get('type') === TEXT_REFSDECL_TYPE) {
         var name = refsdecl.get('urn');
@@ -16,12 +18,6 @@ define([
     },
     getRefsdecls: function() {
       return this.community.getTextRefsdecls();
-    },
-    render: function() {
-      EditRefsDeclView.prototype.render.apply(this, arguments);
-      this.$('.base-refsdecl.form-group').remove();
-      this.$('.name.form-group').remove();
-      return this;
     },
     onSave: function() {
       var data = {type: TEXT_REFSDECL_TYPE};

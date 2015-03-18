@@ -13,7 +13,7 @@ import urllib
 import urllib2
 import feedparser
 from collections import deque
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.conf import settings
 from django.http import HttpResponse
@@ -509,6 +509,11 @@ class Doc(DETNode):
         'Revision', related_name='+', null=True, blank=True
     )
 
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        self.get_texts().delete()
+        return super(Doc, self).delete(*args, **kwargs)
+
     def has_text_in(self):
         try:
             return self.text
@@ -725,8 +730,14 @@ class Text(Node):
     tag = models.CharField(max_length=15)
     text = models.TextField(blank=True)
     tail = models.TextField(blank=True)
-    doc = models.OneToOneField(Doc, null=True, blank=True, editable=False)
-    entity = models.ForeignKey(Entity, null=True, blank=True, editable=False)
+    doc = models.OneToOneField(
+        Doc, null=True, blank=True, editable=False,
+        on_delete=models.SET_NULL,
+    )
+    entity = models.ForeignKey(
+        Entity, null=True, blank=True, editable=False,
+        on_delete=models.SET_NULL,
+    )
 
     def get_urn(self):
         doc = self.is_text_in()
