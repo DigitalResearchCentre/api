@@ -54,6 +54,14 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
       }
       return this._docs;
     },
+    getEntities: function() {
+      if (!this._entities) {
+        this._entities = new (Collection.extend({
+          rest: ['community:entities', {pk: this.id}], model: Entity
+        }))();
+      }
+      return this._entities;
+    },
     getRefsdecls: function() {
       if (!this._refsdecls) {
         this._refsdecls = new (Collection.extend({
@@ -170,6 +178,10 @@ define(['backbone', 'jquery', 'urls'], function(Backbone, $, urls) {
       return $.get(urls.get(['doc:urn', {pk: this.id}], 
                             {format: 'json', page_size: 0}));
     }
+  });
+
+  var Entity = Model.extend({
+    rest: 'entity',
   });
 
   var RefsDecl = Model.extend({

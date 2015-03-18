@@ -1,5 +1,7 @@
 from django.contrib import admin
+from django.contrib.admin.utils import NestedObjects
 from api import models
+
 
 admin.site.register(models.Community)
 admin.site.register(models.CommunityMapping)

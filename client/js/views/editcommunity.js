@@ -3,12 +3,15 @@ define([
   './modal', './editdoc',
   './editdocrefsdecl', './editentityrefsdecl', './edittextrefsdecl',
   './editpages', './fileupload', 
-  './members', './management', './invite', 'text!tmpl/communityedit.html'
+  './members', './management', './invite',
+  'text!tmpl/communityedit.html',
+  'text!tmpl/relinkentities.html',
 ], function(
   $, _, urls, auth,
   ModalView, EditDocView,
   EditDocRefsDeclView, EditEntityRefsDeclView, EditTextRefsDeclView,
-  EditPagesView, FileUploadView, MembersView, ManagementView, InviteView, tmpl
+  EditPagesView, FileUploadView, MembersView, ManagementView, InviteView, 
+  tmpl, relinkEntitiesTmpl
 ) {
   var mediaURL = urls.mediaURL;
 
@@ -179,8 +182,51 @@ define([
       EditDocView.prototype.render.apply(this, arguments);
       this.$('form').append($('<pre/>').addClass('doc-xml'));
       return this;
-    }
+    },
   });
+
+  var RelinkEntitiesView = EditDocView.extend({
+    bodyTemplate: _.template(relinkEntitiesTmpl),
+    initialize: function(options) {
+      EditDocView.prototype.initialize.apply(this, arguments);
+      var entities = this.entities = this.model.getEntities();
+        this.listenTo(entities, 'add', this.onEntityAdd);
+        if (!entities.isFetched()) {
+            this.entities.fetch();
+        }
+    },
+    onEntityAdd: function(entity) {
+      var $entities = this.$('.entity-dropdown');
+      $entities.append($('<option/>').val(entity.id).text(entity.get('name')));
+    },
+    buttons: [
+      {cls: "btn-default", text: 'Back', event: 'onBack'},
+      {cls: "btn-default", text: 'Close', event: 'onClose'},
+    ],
+    onDocChange: function() {
+      var $entities = this.$('.choose-entity.form-group select')
+        , id = this.$('.doc-dropdown').val()
+      ;
+      $.get(urls.get(
+        ['doc:text', {pk: id}], 
+        {format: 'json', page_size: 0}
+      )).then(function(data){
+        return $.get(urls.get(
+          ['text:entity', {pk: data.id}],
+          {format: 'json', page_size: 0}
+        ));
+      }).then(function(data){
+        $entities.val(data.id);
+      }).fail(function(resp){
+        $entities.val('');
+        /*
+        var data = resp.responseJSON;
+        if (data && data.detail == 'Not found') { }
+        */
+      });
+    },
+  });
+
 
   var RenameDocView = EditDocView.extend({
     buttons: [
@@ -288,6 +334,7 @@ define([
       'click .btn.edit-pages': 'onEditPagesClick',
       'click .get-doc-xml': 'onGetDocXMLClick',
       'click .rename-doc': 'onRenameDocClick',
+      'click .relink-entities': 'onRelinkEntitiesClick',
       'click .delete-doc': 'onDeleteDocClick',
       'click .delete-doc-text': 'onDeleteDocTextClick',
       'click .edit-doc-refsdecl': 'onEditDocRefsDeclClick',
@@ -376,6 +423,9 @@ define([
     },
     onRenameDocClick: function() {
         return this.openSubView('RenameDoc', RenameDocView);
+    },
+    onRelinkEntitiesClick: function() {
+        return this.openSubView('RelinkEntities', RelinkEntitiesView);
     },
     onDeleteDocClick: function() {
         return this.openSubView('DeleteDoc', DeleteDocView);
