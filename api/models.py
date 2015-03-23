@@ -995,6 +995,8 @@ class Text(Node):
             doc = obj
         if entity is None:
             entity = obj
+        print doc.pk
+        print doc.name
         doc_text = doc.has_text_in()
         q = Q(tree_id=doc_text.tree_id, rgt__gt=doc_text.lft)
         bound = doc._get_texts_bound()
@@ -1191,10 +1193,13 @@ class Revision(models.Model):
         index = 1
         for text in doc.get_texts().filter(tag__in=tag_list):
             name = text.get_attr_value('n') or str(index)
+            index += 1
             if text.tag == 'cb':
                 parent = doc
             parent = Doc.objects.get(pk=parent.pk)
             child = parent.add_child(name=name, label=doc_map[text.tag])
+            text.doc = child
+            text.save()
             if text.tag == 'cb':
                 parent = child
 
