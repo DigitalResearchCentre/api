@@ -456,6 +456,8 @@ class Entity(DETNode):
                 texts = texts.filter(tree_id=doc_text.tree_id)
 
         result = Doc.objects.none()
+        for t in texts:
+            print t.pk
         for text in texts:
             descendants = text.get_descendants()
             first = get_first(descendants)
@@ -469,7 +471,8 @@ class Entity(DETNode):
                 last_doc = last.is_text_in()
                 qs = Doc.objects.filter(
                     tree_id=first_doc.tree_id,
-                    rgt__gt=first_doc.lft, lft__lt=last_doc.lft
+                    lft__lte=last_doc.lft,
+                    rgt__gt=first_doc.lft, 
                 )
             else:
                 qs = Doc.objects.none()
@@ -866,6 +869,7 @@ class Text(Node):
             bulk_data.append({'data': data, 'children': children})
         return bulk_data
 
+    @transaction.atomic
     def load_tei(self, tei_el, community):
         nsmap = {
             'tei': 'http://www.tei-c.org/ns/1.0',
@@ -995,8 +999,6 @@ class Text(Node):
             doc = obj
         if entity is None:
             entity = obj
-        print doc.pk
-        print doc.name
         doc_text = doc.has_text_in()
         q = Q(tree_id=doc_text.tree_id, rgt__gt=doc_text.lft)
         bound = doc._get_texts_bound()
@@ -1063,6 +1065,7 @@ class Revision(models.Model):
         if bulk_el and (after is None or parent.rgt > after.lft):
             parent.load_bulk_el(bulk_el, after=after)
 
+    @transaction.atomic
     def commit(self):
         doc = Doc.objects.get(pk=self.doc.pk)
         root = doc.get_root().has_text_in()
@@ -1133,10 +1136,8 @@ class Revision(models.Model):
                 mp = re.sub(r'\([^\)]+\)', '%s', match)
                 if re.findall(r'^(?:\w+:)+entity', mp):
                     entity_xpath[mp] = xpath
-        print entity_xpath
 
         for mp, xpath in entity_xpath.items():
-            print mp, xpath
             for el in root_el.xpath(xpath):
                 path = (el.get('n'),)
                 for ancestor in el.iterancestors():
