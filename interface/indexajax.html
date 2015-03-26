@@ -2089,17 +2089,32 @@ function chooseContinuingElements(entitiesarray, pageid, prevnode, thisent) {
 				$( "#dialog-alert" ).dialog({resizable: false, height:275+height, width: 800, modal: true, buttons: {
 					"OK": function() {
 							var highestLinked=-1;
-							if (highest_prev!=-1) {
-								for  (var i=0;i<entitiesarray.length; i++) {
-									var thisLink="#nLinkP"+i;
-									if  ($(thisLink).is(':checked')) highestLinked=i;
-								}
+							for  (var i=0;i<entitiesarray.length; i++) {
+								var thisLink="#nLinkP"+i;
+								if  ($(thisLink).is(':checked')) highestLinked=i;
+							}
+							if (highestLinked!=-1) {
 								if (highestLinked==highest_prev) {
 									$( this ).dialog( "close" );
 									dlogAlert ("Link pages advice", "The element or elements you have selected already have valid \"prev\" attributes linking across the pages.", 275+height, 800)
 									return;
 								} else {
-									//put the attributes on the elements ...
+									//check there is nothing separating the prev elements except white space...
+									currEl=$xmlDoc.find('text').children(":first");
+									var prevGI=currEl.prop('tagName');
+									for  (var i=0;i<entitiesarray.length; i++) {
+										//first prev element must be first child of body/front/back
+										currEl=currEl.children(":first");
+										var thisgi=currEl.prop('tagName');
+										var thisN=currEl.attr('n');
+										if (thisgi!=entitiesarray[i].gi || thisN!= entitiesarray[i].n) {
+											$( this ).dialog( "close" );
+											dlogAlert ("Link pages error", "A &lt;"+thisgi+"> element found immediately within a &lt;"+prevGI+"> element, where &lt;"+entitiesarray[i].gi+" n='"+entitiesarray[i].n+"'> was expected. Delete this element, or move it within the last element to be linked.", 275, 800)
+											return;
+										}
+										prevGI=thisgi;
+									}
+									//here is where we check -- if there is ANYTHING between the elements to hold the prev, we got a problem
 									for  (var i=0;i<entitiesarray.length; i++) {
 										var matchEl=entitiesarray[i].gi+'[n="'+entitiesarray[i].n+'"]'
 										var thisLink="#nLinkP"+i;
@@ -2112,10 +2127,10 @@ function chooseContinuingElements(entitiesarray, pageid, prevnode, thisent) {
 									//write the html to the editor
 									//var xmlText = new XMLSerializer().serializeToString($xmlDoc.find("Object").get(0));
 									var xmlText = (new XMLSerializer()).serializeToString($xmlDoc.find("text").get(0));
- 									editor.setValue(xmlText);
- 									$( this ).dialog( "close" );
- 									return;
- 								}
+									editor.setValue(xmlText);
+									$( this ).dialog( "close" );
+									return;
+								}
 							}
 							$( this ).dialog( "close" );
 						} 
