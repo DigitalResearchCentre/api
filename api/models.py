@@ -455,17 +455,13 @@ class Entity(DETNode):
             if doc_text is not None:
                 texts = texts.filter(tree_id=doc_text.tree_id)
 
-        result = Doc.objects.none()
         for t in texts:
             print t.pk
+        result = Doc.objects.none()
         for text in texts:
             descendants = text.get_descendants()
-            first = get_first(descendants)
-            if first is None:
-                first = text
-                last = text
-            else:
-                last = get_last(descendants)
+            first = text
+            last = get_last(descendants) or text
             first_doc = first.is_text_in()
             if first_doc:
                 last_doc = last.is_text_in()
