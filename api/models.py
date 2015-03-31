@@ -1354,7 +1354,7 @@ class JS(models.Model):
 
 class RefsDecl(models.Model):
     DOC_TYPE, ENTITY_TYPE, TEXT_TYPE = range(3)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
     type = models.IntegerField(choices=(
         (DOC_TYPE, 'document'),
