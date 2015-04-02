@@ -57,7 +57,7 @@ def api_root(request, format=None):
 
 
 class RelationView(
-    mixins.ListModelMixin, generics.RetrieveAPIView
+    mixins.ListModelMixin, generics.RetrieveUpdateDestroyAPIView
 ):
     func = None
     response_class = None
