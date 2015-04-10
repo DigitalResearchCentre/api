@@ -111,9 +111,9 @@ urlpatterns = patterns(
             {'func': 'has_docs', 'serializer_class': DocSerializer},
         ], extra={'model': Entity, 'serializer_class': EntitySerializer}))),
     url(r'^texts/$', TextList.as_view(), name='text-list'),
+    url(r'^texts/(?P<pk>\d+)/$', TextDetail.as_view()),
     url(r'^texts/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
-            {},
             {'func': 'root'},
             {'func': 'next'},
             {'func': 'prev'},

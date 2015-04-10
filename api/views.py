@@ -385,7 +385,6 @@ class DocDetail(generics.RetrieveUpdateDestroyAPIView):
             user=request.user, community=community, action='delete document', 
             key=result.id, data={'doc': obj.get_urn()})
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
 
 #    has_image = serializers.URLField(source='has_image')
 #    has_transcript = serializers.HyperlinkedRelatedField(
@@ -420,6 +419,7 @@ class TextDetail(generics.RetrieveUpdateDestroyAPIView):
             action='delete document text', 
             key=result.id, data={'doc': doc.get_urn()})
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class TextList(generics.ListCreateAPIView):
     model = Text
