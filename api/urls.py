@@ -59,9 +59,10 @@ urlpatterns = patterns(
             },
         ], extra={'model': Community}))),
     url(r'^docs/$', DocList.as_view(), name='doc-list'),
-    url(r'^docs/(?P<pk>\d+)/$', DocDetail.as_view()),
+    # url(r'^docs/(?P<pk>\d+)/$', DocDetail.as_view()),
     url(r'^docs/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
+            {},
             {'func': 'next'},
             {'func': 'prev'},
             {'func': 'parent'},
@@ -111,9 +112,10 @@ urlpatterns = patterns(
             {'func': 'has_docs', 'serializer_class': DocSerializer},
         ], extra={'model': Entity, 'serializer_class': EntitySerializer}))),
     url(r'^texts/$', TextList.as_view(), name='text-list'),
-    url(r'^texts/(?P<pk>\d+)/$', TextDetail.as_view()),
+    # url(r'^texts/(?P<pk>\d+)/$', TextDetail.as_view()),
     url(r'^texts/(?P<pk>\d+)/',
         include(APIView.urlpatterns([
+            {},
             {'func': 'root'},
             {'func': 'next'},
             {'func': 'prev'},
