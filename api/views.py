@@ -152,7 +152,6 @@ class CreateModelMixin(object):
         serializer = self.get_serializer(data=data, files=files)
 
         if serializer.is_valid():
-            self.pre_save(serializer.object)
             self.object = serializer.save(force_insert=True)
             self.post_save(self.object, created=True)
             headers = self.get_success_headers(serializer.data)
