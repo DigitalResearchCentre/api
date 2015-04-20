@@ -1154,6 +1154,7 @@ class Revision(models.Model):
         pb = Text.objects.get(pk=pb.pk)
         doc.get_descendants().delete()
         doc = Doc.objects.get(pk=doc.pk)
+        pb.tail = ''
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         target = continue_to_next_page[0] if continue_to_next_page else None
         if target:
