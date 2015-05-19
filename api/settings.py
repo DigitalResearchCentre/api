@@ -199,7 +199,12 @@ PARTNER_SESSION_KEY = '_tc_partner_pk'
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = '1025'
 
-BROKER_URL = 'django://'
+BROKER_URL = 'mongodb://localhost:27017/test'
+CELERY_RESULT_BACKEND = 'mongodb://localhost:27017/'
+CELERY_MONGODB_BACKEND_SETTINGS = {
+    'database': 'test',
+    'taskmeta_collection': 'my_taskmeta_collection',
+}
 
 CELERY_TRACK_STARTED = True
 
