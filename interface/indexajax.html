@@ -61,6 +61,7 @@ var community="BD32";
 var TCid="TCUSask";
 var communityID=0;
 var communityFont="";
+var isCommunityLeader=0;
 var editor=null;	
 var $iframe=null;
 var editorstring="";
@@ -69,7 +70,7 @@ var docName="";
 var pageName="";
 var pageKey="";
 var pageID=0;
-var currentEntity;
+var currentEntity=null;
 var currentDocId;
 var pwidth=0;
 var pheight=0;
@@ -171,7 +172,7 @@ function loadTexts (mycommunity) {
 		$.each(docdata, function(i, thisdoc) {
 			doccount+=1;
 			rootMenu+="{title:'"+thisdoc.name+" <span title=\"XML for this document\" onclick=javascript:doThisOne(\"" +
-				thisdoc.id+"\")><"+"/span>', isLazy: true, url:'"+thisdoc.id+"'}";
+				thisdoc.id+"\")>xxxx<"+"/span>', isLazy: true, url:'"+thisdoc.id+"'}";
 			if (doccount==numdocs) {
 				rootMenu+="]";
 				makeTextMenu(rootMenu);
@@ -198,11 +199,70 @@ function loadTexts (mycommunity) {
     	alert("Error connecting to "+url+". Check your network connections.");
   	});
 }
-	function doThisOne(which) {
-		alert(which);
-	}
-	
-	function loadPages (mycommunity) {
+
+function doThisOne(which) {
+	alert(which);
+}
+
+function deleteTexts(doc) {
+	s
+	 $.getJSON(url+'docs/'+doc+'/',function(thisDoc) {
+	 	 $.getJSON(url+'docs/'+doc+'/has_text_in',function(thisText) {
+		 	 $.ajax({url: url+'texts/'+thisText.id+'/', type: 'delete'})
+	 	 });
+		 if (thisDoc.has_parts) {
+		 	 $.getJSON(url+'docs/'+doc+'/has_parts?page_size=0&format=json',function(thisDocParts) {
+		 	 	$.each(thisDocParts, function(i, thisdocPart) {
+		 	 		deleteTexts(thisdocPart.id)
+		 	 	});
+		 	 });
+		 }
+	});
+}
+
+
+
+
+
+
+function deleteEntText(ent) {
+	$('#dialog-confirm').attr("title", "Remove Entities");	
+	$('#dlog-confirm-text').html("Choose <b>OK</b> to have all the selected entity, and all descendants, removed for this community. You will have to regenerate the text entities from the XML if you choose this, by committing each page.");
+	$( "#dialog-confirm" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
+		"OK": function() {
+		  $( this ).dialog( "close" );
+		  $.ajax({url: url+'entities/'+ent+'/', type: 'delete'}).done (function (results) {
+		  	loadEntities(community, 1);
+		  });
+		},
+		Cancel: function() {
+		  $( this ).dialog( "close" );
+		}
+	  }
+	});
+}
+
+
+function deleteDoc(doc) {
+	$('#dialog-confirm').attr("title", "Remove Document or page");	
+	$('#dlog-confirm-text').html("Choose <b>OK</b> to have this document (with all its pages) or this page removed.");
+	$( "#dialog-confirm" ).dialog({resizable: false, height:225, width: 500, modal: true, buttons: {
+		"OK": function() {
+		  $( this ).dialog( "close" );
+		  $.ajax({url: url+'docs/'+doc+'/', type: 'delete'}).done (function (results) {
+		  	loadPages(community);
+            	var texttree=$("#tree").dynatree("getTree")
+				texttree.reload();
+		  });
+		},
+		Cancel: function() {
+		  $( this ).dialog( "close" );
+		}
+	  }
+	});
+}
+
+function loadPages (mycommunity) {
 		$.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
 			$.each(data, function(h, thiscommunity){ 
 				if (thiscommunity.abbr==mycommunity) {
@@ -213,6 +273,7 @@ function loadTexts (mycommunity) {
 							$.each(docdata, function(i, thisdoc) {
 							doccount+=1;
 							rootMenu+="{title:'"+thisdoc.name+"',isLazy: true, url:'"+thisdoc.id+"'}";
+					//		rootMenu+="{title:'"+thisdoc.name+"',isLazy: true, url:'"+thisdoc.id+"'}";
 							if (doccount==numdocs) {
 								rootMenu+="]";
 								makeDMenu(rootMenu);
@@ -224,7 +285,8 @@ function loadTexts (mycommunity) {
 		});
 	}
 	
-function loadEntities (mycommunity) {
+//context: 0 when called from init, 1 when called after deletion or rebuild
+function loadEntities (mycommunity, context) {
 		$.getJSON(url+'communities/?page_size=0&format=json',  function (data) { 
 			$.each(data, function(h, thiscommunity){ 
 				if (thiscommunity.abbr==mycommunity) {
@@ -232,14 +294,20 @@ function loadEntities (mycommunity) {
 					var entcount=0;
 					$.getJSON(url+'communities/'+thiscommunity.id+'/entities/?page_size=0&format=json', function (entdata) {
 							var numents=entdata.length;
-							$.each(entdata, function(i, thisent) {
-							entcount+=1;
-							rootMenu+="{title:'"+thisent.name+"',isLazy: true, url:'"+thisent.id+"'}";
-							if (entcount==numents) {
-								rootMenu+="]";
-								makeEntMenu(rootMenu);
-							} else {rootMenu+=",";}
-						});
+							if (numents==0 && context==1) {
+								//could be nothing now...
+								$("#entitytree").dynatree("getRoot").removeChildren();
+	//							$("#entitytree").dynatree("getTree").reload();			
+							} else {
+								$.each(entdata, function(i, thisent) {
+								entcount+=1;
+								rootMenu+="{title:'"+thisent.name+"',isLazy: true, url:'"+thisent.id+"'}";
+								if (entcount==numents) {
+									rootMenu+="]";
+									makeEntMenu(rootMenu, context);
+								} else {rootMenu+=",";}
+							});
+						}
 					});
 				}
 			});
@@ -257,7 +325,7 @@ function doLazyRead (node, editpage) {
 					var pagecount=0;
 					 $.each(thisdoc, function(i, pageurl) {
 						pagecount+=1;
-						children+="{title:'"+pageurl.name+"', label:'"+pageurl.label+"', pageid:'"+pageurl.id+"'}";
+						children+="{title:'"+pageurl.name+"', label:'"+pageurl.label+"', pageid:'"+pageurl.id+"', url:'"+pageurl.id+"'}";
 						if (pagecount==thisdoc.length) {
 							children+="]";
 							node.setLazyNodeStatus(DTNodeStatus_Ok);
@@ -291,126 +359,14 @@ function doLazyRead (node, editpage) {
 		}
 }
 
-function createPrevInfo(entid, pageid, pline) {
-		$.getJSON(url+'entities/'+entid+'/has_text_of/'+pageid, function (pid) {
-			$.getJSON(url+'texts/'+pid.results[0].id+'/is_text_of', function (pppid) {
-				docstring=pppid.label+"="+pppid.name;
-				var elements = new Array();
-				elements.push(pid.results[0].element.slice(1, pid.results[0].element.indexOf(" ")));
-				if (pppid.has_parent) appendentstring(pppid.id, docstring, pline, pid.results[0].id, elements);
-			});
-		});	
-}
-
-function doPrevLazyReadEnt (node, editpage) {
-	var thisurl="";
-	if (node.data.entid) thisurl=url+'docs/'+node.data.pageid+'/has_entities/'+node.data.entid+'/?page_size=0&format=json';
-	else thisurl=url+'docs/'+node.data.pageid+'/has_entities/?page_size=0&format=json'
-	//if we already have this page -- don't add it again
-	if (editpage && node.bExpanded) return;
-	$.getJSON(thisurl,function(thisent){
-		var children = "[";
-		var endchildren="[";
-		var pagecount=0;
-		var textcount=0;
-		var entities=[];
-		entities[thisent.length-1]=undefined;
-		  $.each(thisent, function(i, entdetail) {
-		  	pagecount+=1;
-		  	if (entdetail.has_parts)
-		  		children+="{title:'"+entdetail.name+"', type:'entity', isLazy: true, label:'"+entdetail.label+"', name:'"+entdetail.name+"', pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
-		  	else {
-				var lastnode=node.getParent().childList[node.getParent().childList.length-1];
-				if (editpage=="" || (node==lastnode)) {
-					$.getJSON(url+'entities/'+entdetail.id+'/xml/'+node.data.pageid, function (linetext) {
-						//could be that these will be processed in various orders, so stick each in an array...
-						textcount+=1;
-						try {
-						var myline=linetext[0];
-						}
-						catch (e) {
-						var myline="(error; can not read this line)";
-						}
-						//strip out xml, quotation marks...
-						myline=myline.replace(/<[^>]*>/g, "");
-						myline=myline.replace(/</g, "");
-						myline=myline.replace(/"/g, "");
-						myline=myline.replace(/>/g, "");
-						myline=myline.replace(/\//g, "");
-						myline=myline.replace(/'/g, "");
-						myline=myline.replace(/(\r\n|\n|\r)/gm,"");
-					//	if we are looking for a particular page, do it this way, but only if this is the last node for the parent node in the dtree menu
-					//need to go up to the page and come down to the base
-						 var lastnode=node.getParent().childList[node.getParent().childList.length-1];
-						if (editpage!="") { 
-							if (i==thisent.length-1) 
-								entities[i]="{title:'"+entdetail.name+" "+myline+"', line: '"+myline+"', label:'"+entdetail.label+"', name:'"+entdetail.name+"', select: true, pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
-							else
-								entities[i]="{title:'"+entdetail.name+" "+myline+"', line: '"+myline+"', label:'"+entdetail.label+"', name:'"+entdetail.name+"', pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
-						} else {
-							entities[i]="{title:'"+entdetail.name+" "+myline+"', line: '"+myline+"', label:'"+entdetail.label+"', name:'"+entdetail.name+"', pageid:'"+node.data.pageid+"', entid:'"+entdetail.id+"'}";
-						}
-			//			if (editpage=="") {
-							if (textcount==thisent.length) {
-								//unpack our entitities array
-								for(var n = 0; n < textcount; n++) {
-									endchildren+=entities[n];
-									if (n<textcount-1) endchildren+=",";
-								}
-							}
-		//				}
-						if (textcount==thisent.length) {
-							if (editpage!="") endchildren+="]";
-							 else endchildren+="]";
-							node.addChild(eval(endchildren));
-							node.setLazyNodeStatus(DTNodeStatus_Ok);
-						}
-						//expand it, in initialization mode
-						if (editpage!="" && lastnode==node && textcount==thisent.length) {
-							node.expand();
-							//highlight this node; scroll to it
-							var pnode=node.childList[node.childList.length-1];
-							pnode.activate();
-							var activeLi = pnode.li;
-							$("#prevPageTree ul").animate({ // animate the scrolling to the node
-							  scrollTop: $(activeLi).offset().top - $('#prevPageTree ul').offset().top + $('#prevPageTree ul').scrollTop() - 150
-							}, 'slow');
-							//we can construct the entity trail with perfect reliability from the api.
-							createPrevInfo(pnode.data.entid, pnode.data.pageid, pnode.data.line);
-							return;
-						};
-					});
-		  		}
-		  	}
-		  	if (entdetail.has_parts)  {
-				if (pagecount==thisent.length) {
-					children+="]";
-					node.addChild(eval(children));
-					//if we are looking for a particular page -- expand this node and go around again, and again...
-					if (editpage) {
-						node.expand();
-						//do it now for each child...
-						 $.each(node.getChildren(), function(h, thisnode) {
-							doPrevLazyReadEnt (thisnode, editpage);
-						 });
-					 }
-				}	else children+=",";
+function isLeader(thisUser) {
+	$.getJSON(url+'memberships/?page_size=0&format=json', function (userlist) {
+		$.each(userlist, function(i, thisuser) {
+			if (thisuser.user==thisUser.id && thisuser.community==communityID && (thisuser.role==1 || thisuser.role==2)) {
+				isCommunityLeader=1;
 			}
-		  });
+		});
 	});
-	node.setLazyNodeStatus(DTNodeStatus_Ok);
-}
-
-function doPrevChoice () {
-	if ($('#pcnew').is(':checked')) {
-		$('.selectcont').attr("disabled", true);
-		$('.selectcont').attr("checked", false);
-		$('#prevInfo').html("");
-	}
-	if ($('#pccont').is(':checked')) {
-		$('#prevInfo').html("<p style='text-align:center'>Select continuing text</p>");
-		$('.selectcont').removeAttr("disabled");
-	}
 }
 
 function setEditorButtons(user) {
@@ -419,17 +375,18 @@ function setEditorButtons(user) {
 		//visitor
 		$('.btn.submit, .btn.commit, .btn.save, .btn.checklinks, .btn.makelinks').hide();
 	} else {
-		var isLeader=0;
+		var isThisLeader=0;
 		$.getJSON(url+'memberships/?page_size=0&format=json', function (userlist) {
 		    //check for leadership first -- trumps transcription!
 			$.each(userlist, function(i, thisuser) {
 				if (thisuser.user==curUser.id && thisuser.community==communityID && (thisuser.role==1 || thisuser.role==2)) {
 					//leader or coleader: hide submit button
 						$('.btn.submit').hide();
-						isLeader=1
+						isThisLeader=1
+						isCommunityLeader=1;
 				}
 				//not found as leader; check as transcriber..
-				if (i==userlist.length-1 && !isLeader) {
+				if (i==userlist.length-1 && !isThisLeader) {
 					$.each(userlist, function(j, thisuser) {
 						if (thisuser.user==curUser.id) {
 							var bill=1;
@@ -609,129 +566,20 @@ function sanityPrevious() {
 	}
 }
 
-function appenddocstring(ppid, docstring, pline, elements, entitystring) {
-	$.getJSON(url+'docs/'+ppid+'/parent?format=json', function (pppid) {
-		docstring=pppid.label+"="+pppid.name+":"+docstring;
-		if (!pppid.has_parent) {
-			//create the element chain for this selection
-			elements.reverse();
-			var elementarray=entitystring.split(":");
-			if (pline.length>53) pline=pline.slice(0,25)+'... '+pline.slice(pline.length-25);
-			var prevels="<form action='javascript:doNewPage()'><fieldset><input type='radio' id='pcnew' name='prevchoice' value='new' checked='true' onclick='javascript:doPrevChoice()'>Start new text<br>"
-			prevels+="<input type='radio' name='prevchoice' data-n='"+(elementarray.length-1)+"' id='pccont' value='continue' onclick='javascript:doPrevChoice()'>Continue text from this page<table style='width:615px; margin: 10px; font-family:"+communityFont+"'>";
-			var myels="";
-			for (var i=elementarray.length-1; i>0; i--) {
-				var entities="";
-				for (var j=0; j<=i; j++) {
-					//this is a hack, coz sometimes we get back an entity too many -- repeating the parent, that is
-					if  (j==0 && elementarray[1]==elementarray[0] && elementarray[1].lastIndexOf("entity", 0) === 0) {}
-					else { entities=entities+elementarray[j];
-							if (j<i) entities+=":";
-					}
-				}
-				if (i<elementarray.length-1) pline="";
-				var myel='&lt;'+elements[i-1]+' n="'+elementarray[i].slice(elementarray[i].indexOf("=")+1)+'"&gt;';
-				var thisel=elements[i-1];
-				var nval=elementarray[i].slice(elementarray[i].indexOf("=")+1);
-				myels='<tr><td><input type="checkbox" id="pc'+i+'" data-n="'+nval+'" class="selectcont" onclick="javascript:doSelectPrevious(\''+i+'\')" disabled title="urn:det:'+TCid+':'+community+':'+docstring+':'+entities+'">&nbsp;&nbsp;&nbsp;&nbsp;</td><td id="tdpc'+i+'">'+elementarray[i].replace(/=/g," ")+'</td><td data-xml="'+thisel+'" id="td2pc'+i+'">'+myel+pline+'</td></tr>'+myels;
-			}
-			prevels+=myels+"</table><input type='submit' value='Submit'></fieldset></form>";
-			$('#prevChosen').html("<p>"+prevels+"</p>");
-		}
-		else appenddocstring(pppid.id, docstring, pline, elements, entitystring);
+function getXMLDoc(xmlPage, ms) {
+	dlogAlertResize('XML for '+ms, "Fetching the document XML.  This may take a few moments", $(window).height()-100,$(window).width()-300);
+	$.getJSON(url+'docs/'+xmlPage+'/xml/', function (xml) {
+			xml=xml[0];
+			xml=xml.replace(/&/g, "&amp;");
+			xml=xml.replace(/</g, "&lt;");
+			xml="<pre>"+xml+"</pre>";
+			$('#dlog-alert-text').html(xml);
 	});
-} 
-
-function doNewPage() {
-	//sanity check on what is chosen...
-	if ($('#pcnew').is(':checked')) {
-		$.getJSON(url+'communities/'+communityID+'/get_refsdecls?format=json', function (rds) {
-			$.each(rds.results, function(i, rd) {
-				if (rd.template!="<text/>") {
-					editor.setValue(rd.template);
-					$( "#new-transcript" ).dialog('close');
-				}
-			});
-		});
-	} else {
-		var results=sanityPrevious();
-		if (results.entstring=="") $('#nc').html("No text selected. If you press 'Confirm' a default new page will be made");
-		else 
-			$('#nc').html("Continuing text selected: "+results.entstring+results.warning);
-		 $( "#new-confirm" ).dialog({
-		  height: 300,
-		  width: 500,
-		  modal: true,
-		  autoOpen: false,
-		  title:"Confirm new page",
-		});
-		$( "#new-confirm" ).dialog('open');
-	}
-}
-
-function finishFindPrevious(docstring, pline, rootpageid, elements) {
-	$.getJSON(url+'texts/'+ rootpageid+'/is_text_in', function (pentid) {
-		var entitystring=docstring;
-		docstring=pentid.label+"="+pentid.name+"";
-		if (pentid.has_parent) appenddocstring (pentid.id, docstring, pline, elements, entitystring);
-		else $('#prevChosen').html("<p>You are looking at "+docstring+", "+pline+" </p>");
-	});
-}
-
-function appendentstring(ppid, docstring, pline, rootpageid, elements) {
-	$.getJSON(url+'entities/'+ppid+'/parent?format=json', function (pppid) {
-		docstring=pppid.label+"="+pppid.name+":"+docstring;
-		if (!pppid.has_parent) {
-			$.getJSON(url+'entities/'+ pppid.id+'/has_text_of', function (pid) {
-				if (pid.results.length!=0) {  //we might have top entity outside this document, in which case we don't look for it
-					elements.push(pid.results[0].element.slice(1, pid.results[0].element.indexOf(" "))); 
-					$.getJSON(url+'entities/'+ppid+'/parent?format=json', function (ppppid) {
-						docstring=ppppid.label+"="+pppid.name+":"+docstring;
-						finishFindPrevious(docstring, pline, rootpageid, elements);
-					});
-				} else finishFindPrevious(docstring, pline, rootpageid, elements); //top entity not in this document
-			});
-		}
-		else  {
-			$.getJSON(url+'entities/'+ pppid.id+'/has_text_of', function (pid) {
-				elements.push(pid.results[0].element.slice(1, pid.results[0].element.indexOf(" ")));
-				appendentstring(pppid.id, docstring, pline, rootpageid, elements);
-			});
-		}
-	});
-}
-function doPrevLazyRead (node, editpage) {
-			$.getJSON(url+'docs/'+node.data.url+'/has_parts?page_size=0&format=json',function(thisdoc){
-			  	node.setLazyNodeStatus(DTNodeStatus_Loading);
-			    var children = "[";
-				var pagecount=0;
-			     $.each(thisdoc, function(i, pageurl) {
-					pagecount+=1;
-					children+="{title:'"+pageurl.name+"', type:'document', name:'"+pageurl.name+"', hideCheckbox: true, label:'"+pageurl.label+"', isLazy: true, pageid:'"+pageurl.id+"'}";
-					if (pagecount==thisdoc.length) {
-						children+="]";
-						node.setLazyNodeStatus(DTNodeStatus_Ok);
-						node.addChild(eval(children));
-						if (editpage) {
-							node.expand();
-							//now find the node for this page
-							$.each(node.getChildren(), function(h, thisnode) {
-								if (thisnode.data.title==editpage) {
-									//here we call entities to unroll this page.  Note, likely problem if the page has columns.  Or is it..? 
-									doPrevLazyReadEnt (thisnode, editpage);
-								}
-							});
-						}
-					} else {
-						children+=","
-					}
-			  });
-	 	});
 }
 
 function makeDMenu(rootMenu) {
 	$("#tree").dynatree({
-      children: eval(rootMenu),
+      children: eval(rootMenu), 
       onActivate: function(node) {
 			if ( node.data.pageid) {
 				loadTCDocIdText(node.data.pageid, node.data.key);
@@ -739,13 +587,48 @@ function makeDMenu(rootMenu) {
 		},
       onLazyRead: function(node){
       		doLazyRead(node, "")
-	    }
+	    },
+	  onRender:  function (node, nodeSpan) {
+	  	if (!node.data.pageid) {
+			var postImg = document.createElement('img');
+			 postImg.setAttribute('src', 'getdocxml.png');
+			 postImg.setAttribute('class', node.data.postImageClass);
+			 postImg.setAttribute('alt', node.data.postImageAltText);
+			 postImg.setAttribute('onClick', 'javascript:getXMLDoc(\'' + node.data.url + '\',\''+node.data.title+'\');');
+			 postImg.setAttribute('title', 'Extract the document XML');
+			 var finda = 'a:contains("'+node.data.title+'")'
+			$(nodeSpan).find(finda).after(postImg);
+		}
+	  	if (isCommunityLeader) {
+				 var postImg = document.createElement('img');
+				 postImg.setAttribute('src', 'deletedoc.png');
+				 postImg.setAttribute('class', node.data.postImageClass);
+				 postImg.setAttribute('alt', node.data.postImageAltText);
+				 postImg.setAttribute('onClick', 'javascript:deleteDoc(\'' + node.data.url + '\');');
+				 postImg.setAttribute('title', 'This will remove this document (and all its pages) or this page from the database. Be careful!');
+				 // the element is then appended to the Anchor tag (title)
+				 // using jquery.after.
+
+				 // it works really well, except for IE7.  Working on that now.
+				var finda = 'a:contains("'+node.data.title+'")'
+				 $(nodeSpan).find(finda).after(postImg);
+			 }
+		}
+		
      });
     var containerheight=$(window).height();
      if (containerheight<minheight) containerheight=minheight;
      $( ".dynatree-container").height(containerheight-96);
      //now
        initTextDtree(docName, pageName);
+}
+
+//given a place in a documemt -- work up the doc till you get the page of the document and its name
+function calcuateDocPage (docPart ) {
+	$.getJSON(url+'docs/'+docPart.id+'/parent?format=json',function(parentPart){
+		if (parentPart.depth==1) initTextDtree( parentPart.name, docPart.name);
+		else calcuateDocPage (parentPart);
+	});
 }
 
 function makeTextMenu(rootMenu) {
@@ -756,18 +639,9 @@ function makeTextMenu(rootMenu) {
 				var entityText="";
 				var numdocs=0;
 				$.getJSON(url+'entities/'+node.data.lineid+'/has_text_of/'+node.data.parentid+'?format=json',function(thisdoc){
-					var mynum=thisdoc.results[0].id;
+					var mynum=thisdoc[0].id;
 					$.getJSON(url+'texts/'+mynum+'/is_text_in?format=json',function(thispart){
-						if (thispart.depth==2) { alert("fixme")}
-						else {
-							$.getJSON(url+'docs/'+thispart.id+'/parent?format=json',function(thispart2){
-								if (thispart2.depth==2) {
-									$.getJSON(url+'docs/'+thispart2.id+'/parent?format=json',function(thispart3){
-										initTextDtree(thispart3.name, thispart2.name);
-									});
-								 }
-							});
-						}
+						calcuateDocPage(thispart);
 					});
 				});
 			}
@@ -809,7 +683,7 @@ function makeTextMenu(rootMenu) {
      $( ".dynatree-container").height(containerheight-34);
 }
 
-function makeEntMenu(rootMenu) {
+function makeEntMenu(rootMenu, context) {
 	$("#entitytree").dynatree({
       children: eval(rootMenu),
       onActivate: function(node) {
@@ -842,11 +716,32 @@ function makeEntMenu(rootMenu) {
 						}
 			     });
 	 	    });
-	    }
+	    },
+	onRender:  function (node, nodeSpan) {
+	  	if (isCommunityLeader) {
+				 var postImg = document.createElement('img');
+				 postImg.setAttribute('src', 'deleteenttext.png');
+				 postImg.setAttribute('class', node.data.postImageClass);
+				 postImg.setAttribute('alt', node.data.postImageAltText);
+				 if (node.data.url) {postImg.setAttribute('onClick', 'javascript:deleteEntText(\'' + node.data.url + '\');');}
+				 else {postImg.setAttribute('onClick', 'javascript:deleteEntText(\'' + node.data.lineid + '\');');}
+				 postImg.setAttribute('title', 'This will remove all chosen entities (and their children) in these documents from the database. You will have to recommit each page to regenerate them.');
+				 // the element is then appended to the Anchor tag (title)
+				 // using jquery.after.
+
+				 // it works really well, except for IE7.  Working on that now.
+				var finda = 'a:contains("'+node.data.title+'")'
+				 $(nodeSpan).find(finda).after(postImg);
+			 }
+		}
      });
     var containerheight=$(window).height();
      if (containerheight<minheight) containerheight=minheight;
      $( ".dynatree-container").height(containerheight-80);
+     if (context==1) {
+     	var texttree=$("#entitytree").dynatree("getTree")
+		texttree.reload();
+     }
 }
 
 function loadTCDocumentText (doctext, pagekey) {
@@ -936,18 +831,8 @@ function initTextDtree(editdoc, editpage) {
 	});
 }
 
-function initPrevDtree() {
-	var tree =$("#prevPageTree").dynatree("getTree");
-	tree.reload();
-	var root=tree.getRoot();
-	$.each(root.getChildren(), function(h, thisdoc){ 
-		if (thisdoc.data.title==docName) {
-			//if we have a previous page, pass it in.  
-			if ($('#prevpage a').length == 0) doPrevLazyRead(thisdoc, $('#ptitle').html());
-			else doPrevLazyRead(thisdoc, $('#prevpage a').attr("title"));
-		}
-	});
-}
+
+
 
 //really complicated -- keeping this all in place with shifting font sizes
 function changeSplitVert(change) {
@@ -1040,7 +925,7 @@ function loadTCDocIdText(pageid, pagekey) {
 	pageKey=pnode.data.key;
 	pageID=pnode.data.pageid;
 	$.getJSON(url+'docs/'+pageID+'/has_entities?page_size=0&format=json',function(pid) {
-		getCurrentEntity(pid[0].id);
+		if (pid.length>0) getCurrentEntity(pid[0].id);
 	});
 
 	setEditorButtons(curUser);
@@ -1328,6 +1213,7 @@ function SaveTranscript(which, context) {
 												loadTexts (community);
 												var texttree=$("#texttree").dynatree("getTree")
 												texttree.reload();
+												loadEntities(community, 1);
 											});
 										}
 									});
@@ -1440,38 +1326,13 @@ function dlogAlert (title, advice, height, width) {
 	});
 }
 
-function linkPages () {
-	var thispageXML=editor.getValue();
-	var tree =$("#tree").dynatree("getTree");
-	var pnode=tree.getNodeByKey(pageKey);
-	var prevnode=pnode.getPrevSibling();
-	var nextnode=pnode.getNextSibling();
-	if (prevnode) {
-		$.getJSON(url+'docs/'+prevnode.data.pageid+'/has_text_in?format=json',function(hastextin){
-			$.getJSON(url+'texts/'+hastextin.id+'/xml',function(prevtext){
-				if (nextnode)  {
-					$.getJSON(url+'docs/'+nextnode.data.pageid+'/has_text_in?format=json',function(hasnexttextin){
-						$.getJSON(url+'texts/'+hasnexttextin.id+'/xml',function(nexttext){
-							checkInterPageLinks(thispageXML, prevtext, nexttext, prevnode, nextnode);
-						});
-					});
-				} else {
-					checkInterPageLinks(thispageXML, prevtext, null, prevnode, null);
-				}
-			});
-		});
-	} else {
-		if (nextnode) {
-			$.getJSON(url+'docs/'+nextnode.data.pageid+'/has_text_in?format=json',function(hasnexttextin){
-				$.getJSON(url+'texts/'+hasnexttextin.id+'/xml',function(nexttext){
-					checkInterPageLinks(thispageXML, null, nexttext, null, nextnode);
-				});
-			});
-		} else {
-			//neither next or previous page
-		}
-	}
+function dlogAlertResize (title, advice, height, width) {
+	$('#dialog-alert').attr("title", title);
+	$('#dlog-alert-text').html(advice);
+	$( "#dialog-alert" ).dialog({resizable: true, height:height, width: width, modal: true});
 }
+
+
 
 function commitTranscript () {
 		validateTranscript ().done (function (results) {
@@ -1509,12 +1370,6 @@ function commitTranscript () {
 }
 
 
-/*			var pageid=$('#tcntSave').attr('value');
-			$.getJSON(url+'docs/'+pageid+'/has_revisions/?page_size=0&format=json', function(versions) {
-				var revision_id=versions[0].id;
-				$.post(url+'revision/'+revision_id+'/commit/', {
-				}).success(function(){
-*/
 
 function validateTranscript () {
 	//fix needed... if starts <text><front ... append dummy body; or prepend dummy body if it starts <text><back
@@ -1767,114 +1622,7 @@ function loadTCDocPartText(thisurl, mycommunity, document, documentpath) {
 	});
 }
 
-   
-function getPrecedingText() {
-	var rootMenu="[";
-	var doccount=0;
-	$.getJSON(url+'communities/'+communityID+'/docs/?page_size=0&format=json', function (docdata) {
-		var numdocs=docdata.length;
-		$.each(docdata, function(i, thisdoc) {
-			doccount+=1;
-			rootMenu+="{title:'"+thisdoc.name+"',hideCheckbox: true, isLazy: true, url:'"+thisdoc.id+"'}";
-			if (doccount==numdocs) {
-				rootMenu+="]";
-				makePrevPageMenu(rootMenu);
-			} else {rootMenu+=",";}
-		});
-	});
-}
 
-function makePrevPageMenu(rootMenu) {
-	$("#prevPageTree").dynatree({
-		children: eval(rootMenu),
-		classNames: {checkbox: "dynatree-radio"},
-		checkbox: true,
-		selectMode: 1,
-		onActivate: function(node) {
-		
-		},
-		onLazyRead: function(node) {
-			if (node.data.pageid) {
-				doPrevLazyReadEnt(node, "");
-			} else doPrevLazyRead(node, "")
-		},
-		onSelect: function(select, node) {
-			$('#prevChosen').html("<p style='text-align:center'><i>Fetching information about the text selected. Please wait.</i></p>");
-			$('#prevInfo').html("");
-			createPrevInfo(node.data.entid, node.data.pageid, node.data.line);
-		}
-	});
-	$("#prevPageTree").height(300);
-	initPrevDtree();
-}
-
-function cancelNP() {
-	$( "#new-confirm" ).dialog('close');
-}
-
-function confirmNP() {
-	var results=sanityPrevious();
-	if (results.entstring=="") {
-		//nothing selected, confirmed, just give us the template
-		$('#pcnew').attr('checked',true);
-		doNewPage();
-	} else {
-		$.getJSON(url+'communities/'+communityID+'/get_refsdecls?format=json', function (rds) {
-			$.each(rds.results, function(i, rd) {
-				if (rd.type=="1") {
-					var xmlDoc = $.parseXML( rd.template );
-					var $xml = $( xmlDoc );
-					$( "#new-transcript" ).dialog('close');
-					for (var i=0; i<results.elements.length; i++) {
-						//find first element correspoding in the the $xml
-						var $element=$xml.find( results.elements[i].element ).first();
-						$element.attr('prev',results.elements[i].prev);
-						$element.attr('n',results.elements[i].nval);
-					}
-					var xmlText = new XMLSerializer().serializeToString($xml[0]);
- 					editor.setValue(xmlText);
-				}
-			});
-		});
-	}
-	$( "#new-confirm" ).dialog('close');
-}
-
-function NewTranscript(){
-	$.getJSON(url+'docs/'+currentDocId+'/has_entities?format=json&page_size=0', function (ents) {
-		if (ents.length==0) {
-			$.getJSON(url+'communities/'+communityID+'/get_refsdecls?format=json', function (rds) {
-				$.each(rds.results, function(i, rd) {
-					if (rd.template!="<text/>") {
-						editor.setValue(rd.template);
-						return
-					}
-				});
-			});
-		}  else {
-		//igo in serach of entities
-			var pageid=$('#tcntSave').attr('value');
-			var prevTreeDone=0;
-			if ($('#new-transcript').hasClass('ui-dialog-content')) {
-				prevTreeDone=1;
-			}  else {
-				 $( "#new-transcript" ).dialog({
-				  height: 700,
-				  width: 700,
-				  modal: true,
-				  autoOpen: false,
-				  title:"New page transcription",
-				});
-			}
-			$( "#new-transcript" ).dialog('open');
-			$('#prevChosen').html("<p style='text-align:center'><i>Fetching entities on previous pages.  Please wait.</i></p>");
-			$('#prevInfo').html("");
-			//now, if we already have the tree, then all we need do is refresh it...
-			if (!prevTreeDone)  getPrecedingText();
-			else initPrevDtree();
-		}
-	});
-}
 
 function doTranscriptVersions(pageid) {
 	var leftPage=$("#leftSelTranscript :selected").val();
@@ -2043,15 +1791,25 @@ function chooseContinuingElements(entitiesarray, pageid, prevnode, thisent) {
 			var highest_prev=-1;
 			var prevEnts="";
 			for (var i=0;i<entitiesarray.length; i++) {
+				//could be root entity is not in the document; in that case, it must match, just grab from entity array (already calculated for previous page)
+				
+				if (i==0 && entitiesarray[0].gi=="null" && entitiesarray[0].label=="entity") {
+					entityid=':entity='+entitiesarray[0].n;
+					//just move all the array up one, as entity cannot be declared in the document in this case
+					for  (var j=0;j<entitiesarray.length-1; j++) {
+						entitiesarray[j]=entitiesarray[j+1];
+					}
+					entitiesarray.splice(j, 1);
+				} 
 				var currEl=currEl.eq(0).find(entitiesarray[i].gi);
 				var currEln=currEl.eq(0).attr("n");
 				if (currEl.eq(0).is('[prev]')) {var currElprev=currEl.eq(0).attr("prev")} else {var currElprev=null};
-				var currElprev=currEl.eq(0).attr("prev");
+	//			var currElprev=currEl.eq(0).attr("prev");
 				if (currEln==entitiesarray[i].n) {
 					entitiesarray[i].matched=true;
 					//if we already have the entity, no need to repeat it!
 					if (entitiesarray[0].label=="entity") {var entityid=""}
-					else entityid=':entity='+currentEntity;
+		//			else entityid=':entity='+currentEntity;
 					entitiesarray[i].prevmatch="urn:det:"+TCid+":"+community+":document="+prevnode.parent.data.title+":"+prevnode.data.label+"="+prevnode.data.title+":"+lastlabel+"="+lastline+entityid+":"+prevEnts+entitiesarray[i].label+"="+entitiesarray[i].n;
 					prevEnts+=entitiesarray[i].label+"="+entitiesarray[i].n+":";
 					if (currElprev) {
@@ -2102,7 +1860,7 @@ function chooseContinuingElements(entitiesarray, pageid, prevnode, thisent) {
 									//check there is nothing separating the prev elements except white space...
 									currEl=$xmlDoc.find('text').children(":first");
 									var prevGI=currEl.prop('tagName');
-									for  (var i=0;i<entitiesarray.length; i++) {
+									for  (var i=0;i<=highestLinked; i++) {
 										//first prev element must be first child of body/front/back
 										currEl=currEl.children(":first");
 										var thisgi=currEl.prop('tagName');
@@ -2150,11 +1908,12 @@ function stripText (start, extent, txt) {
 }
 function digDownPage(entID, entitiesarray, pageid, prevnode) {
 	$.getJSON(url+'docs/'+pageid+'/has_entities/'+entID+'?page_size=0&format=json', function (pageentities) {
+		if (pageentities.length==0) {
+			dlogAlert("Check links error", 'Error: no entry found for entity id "<b>'+entID+'</b>on page id <b>'+pageid+'</b>. Check REST interface at  /docs/'+pageid+'/has_entities/'+entID, 350, 800);
+			return;
+		}
 		$.getJSON(url+'entities/'+pageentities[pageentities.length-1].id+'/has_text_of?page_size=0&format=json', function (penttext) {
-			var tt=penttext[penttext.length-1].element;
-			var elGI=tt.slice(tt.indexOf("<")+1, tt.indexOf(" "));
-			var elN=tt.slice(tt.indexOf(' n="')+4, tt.indexOf('"', tt.indexOf(' n="')+5));
-			entitiesarray.push(JSON.parse('{"gi":"'+elGI+'", "n":"'+pageentities[pageentities.length-1].name+'", "matched":0, "prev":0, "prevmatch":0, "label":"'+pageentities[pageentities.length-1].label+'"}'));	
+			createEntityEntry(penttext[penttext.length-1].element, pageentities[pageentities.length-1], entitiesarray);
 		//down the tree we go...
 			if (pageentities[pageentities.length-1].has_parts)
 				digDownPage(pageentities[pageentities.length-1].id, entitiesarray, prevnode.data.pageid, prevnode);
@@ -2162,6 +1921,28 @@ function digDownPage(entID, entitiesarray, pageid, prevnode) {
 				chooseContinuingElements(entitiesarray, pageid, prevnode, pageentities[pageentities.length-1].id);
 			}
 		});
+	});
+}
+
+//go up tree loading in entities etc
+function walkUpTree(startpageent, thispageent, entitiesarray, prevnode) {
+	$.getJSON(url+'entities/'+thispageent.id+'/parent', function (parent) {
+		$.getJSON(url+'entities/'+parent.id+'/has_text_of?page_size=0&format=json', function (penttext) {
+			if (penttext.length==0) //must be toplevel entity, not bound to a div within the document
+				createEntityEntry(null, parent, entitiesarray);
+			else createEntityEntry(penttext[penttext.length-1].element, parent, entitiesarray);
+			if (parent.has_parent) walkUpTree(startpage, parent, entitiesarray, prevnode); 
+			else {
+				//flip array order so highest is first
+				//now start on down from the startpage .. note we have already got it
+				$.getJSON(url+'entities/'+startpageent.id+'/has_text_of?page_size=0&format=json', function (penttext2) {
+					createEntityEntry(penttext2[penttext2.length-1].element, startpageent, entitiesarray);
+					if (startpageent.has_parts)
+							digDownPage(startpageent.id, entitiesarray, prevnode.data.pageid, prevnode);
+					else chooseContinuingElements(entitiesarray, prevnode.data.pageid, prevnode, startpageent.id); 
+				});
+			}
+		 });
 	});
 }
 
@@ -2184,23 +1965,30 @@ function makeLinks () {
 						dlogAlert("Make links error", 'Error: the database entry for the previous page contains no entities to link to. Check the transcription for that page and commit it to the database before proceeding.', 200, 600);
 						return false;
 					} else {
-						$.getJSON(url+'entities/'+pageentities[pageentities.length-1].id+'/has_text_of?page_size=0&format=json', function (penttext) {
-							//pull the element and attribute out
-							var tt=penttext[penttext.length-1].element;
-							var elGI=tt.slice(tt.indexOf("<")+1, tt.indexOf(" "));
-							var elN=tt.slice(tt.indexOf(' n="')+4, tt.indexOf('"', tt.indexOf(' n="')+5));
-							var newt='{"prev":0, "prevmatch":0, "gi":"'+elGI+'", "n":"'+pageentities[pageentities.length-1].name+'", "label":"'+pageentities[pageentities.length-1].label+'"}';
-							entitiesarray.push(JSON.parse('{"prev":0, "prevmatch":0, "gi":"'+elGI+'", "n":"'+pageentities[pageentities.length-1].name+'", "label":"'+pageentities[pageentities.length-1].label+'"}'));	
-							//down the tree we go...
-							if (pageentities[pageentities.length-1].has_parts)
-								digDownPage(pageentities[pageentities.length-1].id, entitiesarray, prevnode.data.pageid, prevnode);
-							else chooseContinuingElements(entitiesarray, prevnode.data.pageid, prevnode, pageentities[pageentities.length-1].id); 
-						});
+						//but... we could have a parent.. in which case, we have to go up the tree, get all the entities to the top, then come on down again
+						if (pageentities[pageentities.length-1].has_parent) {
+							walkUpTree(pageentities[pageentities.length-1], pageentities[pageentities.length-1], entitiesarray, prevnode);
+						} else {	
+							$.getJSON(url+'entities/'+pageentities[pageentities.length-1].id+'/has_text_of?page_size=0&format=json', function (penttext) {
+								//pull the element and attribute out
+								createEntityEntry(penttext[penttext.length-1].element, pageentities[pageentities.length-1], entitiesarray);
+								//down the tree we go...
+								if (pageentities[pageentities.length-1].has_parts)
+									digDownPage(pageentities[pageentities.length-1].id, entitiesarray, prevnode.data.pageid, prevnode);
+								else chooseContinuingElements(entitiesarray, prevnode.data.pageid, prevnode, pageentities[pageentities.length-1].id); 
+							});
+						}
 					}
 				});
 			}
 		}
 	});
+}
+
+function createEntityEntry(tt, pageentity, entitiesarray) {
+		if (!tt) var elGI=null;
+		else var elGI=tt.slice(tt.indexOf("<")+1, tt.indexOf(" "));
+		entitiesarray.push(JSON.parse('{"prev":0, "matched":0, "prevmatch":0, "gi":"'+elGI+'", "n":"'+pageentity.name+'", "label":"'+pageentity.label+'"}'));	
 }
 
 //identify inconsistencies like:  Devotion=1:**Secton**=meditation 1 AND Devotion=1:**Section**=meditation 1:Para=6
@@ -2549,7 +2337,7 @@ function togglepageitem() {
 		</div>
                 <iframe id="showcollation"></iframe>
 	</div>
-		<div id="new-transcript" style="display:none">
+		<!--div id="new-transcript" style="display:none">
    			 <div id="prevPageTree"></div>
    			 <div id="prevChosen"></div>
    			 <div id="prevInfo"></div>
@@ -2557,7 +2345,7 @@ function togglepageitem() {
 		<div id="new-confirm" style="display:none">
 			<p id="nc"></p>
 			<fieldset style="text-align:center"><form><input type="button" onclick="javascript:confirmNP()" value="Confirm">&nbsp;&nbsp;&nbsp;&nbsp;<input type="button" onclick="javascript:cancelNP()" value="Cancel"></fieldset></form>
-		</div>
+		</div-->
 </div>
 <div id="previewdiv" title="Preview" style="display:none"></div>
 <div id="dialog-confirm" title="Submit transcript" style="display:none">
@@ -2760,10 +2548,10 @@ function init() {
                 }
             });
             getDefaultFont(community);
+            getUsers();
             loadPages(community);
             loadTexts(community);
-            loadEntities(community);
-            getUsers();
+            loadEntities(community, 0);
             if ($.cookie("ishorizontal")) {
 				if ($.cookie("ishorizontal")=="ishorizontal") { }
 				else {
@@ -2806,6 +2594,7 @@ function init() {
                       window.location = url + 'auth/logout/?partner=1&next=' + encodeURIComponent(window.location.href);
                     }
                     curUser = user;
+                    isLeader(curUser);
                     if (pageID!=0) setEditorButtons(user);
                     init();
                   }
@@ -2813,6 +2602,7 @@ function init() {
               } else {
               	//coz /auth returns currently logged in user
                 curUser = user;
+                isLeader(curUser);
                 if (pageID!=0) setEditorButtons(user)
                 init();
               }
@@ -2822,6 +2612,7 @@ function init() {
                     window.location = url + 'auth/login/?partner=1&next=' +
                       encodeURIComponent(window.location.href);
                 }else{
+  //              	isLeader(curUser); //can't log in, so can't be leader
                 	setEditorButtons(null);
 //                    $buttons.prop('disabled', true);
                     init();
