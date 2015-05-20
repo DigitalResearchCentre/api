@@ -199,8 +199,14 @@ PARTNER_SESSION_KEY = '_tc_partner_pk'
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = '1025'
 
-BROKER_URL = 'mongodb://localhost:27017/test'
-CELERY_RESULT_BACKEND = 'mongodb://localhost:27017/'
+MONGO_DATABASE = {
+    'HOST': ['localhost:27017'],
+    'NAME': 'test'
+}
+MONGO_URL = 'mongodb://%s/' % MONGO_DATABASE['HOST'][0]
+
+BROKER_URL = MONGO_URL + MONGO_DATABASE['NAME']
+CELERY_RESULT_BACKEND = MONGO_URL
 CELERY_MONGODB_BACKEND_SETTINGS = {
     'database': 'test',
     'taskmeta_collection': 'my_taskmeta_collection',
