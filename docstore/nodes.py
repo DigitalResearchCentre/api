@@ -30,6 +30,15 @@ def get_tree(_id):
 def get_node(_id):
     return collection.find_one({'_id': _id})
 
+def insert_one(parent_id=None, ancestors=[], next_id=None, data={}, **kwargs):
+    # first_child_id is optional, don't need set it 
+    node = {
+        'parent_id': parent_id, 'ancestors': ancestors, 'next_id': next_id,
+        'data': data,
+    }
+    node.update(kwargs)
+    return collection.insert_one(node)
+
 def prepend(node, data):
     _id = ObjectId()
     next_id = node['_id']
@@ -47,22 +56,67 @@ def prepend(node, data):
         )
 
     try:
-        return collection.insert_one({
-            '_id': _id, 'parent_id': parent_id, 'ancestors': ancestors, 
-            'next_id': next_id, 'data': data
-        })
+        return insert_one(
+            _id=_id, parent_id=parent_id, ancestors=ancestors,
+            next_id=next_id, data=data)
     except Exception as e:
         if prev:
-            objects.find_one_and_update(
+            collection.find_one_and_update(
                 {'_id': prev['_id']},
                 {'$set': {'next_id': next_id}}
             )
         else:
-            objects.find_one_and_update(
+            collection.find_one_and_update(
                 {'_id': parent_id},
                 {'$set': {'first_child_id': prev['_id']}},
             )
         raise e
+
+def append(node, data):
+    _id = ObjectId()
+    parent_id = node['parent_id']
+    ancestors = node['ancestors']
+    next_id = node['next_id']
+    node_id = node['_id']
+
+    collection.find_one_and_update({
+        {'_id': node_id},
+        {'$set': {'next_id': _id}},
+    })
+
+    try:
+        return insert_one(
+            _id=_id, parent_id=parent_id, ancestors=ancestors,
+            next_id=next_id, data=data)
+    except Exception as e:
+        collection.find_one_and_update(
+            {'_id': node_id},
+            {'$set': {'next_id': next_id}}
+        )
+        raise e
+
+def add_first_child(node, data):
+    _id = ObjectId()
+    parent_id = node['_id']
+    ancestors = node['ancestors'] + [parent_id]
+    next_id = node.get('first_child_id', None)
+
+    collection.find_one_and_update(
+        {'_id': parent_id},
+        {'$set': {'first_child_id': _id}},
+    )
+
+    try:
+        return insert_one(
+            _id=_id, parent_id=parent_id, ancestors=ancestors,
+            next_id=next_id, data=data)
+    except Exception as e:
+        collection.find_one_and_update(
+            {'_id': parent_id},
+            {'$set': {'first_child_id': next_id}}
+        )
+        raise e
+
 
 
 class Node(object):
@@ -79,87 +133,6 @@ class Node(object):
         self.data = kwargs
 
 
-    def prepend(self, **kwargs):
-        objects = self.objects
-        _id = ObjectId()
-        parent_id = self.parent_id
-        ancestors = self.ancestors
-
-        prev = objects.find_one_and_update(
-            {'next_id': self._id},
-            {'$set': {'next_id': _id}},
-        )
-        if not prev:
-            objects.find_one_and_update(
-                {'_id': parent_id},
-                {'$set': {'first_child_id': _id}},
-            )
-
-        try:
-            return objects.insert_one({
-                '_id': _id, 'parent_id': parent_id, 'ancestors': ancestors, 
-                'next_id': self._id, 'data': kwargs
-            })
-        except Exception as e:
-            if prev:
-                objects.find_one_and_update(
-                    {'_id': prev._id},
-                    {'$set': {'next_id': self._id}}
-                )
-            else:
-                objects.find_one_and_update(
-                    {'_id': parent_id},
-                    {'$set': {'first_child_id': self._id}},
-                )
-            raise e
-
-    def append(self, **kwargs):
-        objects = self.objects
-        _id = ObjectId()
-        parent_id = self.parent_id
-        ancestors = self.ancestors
-        next_id = self.next_id
-
-        objects.find_one_and_update({
-            {'_id': self._id},
-            {'$set': {'next_id': _id}},
-        })
-        
-        try:
-            return objects.insert_one({
-                '_id': _id, 'parent_id': parent_id, 'ancestors': ancestors, 
-                'next_id': next_id, 'data': kwargs
-            })
-        except Exception as e:
-            objects.find_one_and_update(
-                {'_id': self._id},
-                {'$set': {'next_id': next_id}}
-            )
-            raise e
-
-    def add_first_child(self, **kwargs):
-        objects = self.objects
-        _id = ObjectId()
-        parent_id = self._id
-        ancestors = self.ancestors + [parent_id]
-        next_id = self.first_child_id
-
-        objects.find_one_and_update(
-            {'_id': self._id},
-            {'$set': {'first_child_id': _id}},
-        )
-
-        try:
-            return objects.insert_one({
-                '_id': _id, 'parent_id': parent_id, 'ancestors': ancestors, 
-                'next_id': next_id, 'data': kwargs
-            })
-        except Exception as e:
-            objects.find_one_and_update(
-                {'_id': self._id},
-                {'$set': {'first_child_id': next_id}}
-            )
-            raise e
 
     def get_last_child(self):
         objects = self.objects
