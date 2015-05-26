@@ -1101,6 +1101,7 @@ class Revision(models.Model):
             on_page.delete()
             if close_on_page:
                 pb = Text.objects.get(pk=pb.pk)
+                close_on_page = Text.objects.get(pk=close_on_page.pk)
                 pb.move(close_on_page, pos='right')
             pb = Text.objects.get(pk=pb.pk)
         else:
@@ -1159,10 +1160,12 @@ class Revision(models.Model):
             target = Text.objects.get(pk=target.pk)
         for t in continue_to_next_page:
             t = Text.objects.get(pk=t.pk)
-            merge_text = get_first(
-                Text.objects.filter(tree_id=t.tree_id,
-                                    lft__gt=pb.rgt, rgt__lt=target.lft, 
-                                    entity=t.entity).order_by('-rgt'))
+            merge_text = None
+            if t.entity:
+                merge_text = get_first(
+                    Text.objects.filter(tree_id=t.tree_id,
+                                        lft__gt=pb.rgt, rgt__lt=target.lft, 
+                                        entity=t.entity).order_by('-rgt'))
             if not merge_text or merge_text.entity != t.entity:
                 break
             merge_text.tail = t.tail
