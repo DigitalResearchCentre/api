@@ -455,8 +455,6 @@ class Entity(DETNode):
             if doc_text is not None:
                 texts = texts.filter(tree_id=doc_text.tree_id)
 
-        for t in texts:
-            print t.pk
         result = Doc.objects.none()
         for text in texts:
             descendants = text.get_descendants()
