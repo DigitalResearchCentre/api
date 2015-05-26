@@ -994,10 +994,13 @@ class Text(Node):
         if entity is None:
             entity = obj
         doc_text = doc.has_text_in()
-        q = Q(tree_id=doc_text.tree_id, rgt__gt=doc_text.lft)
-        bound = doc._get_texts_bound()
-        if bound is not None:
-            q &= Q(lft__lt=bound.lft)
+        if doc_text is not None:
+            q = Q(tree_id=doc_text.tree_id, rgt__gt=doc_text.lft)
+            bound = doc._get_texts_bound()
+            if bound is not None:
+                q &= Q(lft__lt=bound.lft)
+        else:
+            q = Q()
         return get_last(entity.has_text_of().filter(q))
 
 
