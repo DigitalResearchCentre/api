@@ -455,8 +455,6 @@ class Entity(DETNode):
             if doc_text is not None:
                 texts = texts.filter(tree_id=doc_text.tree_id)
 
-        for t in texts:
-            print t.pk
         result = Doc.objects.none()
         for text in texts:
             descendants = text.get_descendants()
@@ -550,11 +548,14 @@ class Doc(DETNode):
 
     def get_texts(self):
         text = self.has_text_in()
-        qs = Text.objects.filter(tree_id=text.tree_id, lft__gte=text.lft)
-        bound = self._get_texts_bound()
-        if bound is not None:
-            qs = qs.filter(lft__lt=bound.lft)
-        return qs.order_by('lft')
+        if text:
+            qs = Text.objects.filter(tree_id=text.tree_id, lft__gte=text.lft)
+            bound = self._get_texts_bound()
+            if bound is not None:
+                qs = qs.filter(lft__lt=bound.lft)
+            return qs.order_by('lft')
+        else:
+            return Text.objects.none()
 
     def _get_texts_bound(self):
         text = self.has_text_in()
@@ -1154,20 +1155,22 @@ class Revision(models.Model):
         pb.tail = ''
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         target = continue_to_next_page[0] if continue_to_next_page else None
+        target = Text.objects.get(pk=target.pk)
         for t in continue_to_next_page:
             t = Text.objects.get(pk=t.pk)
             merge_text = get_first(
-                Text.objects.filter(tree_id=t.tree_id, rgt__lt=target.lft, 
-                                    entity__isnull=False).order_by('-rgt'))
+                Text.objects.filter(tree_id=t.tree_id,
+                                    lft__gt=pb.rgt, rgt__lt=target.lft, 
+                                    entity=t.entity).order_by('-rgt'))
             if not merge_text or merge_text.entity != t.entity:
                 break
             merge_text.tail = t.tail
+            merge_text.save()
             for child in t.get_children():
                 child = Text.objects.get(pk=child.pk)
                 child.move(merge_text, pos='last-child')
                 merge_text = Text.objects.get(pk=merge_text.pk)
             t.delete()
-            merge_text.save()
             target = merge_text
 
         # TODO: rebind all doc/entity
