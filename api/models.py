@@ -1155,7 +1155,8 @@ class Revision(models.Model):
         pb.tail = ''
         self._commit_el(root_el, list(pb.get_ancestors()), after=pb)
         target = continue_to_next_page[0] if continue_to_next_page else None
-        target = Text.objects.get(pk=target.pk)
+        if target:
+            target = Text.objects.get(pk=target.pk)
         for t in continue_to_next_page:
             t = Text.objects.get(pk=t.pk)
             merge_text = get_first(
