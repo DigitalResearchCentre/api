@@ -11,17 +11,6 @@ collection = db.nodes
 
 # TODO: AutoReconnect
 
-class Logger(object):
-    objects = db.logs
-
-    @classmethod
-    def log(cls, data):
-        return cls.objects.insert_one(data)
-
-class InvalidPositionException(Exception):
-    pass
-
-
 def get_tree(_id):
     return collection.find({
         '$or': [{'_id': _id}, {'ancestors': _id}],
@@ -31,7 +20,7 @@ def get_node(_id):
     return collection.find_one({'_id': _id})
 
 def get_last_child(node):
-    return collection.find_one({'parent': node['parent'], 'next': None})
+    return collection.find_one({'parent': node['_id'], 'next': None})
 
 def has_children(node):
     return node['first_child'] is not None
@@ -53,7 +42,7 @@ def prepend(node, data):
         {'next': next},
         {'$set': {'next': _id}},
     )
-    if not prev:
+    if prev is None:
         collection.find_one_and_update(
             {'_id': parent},
             {'$set': {'first_child': _id}},
@@ -83,10 +72,10 @@ def append(node, data):
     next = node['next']
     prev = node['_id']
 
-    collection.find_one_and_update({
+    collection.find_one_and_update(
         {'_id': prev},
         {'$set': {'next': _id}},
-    })
+    )
 
     try:
         return insert_one(
