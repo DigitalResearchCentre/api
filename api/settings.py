@@ -1,5 +1,6 @@
 import os
-ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -35,7 +36,6 @@ TIME_ZONE = 'Canada/Saskatchewan'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 
-SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
@@ -53,7 +53,7 @@ STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    os.path.join(ROOT_PATH, '..', 'client'),
+    os.path.join(BASE_DIR, '..', 'client'),
 )
 
 # List of finder classes that know how to find static files in
@@ -104,7 +104,6 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
@@ -117,6 +116,7 @@ INSTALLED_APPS = (
     'myauth',
     'regularize',
     'mycelery',
+    'docstore',
 )
 
 AUTHENTICATION_BACKENDS = (
@@ -182,9 +182,9 @@ DATABASES = {
 
 BASE_URL = 'http://localhost:8000/'
 
-STATIC_ROOT = os.path.join(ROOT_PATH, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
-MEDIA_ROOT = os.path.join(ROOT_PATH, 'static', 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static', 'media')
 MEDIA_URL = '/static/media/'
 
 
