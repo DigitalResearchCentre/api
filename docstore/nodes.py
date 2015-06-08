@@ -27,10 +27,13 @@ def has_children(node):
 
 def insert_one(_id=None, parent=None, ancestors=[], 
                next=None, first_child=None, data={}):
-    return collection.insert_one({
+    node = {
         'parent': parent, 'ancestors': ancestors, 'next': next,
         'first_child': first_child, 'data': data,
-    })
+    }
+    if _id is not None:
+        node['_id'] = _id
+    return collection.insert_one(node)
 
 def prepend(node, data):
     _id = ObjectId()

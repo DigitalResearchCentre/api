@@ -4,11 +4,21 @@ from api.models import (
     APIUser, Group, TilerImage, CSS, Task, JS, Schema, Invitation, )
 
 
+class CSSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CSS
+        fields = ('id', 'css',)
+
+
 class CommunitySerializer(serializers.ModelSerializer):
+    css = CSSSerializer(many=True)
 
     class Meta:
         model = Community
-        fields = ('id', 'name', 'abbr', 'long_name', 'font', 'description',)
+        fields = (
+            'id', 'name', 'abbr', 'long_name', 'font', 'description',
+            'css',
+        )
 
 
 class APIUserSerializer(serializers.ModelSerializer):
@@ -65,10 +75,6 @@ class TilerImageSerializer(serializers.ModelSerializer):
         model = TilerImage
         fields = ('id', 'doc', 'width', 'height', 'max_zoom')
 
-
-class CSSSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CSS
 
 
 class RefsDeclSerializer(serializers.ModelSerializer):

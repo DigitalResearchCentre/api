@@ -16,22 +16,25 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_control
 from django.db.models import Manager
 
+from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework.decorators import detail_route, list_route
+
 from rest_framework import status, filters
 from rest_framework import permissions
 from rest_framework import generics, mixins
 from rest_framework.reverse import reverse
-from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 
 from api.models import (
     Community, Membership, Entity, Doc, Text, Revision, RefsDecl, Task,
     APIUser, Group, UserMapping, CommunityMapping, Partner, Invitation, Task,
-    Action)
+    Action, CSS)
 from api.serializers import (
     CommunitySerializer, APIUserSerializer, DocSerializer, EntitySerializer,
     TextSerializer, RevisionSerializer, RefsDeclSerializer, TaskSerializer,
-    InvitationSerializer, MembershipSerializer, GroupSerializer,)
+    InvitationSerializer, MembershipSerializer, GroupSerializer, CSSSerializer)
 from api import tasks
 
 class UnsafeSessionAuthentication(SessionAuthentication):
@@ -194,10 +197,6 @@ class APIView(CreateModelMixin, RelationView):
         y = self.kwargs.get('y', None)
         return self.get_response(
             self.get_object().has_image(zoom=zoom, x=x, y=y))
-
-    def _get_xmlvalidate(self, request, *args, **kwargs):
-        xml = request.REQUEST.get('xml', None)
-        return self.get_response(self.get_object().validate(xml))
 
     def _get_assign(self, request, *args, **kwargs):
         membership = Membership.objects.get(pk=kwargs['pk'])
@@ -511,5 +510,35 @@ class TranscribeView(generics.CreateAPIView):
     serializer_class = RevisionSerializer
     permission_classes = (permissions.AllowAny,)
 
+
+class CommunityViewSet(viewsets.ModelViewSet):
+    queryset = Community.objects.all()
+    serializer_class = CommunitySerializer
+
+    def get_response(self, result, serializer_class=None):
+        if result is None:
+            raise Http404
+
+        if self.response_class is not None:
+            return self.response_class(result)
+        elif isinstance(result, models.query.QuerySet):
+            self.queryset = result
+            return self.list(self.request)
+        elif isinstance(result, models.Manager):
+            self.queryset = result.all()
+            return self.list(self.request)
+        elif isinstance(result, models.Model):
+            serializer = self.get_serializer(result)
+            return Response(serializer.data)
+        elif isinstance(result, HttpResponse):
+            return result
+        else:
+            return Response(result)
+
+
+    @detail_route()
+    def xmlvalidate(self, request, pk=None):
+        xml = request.REQUEST.get('xml', None)
+        return Response(self.get_object().validate(xml))
 
 

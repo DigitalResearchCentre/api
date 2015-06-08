@@ -49,11 +49,6 @@ class Community(models.Model):
     )
     long_name = models.CharField(max_length=80, blank=True)
     description = models.TextField(blank=True)
-    # Not a real m2m here, there is a unique community in database level
-    docs = models.ManyToManyField('Doc', blank=True,
-                                  limit_choices_to={'depth': 0}, )
-    entities = models.ManyToManyField('Entity', blank=True,
-                                      limit_choices_to={'depth': 0})
     font = models.CharField(max_length=255, blank=True)
     refsdecls = models.ManyToManyField('RefsDecl', blank=True)
     members = models.ManyToManyField(User, through='Membership')
@@ -1362,7 +1357,6 @@ class RefsDecl(models.Model):
         (ENTITY_TYPE, 'entity'),
         (TEXT_TYPE, 'text'),
     ), default=TEXT_TYPE)
-    text = models.ForeignKey(Text, null=True, blank=True)
     xml = models.TextField()
     template = models.TextField(blank=True)
 
