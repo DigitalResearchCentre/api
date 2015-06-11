@@ -1,4 +1,4 @@
-var API_ENDPOINT = 'http://textualcommunities.usask.ca/api/'
+var API_ENDPOINT = '/'
   , REGULARIZE_URL = API_ENDPOINT + 'regularize/'
 ;
 var env = {

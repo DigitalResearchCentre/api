@@ -1,4 +1,4 @@
-var API_ENDPOINT = 'http://localhost:8000/'
+var API_ENDPOINT = '/'
   , REGULARIZE_URL = API_ENDPOINT + 'regularize/'
 ;
 
