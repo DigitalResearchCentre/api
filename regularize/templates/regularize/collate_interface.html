@@ -1,0 +1,172 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+  <title>Collate Interface</title>
+
+  <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <h1>Collation Interface: for <label for="title_label" id="title_label"></label></h1>
+  Rule Set Name: <label id="ruleSetNameLabel"></label>
+  <input name="choose_ruleSet" id="choose_ruleSet" type="button" value="Change Rule Set" onclick="chooseRuleSet()"><br/>
+  <!--
+  Witnesses: <label id="chooseTextsLabel"></label>
+  <input name="choose_texts" id="choose_text" type="button" value="Select Certain Texts" onclick="chooseTexts()"><br /><br />
+  -->
+  
+<label for="regularize_label" id="regularize_label">Single click on the word you want regularized, double click or type in the
+word you want it regularized to.  <br/>Select combination of Witnesses and Place.  Click OK when finished.</label>
+</label>
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-6">
+  <form action="." method="POST" name="regularization">
+        <br /><textarea id="regularization_area" rows="10" cols="75" name="reg"></textarea>
+        
+        <input name="back" type="button" value="Back Entity" onclick="backEntity()">
+        <input name="forward" type="button" value="Forward Entity" onclick="forwardEntity()">
+        <input name="previous" type="button" value="Previous Word" onclick="previousToken()">
+        <input name="next" type="button" value="Next Word" onclick="nextToken()">
+        <input name='recollateTokens' type='button' value='Recollate' onclick='recollate()'/>
+
+        <input name='ok' type='button' value='Regularize' onclick='addRule()'>
+
+        <!--
+        <input name="done" type="button" value="Done" onclick="returnPage()"><br/>
+        -->
+      
+        <div id="reg_wrapper"></div><br />
+        
+  </form>
+</div>
+  <div class="info col-xs-6">
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="active">
+        <a href="#witnesses" role="tab" data-toggle="tab">View Witnesses</a>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane active" id="witnesses"></div>
+    </div>
+
+  <label id="newRegInfo"></label><br/>
+</div>
+</div>
+</div>
+
+
+  <form name="realign_token" id="realign_token">
+    <div id="align_wrapper"></div><br/>
+    </form>
+<form name="edit_reg">
+  <label id="reg_table_title">Regularizations</label>
+
+<table id="reg_table" border="1">
+	
+</table>
+
+<input name="submit" type="button" value="Submit" onclick="submitCustomReg()">
+
+</form>
+<form action="." method="POST" name="information">
+<h2>Witness Information</h2>
+Word <label for="word" id="word"></label> in line <label for="line" id="line"></label> in entity <label for="block" id="block"></label>
+in witness <label for="witnessId" id="witnessId"></label>
+
+<br /><br />
+
+Context:<br/>
+<label for="context" id="context"></label>
+
+<br /><br />
+
+</form>
+<form action="." method="POST" name="reg_information">
+Regularization from:<br/>
+<label for="reg_this_info" id="reg_this_info"></label>
+
+<br /><br />
+
+Regularization to:<br/>
+<label for="reg_to_info" id="reg_to_info"></label>
+
+<br /><br />
+
+This regularization set for <label for="choice" id="choice"></label>
+</form>
+  <div id="image_map" style="width:384px;height:384px;margin:0px auto;"></div>
+  <script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+  <script 
+    src="{% static 'bower_components/bootstrap/dist/js/bootstrap.min.js' %}">
+  <script type="text/javascript" 
+    src="http://maps.google.com/maps/api/js?libraries=geometry&sensor=false">
+  </script>
+  <script type="text/javascript" 
+    src="{% static 'bower_components/underscore-amd/underscore.js' %}"></script>
+  <script type="text/javascript" 
+    src="{% static 'bower_components/backbone-amd/backbone.js' %}"></script>
+  <script type="text/javascript" 
+    src="{% static 'bower_components/uri.js/src/uri.js' %}"></script>
+  <script type="text/javascript">
+    var userName = "{{ userName }}";
+    var urn = "{{ urn }}";
+    var ruleSetName = "{{ ruleSetName }}";
+    var returnUrl = "{{ returnUrl }}";
+    var isAllWitnesses = "{{ isAllWitnesses }}"
+    var witnessDataTokens;
+    var witnessDataLines;
+    var ruleSet = {{ ruleSet | safe }};
+    var allImages = (("{{ images }}")).replace(/&(l|g|quo)t;/g, function(a,b)
+    {
+      return {
+        l : '<',
+        g : '>',
+        quo : '"'
+      }[b];
+    });
+
+  var allWitnesses;
+  var newRules;
+  var contextStruct;
+  var allTokens;
+  var totalPos;
+  var currentPosition = {{ position }};
+  var regOn;
+  var iTimeoutId = null;
+  var allRules;
+  var origTokens;
+  var isBuildWitnesses;
+  var isRecollate;
+  var customRules;
+  var isCustomRules;
+  var autoReg;
+  var distinct;
+  var changeLabelTimer = null;
+  var isOriginals;
+  var isRealign;
+  var alignOn;
+  var allAlign;
+  var customAligns;
+  var isCustomAlign;
+  var map;
+
+  </script>
+  <script type="text/javascript" 
+    src="{% static "regularize/js/regularize.js" %}"></script>
+
+
+</body>
+</html>
