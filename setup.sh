@@ -15,13 +15,15 @@ fi
 
 [[ "$VIRTUAL_ENV" == "" ]]; source venv/bin/activate
 pip install -r requirements.txt
-# pip install -U pil MySQL-python  django-cors-headers djangorestframework django-filter celery defusedxml django-tastypie jsonfield django-activity-stream lxml feedparser --allow-external PIL --allow-unverified PIL 
+cd client
+bower install
 
-# celery worker --app=mycelery -l info
-
-# useradd -M celery
-# usermod -L celery
-
+# First Time setup:
 # CREATE DATABASE apitest CHARACTER SET utf8 COLLATE utf8_bin;
 # CREATE USER 'api'@'localhost' IDENTIFIED BY 'api';
 # GRANT ALL ON apitest.* TO 'api'@'localhost';
+
+
+# command for running local server:
+# python manage.py runserver &
+# celery worker --app=mycelery -l info &
