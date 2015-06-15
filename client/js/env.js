@@ -3,7 +3,7 @@ define([], function() {
   //  , restBase = hostURL + '/api'
   //  , mediaURL = hostURL + '/media/tc/'
   //;
-  var hostURL = 'http://localhost:8000'
+  var hostURL = 'http://digitalhumanities.arts.kuleuven.be'
     , restBase = hostURL
     , mediaURL = hostURL + '/media/tc/'
   ;

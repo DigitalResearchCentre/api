@@ -4,7 +4,7 @@ from celery import Celery
 from django.conf import settings
 
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'api.settings.local')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'api.settings.prod')
 
 app = Celery('api', backend='amqp', broker='amqp://')
 

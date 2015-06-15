@@ -27,3 +27,7 @@ bower install
 # command for running local server:
 # python manage.py runserver &
 # celery worker --app=mycelery -l info &
+
+# restorecon -R -v api
+# cd venv/lib/python2.7/site-packages
+# find . -name "*.so" -exec chcon -R -h -t httpd_sys_script_exec_t {} \;
