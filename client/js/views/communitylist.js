@@ -33,7 +33,7 @@ define([
       $a.click(_.bind(function() {
         var url = urls.get(['community:friendly_url', {pk: community.id}]);
         $.get(url, function(friendlyURL) {
-          window.parent.location = friendlyURL;
+          window.open(friendlyURL, '_blank');
         });
       }, this));
       $ul.append($('<li/>').append($a));

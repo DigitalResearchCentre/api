@@ -4,15 +4,15 @@
   <title>Textual Communities</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="lib/codemirror/lib/codemirror.css">
+  <link rel="stylesheet" href="bower_components/codemirror/lib/codemirror.css">
   <link rel="stylesheet" media="screen"
-    href="lib/bootstrap/dist/css/bootstrap.css"/>
+    href="bower_components/bootstrap/dist/css/bootstrap.css"/>
   <link rel="stylesheet" media="screen"
-    href="lib/dynatree/src/skin/ui.dynatree.css"/>
+    href="bower_components/dynatree/src/skin/ui.dynatree.css"/>
 
   <!--[if lt IE 9]>
-  <script src="lib/bootstrap/assets/js/html5shiv.js"></script>
-  <script src="lib/bootstrap/assets/js/respond.min.js"></script>
+  <script src="bower_components/bootstrap/assets/js/html5shiv.js"></script>
+  <script src="bower_components/bootstrap/assets/js/respond.min.js"></script>
   <![endif]-->
   <style type="text/css" media="screen">
     .dropdown-menu .btn {
@@ -168,8 +168,8 @@
         <div class="tree"></div>
     </div>
 
-  <script src="js/config.js?v=2" type="text/javascript"></script>
-  <script data-main="js/profile" src="lib/requirejs/require.js"></script>
+  <script src="js/config.js?v=5" type="text/javascript"></script>
+  <script data-main="js/profile" src="bower_components/requirejs/require.js"></script>
 
   <script type="text/template" id="community-form-tmpl">
     <form role="form" class="form-horizontal">
@@ -341,6 +341,10 @@
           data-toggle="modal" data-target="#modal">
           Create Community <span class="glyphicon glyphicon-plus"></span>
         </button>
+        <button class="btn btn-default pull-right home-btn">
+          Home
+        </button>
+
         <div class="clearfix"></div>
       </div>
       <table class="table">

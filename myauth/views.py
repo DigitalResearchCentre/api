@@ -17,22 +17,6 @@ from api.models import Invitation, UserMapping, APIUser, Community
 
 
 def login(request, *args, **kwargs):
-    partner = request.partner
-    if partner and partner.sso_url:
-        token = request.GET.get('token')
-        if token:
-            user = authenticate(partner=partner, token=token)
-            if user:
-                auth_login(request, user)
-            # TODO: what if login failed
-            redirect = request.REQUEST.get(REDIRECT_FIELD_NAME, '')
-        else:
-            redirect = '%s?%s' % (partner.sso_url, urllib.urlencode({
-                'redirect': request.build_absolute_uri(), 
-                'action': 'login', 
-            }))
-        return HttpResponseRedirect(redirect)
-    #return render_to_response('auth/login.html', {'redirect': redirect})
     return login_view(request, *args, **kwargs)
 
 def logout(request, *args, **kwargs):
@@ -106,22 +90,9 @@ def activate(request, *args, **kwargs):
     if not user_created:
         auth_logout(request)
 
-    if not invitation.is_activated() and not user_created:
-        try:
-            usermapping = user.usermapping
-        except UserMapping.DoesNotExist:
-            redirect = '%s&%s' % (request.build_absolute_uri(), 
-                                  'user_created=created')
-            param = urllib.urlencode({'action': 'create', 'redirect': redirect})
-            return HttpResponseRedirect(
-                    '%s/c/portal/sso?%s' % (settings.PARTNER_BASE, param))
-
     if not request.user.is_authenticated():
         return redirect_to_login(request.build_absolute_uri())
 
-    if request.user != user:
-        # TODO: merge user
-        pass
     invitation.activate()
     return HttpResponseRedirect('/client/profile.html')
 

@@ -92,7 +92,8 @@ class Community(models.Model):
         return self.css_set.all()
 
     def friendly_url(self):
-        return self.communitymapping.get_friendly_url()
+        # return self.communitymapping.get_friendly_url()
+        return settings.INTERFACE_URL + '?community=' + self.abbr
 
     def js(self):
         return self.js_set.all()
@@ -1275,30 +1276,25 @@ class Base64Field(models.Field):
     def db_type(self, connection):
         return 'blob'
 
-    def contribute_to_class(self, cls, name):
-        if self.db_column is None:
-            self.db_column = name
-        self.field_name = name + '_base64'
-        super(Base64Field, self).contribute_to_class(cls, self.field_name)
-        setattr(cls, name, property(self.get_data, self.set_data))
-
-    def get_data(self, obj):
-        return base64.decodestring(getattr(obj, self.field_name))
-
-    def set_data(self, obj, data):
-        setattr(obj, self.field_name, base64.encodestring(data))
-
 
 class Tile(models.Model):
     image = models.ForeignKey(TilerImage)
     zoom = models.IntegerField()
     x = models.IntegerField()
     y = models.IntegerField()
-    blob = Base64Field()
+    blob_base64 = Base64Field()
 
     class Meta:
         unique_together = (('image', 'zoom', 'x', 'y'), )
         db_table = 'det_tile'
+
+    @property
+    def blob(self):
+        return base64.decodestring(self.blob_base64)
+
+    @blob.setter
+    def blob(self, data):
+        self.blob_base64 = base64.encodestring(data)
 
 
 def css_upload_to(instance, filename):

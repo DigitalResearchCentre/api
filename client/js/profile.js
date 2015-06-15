@@ -43,7 +43,7 @@ require([
         var community = this.model.getCommunity();
         var url = urls.get(['community:friendly_url', {pk: community.id}]);
         $.get(url, function(friendlyURL) {
-          window.parent.location = friendlyURL + '/viewer';
+          window.parent.location = friendlyURL;
         });
     },
     onTaskAdd: function(task) {
@@ -76,16 +76,14 @@ require([
       $.get(url, function(friendlyURL) {
         if (parent.isNew()) {
           parent.fetch().done(function() {
-            var url = friendlyURL + '/viewer?' 
-            + 'docName=' + parent.get('name') 
+            var url = friendlyURL + '?docName=' + parent.get('name') 
             + '&pageName=' + doc.get('name');
-            window.parent.location = url;
+          window.open(url, '_blank');
           });
         }else{
-          var url = friendlyURL + '/viewer?' 
-          + 'docName=' + parent.get('name') 
+          var url = friendlyURL + '?docName=' + parent.get('name') 
           + '&pageName=' + doc.get('name');
-          window.parent.location = url;
+          window.open(url, '_blank');
         }
       });
     },
@@ -116,7 +114,8 @@ require([
   var ProfileView = Backbone.View.extend({
     el: '#app',
     events: {
-      'click .create-community-btn': 'onCreateCommunity'
+      'click .create-community-btn': 'onCreateCommunity',
+      'click .home-btn': 'onHome'
     },
     template: _.template($('#user-info-tmpl').html()),
     initialize: function() {
@@ -136,6 +135,9 @@ require([
     },
     onCreateCommunity: function() {
       (new CreateCommunityView({model: new Community()})).render();
+    },
+    onHome: function() {
+      window.location = urls.homeURL;
     },
     openCommunity: function (communityId) {
         var memberships = this.memberships;

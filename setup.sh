@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# pre requirements
+# python 2.7
+# pip: latest
+# virtualenv: latest
+# rabbitmq: 3.2.3 http://www.rabbitmq.com/
+# npm: latest https://www.npmjs.com/
+# bower: latest http://bower.io/
+# mysql: 5.6
+
 if [ ! -d venv ]; then
     virtualenv venv
 fi
@@ -12,3 +21,7 @@ pip install -r requirements.txt
 
 # useradd -M celery
 # usermod -L celery
+
+# CREATE DATABASE apitest CHARACTER SET utf8 COLLATE utf8_bin;
+# CREATE USER 'api'@'localhost' IDENTIFIED BY 'api';
+# GRANT ALL ON apitest.* TO 'api'@'localhost';

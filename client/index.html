@@ -4,13 +4,13 @@
   <title>Textual Communities</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="lib/codemirror/lib/codemirror.css">
+  <link rel="stylesheet" href="bower_components/codemirror/lib/codemirror.css">
   <link rel="stylesheet" media="screen"
-    href="lib/bootstrap/dist/css/bootstrap.css" 
+    href="bower_components/bootstrap/dist/css/bootstrap.css" 
   />
   <!--[if lt IE 9]>
-    <script src="lib/bootstrap/assets/js/html5shiv.js"></script>
-    <script src="lib/bootstrap/assets/js/respond.min.js"></script>
+    <script src="bower_components/bootstrap/assets/js/html5shiv.js"></script>
+    <script src="bower_components/bootstrap/assets/js/respond.min.js"></script>
   <![endif]-->
   <style type="text/css" media="screen">
     .CodeMirror {
@@ -36,10 +36,18 @@
 <body>
   <div id="app" class="container">
   </div>
-  <script src="js/config.js?v=2" type="text/javascript"></script>
-  <script data-main="js/main" src="lib/requirejs/require.js"></script>
+  <script src="js/config.js?v=5" type="text/javascript"></script>
+  <script data-main="js/main" src="bower_components/requirejs/require.js"></script>
 
   <script type="text/template" id="community-info-tmpl">
+    <div class="row">
+      <button class="btn btn-default pull-right sign-in-btn">
+        Sign In
+      </button>
+      <button class="btn btn-default pull-right profile-btn hide">
+        Profile
+      </button>
+    </div>
     <div class="row">
       <div class="community-info col-md-8">
         <div class="panel panel-default">

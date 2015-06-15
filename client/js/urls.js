@@ -46,6 +46,8 @@ define([
     return {
         mediaURL: env.mediaURL,
         loginURL: env.loginURL,
+        homeURL: env.homeURL,
+        profileURL: env.profileURL,
         window: window,
         get: function(name, search) {
             var uri = new URI(env.restBase)
