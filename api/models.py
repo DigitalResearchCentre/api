@@ -379,10 +379,6 @@ class Entity(DETNode):
             return {}
 
     def witnesses(self):
-        try:
-            return self.witnessescache.json
-        except:
-            pass
 
         def get_content(nodes, index):
             length = len(nodes)
@@ -418,6 +414,7 @@ class Entity(DETNode):
                     'doc': doc.id,
                     'name': doc.tree_id,
                     'content': content.encode('UTF-8'),
+                    'xml': text.xml(),
                 }
                 pb = get_first(
                     doc.get_ancestors().filter(tilerimage__isnull=False))
@@ -439,8 +436,6 @@ class Entity(DETNode):
                 witness['name'] = name
                 results.append(witness)
 
-        from regularize.models import WitnessesCache
-        WitnessesCache.objects.create(entity=self, json=results)
         return results
 
     def get_urn(self):

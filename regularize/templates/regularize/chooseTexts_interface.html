@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> <head>
+<title>Choose Texts for Collation</title>
+<script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+<!--<script type ="text/javascript" src="{{ STATIC_URL }}js/jquery.js"></script>-->
+<script type="text/javascript">
+  
+  var selectedIds;
+  var userName = "{{ userName }}";
+  var urn = "{{ urn }}";
+  var returnUrl = "{{ returnUrl }}";
+  var witnessData = (("{{ witnesses}}")).replace(/&(l|g|quo)t;/g, function(a,b)
+  {
+    return {
+      l : '<',
+      g : '>',
+      quo : '"'
+    }[b];
+  });
+  var selected;
+  
+  function load()
+  {
+    selected = true;
+    selectedIds = [];
+    
+    witnessData = witnessData.replace(/u'/g, '\'');
+    witnessData = witnessData.replace(/'/g, '\"');
+    //console.log(witnessData);
+    witnessData = JSON.parse(witnessData);
+    
+    for(var i in witnessData.witnesses)
+    {
+      var checkbox = document.createElement('input');
+      checkbox.type = "checkbox";
+      checkbox.name = witnessData.witnesses[i].id;
+      checkbox.value = witnessData.witnesses[i].id;
+      checkbox.id = witnessData.witnesses[i].id;
+      
+      var label = document.createElement('label');
+      //label.htmlFor = witnessData.witnesses[i].id;
+      label.appendChild(document.createTextNode(witnessData.witnesses[i].id))
+      
+      document.getElementById('wrapper').appendChild(checkbox);
+      document.getElementById('wrapper').appendChild(label);
+      document.getElementById('wrapper').innerHTML += "<br/>"
+    }
+    
+    for (var i in witnessData.witnesses)
+    {
+      document.getElementById(witnessData.witnesses[i].id).checked = true;
+    }
+  }
+  
+  function done()
+  {
+    
+    var newWitnesses = { witnesses: []};
+    
+    for(var i in witnessData.witnesses)
+    {
+      if(document.getElementById(witnessData.witnesses[i].id).checked == true)
+      {
+        newWitnesses.witnesses.push(witnessData.witnesses[i]);
+      }
+    }
+    
+    newWitnesses.urn = urn;
+    newWitnesses.userName = userName;
+    newWitnesses.returnUrl = returnUrl;
+     
+     $.ajax({
+    url: "http://127.0.0.1:8000/regularization/postSelectedWitnesses/",
+    dataType: 'json',
+    type: 'POST',
+    async: false,
+    data: JSON.stringify(newWitnesses),
+    success: function(data){
+    }});
+  
+    window.location.href = window.location.href = "http://127.0.0.1:8000/regularization/?urn=" + urn + "&username=" + userName + "&page=" + returnUrl; 
+  }
+  
+function unselect()
+{
+  if(selected)
+  {
+    for(var i in witnessData.witnesses)
+    {
+      document.getElementById(witnessData.witnesses[i].id).checked = false;
+    }
+    document.getElementById("unselectButton").value = "Select All";
+    selected = false;
+  }
+  else
+  {
+    for(var i in witnessData.witnesses)
+    {
+      document.getElementById(witnessData.witnesses[i].id).checked = true;
+    }
+    document.getElementById("unselectButton").value = "Unselect All";
+    selected = true;
+  }
+}
+  
+</script>
+</head>
+
+<body onload="load()">
+<h1>Choose Texts for Collation</h1>
+<div id="wrapper"></div><br/>
+<input name="done" type="button" value="Done" onclick="done()">
+<input id="unselectButton" name="unselect" type="button" value="Unselect All" onclick="unselect()">
+</body> </html>
