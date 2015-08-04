@@ -8,6 +8,7 @@ var minframewidth=300; //for text and images
 var minframetextheight=270; //for text and images
 var minframeimageheight=230; //for text and images
 var minframeheight=270; //for text and images
+var ENV = {base_url: 'http://a1c30aad.ngrok.io/',};
 var url = ENV.base_url; 
 var urlstatic = "http://textualcommunities.usask.ca/media/tc/"; 
 //    var community="T25";   
@@ -842,6 +843,7 @@ function hideTOC(){
 	if (wholeWidth<minwidth) wholeWidth=minwidth;
 	$('#right').width(wholeWidth);
 	$('#openpanel').show();
+	$('#closepanel').hide();
 	$( "#right" ).css("left", '2px');
 	$( "#right" ).css("top", '2px');
 //	$( "#right" ).css( "maxWidth",wholeWidth);
@@ -2188,6 +2190,7 @@ function showTOC(){
 	$('#left').show();
 	var leftwidth=$('#left').width();
 	$('#openpanel').hide();
+	$('#closepanel').show();
 	var newWidth=wholeWidth-leftwidth-4;
 	var change=newWidth-$('#right').width();
 	$('#right').width(newWidth);
@@ -2459,7 +2462,7 @@ function init() {
             url: url + 'auth/',
             success: function(user){
          //get csrf token
-				var csrftoken = $.cookie('csrftoken');
+			   var csrftoken = $.cookie('csrftoken');
 			   $.ajaxSetup({
 				 crossDomain: false,
 				 beforeSend: function(xhr, settings) {

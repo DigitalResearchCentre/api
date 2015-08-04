@@ -1,0 +1,11 @@
+<div style="display: flex;  display: -webkit-flex; -webkit-justify-content: space-between; -webkit-align-items: center; justify-content:  space-between; align-items: center; height: 54px; border-width: 1px; border-style: solid; margin: 8px; background-color: #3f3f3f" ng-controller="communityController" id="TCHead2">
+<span class="title">{{community.name}}</span>
+<div class="rh" ng-controller="statsController" style="margin-right: auto" id="MyCommHead">
+</div>
+<img src="{{community.img}}"></img>
+</div>
+<p style="margin: 20px" ng-controller="getStatsController">Number of documents in this community: <b>{{ndocs}}</b><br/>
+Number of pages in these documents: <b>{{npages}}</b><br/>
+Number of pages for which transcripts have been made: <b>{{npagestranscribed}}</b><br/>
+Number of transcripts made: <b>{{ntranscripts}}</b><br/>
+</p>
