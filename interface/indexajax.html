@@ -46,10 +46,13 @@
 
 </head>
 <body>
+
 <div id="container">
-	<a href="javascript:showTOC()"  id="openpanel" title="Open toc panel" style="display:none; position: relative; left:5px; top: 2px; z-index:2;"><img src="openpanel.png" height="16px" id="openpanelimg"></img></a>
+	<div id="TOCtoggle" style="position: absolute; left: 0px; top: 0px; z-index: 2; background-color:#f1f1f1" >
+		<a href="javascript:hideTOC()"  id="closepanel" title="Close toc panel"><img src="arrowsleft.png" height="26px" id="openpanelimg"></img></a>
+		<a href="javascript:showTOC()"  id="openpanel" title="Open toc panel" style="display:none"><img src="arrowsright.png" height="26px" id="openpanelimg"></img></a>
+	</div>
 	<div id="left">
-		<a href="javascript:hideTOC()"  id="closepanel" title="Close toc panel"><img src="closepanel.png" height="16px" id="openpanelimg"></img></a>
 			<div id="tabs">
 				  <ul>
 					<li><a href="#bypage"><span>Documents</span></a></li>
@@ -106,15 +109,6 @@
 		</div>
                 <iframe id="showcollation"></iframe>
 	</div>
-		<!--div id="new-transcript" style="display:none">
-   			 <div id="prevPageTree"></div>
-   			 <div id="prevChosen"></div>
-   			 <div id="prevInfo"></div>
-		</div>
-		<div id="new-confirm" style="display:none">
-			<p id="nc"></p>
-			<fieldset style="text-align:center"><form><input type="button" onclick="javascript:confirmNP()" value="Confirm">&nbsp;&nbsp;&nbsp;&nbsp;<input type="button" onclick="javascript:cancelNP()" value="Cancel"></fieldset></form>
-		</div-->
 </div>
 <div id="previewdiv" title="Preview" style="display:none"></div>
 <div id="dialog-confirm" title="Submit transcript" style="display:none">

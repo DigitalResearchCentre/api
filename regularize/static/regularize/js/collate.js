@@ -69,13 +69,18 @@ var Entity = Backbone.Model.extend({
     //return , callback);
     if (!this._witnesses) {
       this._witnesses = $.when($.get(this.url() + '/witnesses/')).then(
-        function(data){
+        function(data) {
         var witnesses = {};
+        var varrdgs=[];
         _.each(data, function(witness){
-          var content = witness.content;
+/*          var content = witness.content;
           content.replace(/  /g, ' ');
           witness.content = $.trim(content);
-          witnesses[witness.id] = witness;
+          witnesses[witness.id] = witness;	*/
+          var contentxml = adjustXML(witness.xml, witness, witnesses);
+          contentxml.replace(/  /g, ' ');
+          witness.content = $.trim(contentxml);
+          witnesses[witness.id] = witness; 
         });
         return witnesses;
       });
@@ -408,7 +413,7 @@ var View = Backbone.View.extend({
     _.each(witnesses, function(witness){
       var $row = $('<tr/>');
       $row.append($('<td/>').append(self.renderWitness(witness)));
-      $row.append('<td>' + witness.orig + '</td>');
+      $row.append('<td>&nbsp;' + witness.orig + '</td>');
       $witnessBody.append($row);
 
       var $imageRow = $('<tr/>');
@@ -583,4 +588,72 @@ $(function(){
 
 });
 
+function adjustXML(witnessxml, witness, witnesses) {
+	var xmlDoc = $.parseXML( witnessxml );
+	var $xml = $( xmlDoc );
+	var found=$xml.find( "note" );
+	var $origxml=null;
+	$.each(found, function (key, value) { $(this).remove();});
+	found=$xml.find( "abbr" );
+	$.each(found, function (key, value) { $(this).remove();});
+	found=$xml.find( "am" );
+	$.each(found, function (key, value) { $(this).remove();});
+	found=$xml.find( "lb[break='no']" );
+	$.each(found, function (key, value) { 
+		var prev=this.previousSibling;
+		if (prev.nodeName=='#text') {
+			prev.nodeValue=prev.nodeValue.replace(/\s*$/,"");
+		}
+		var next=this.nextSibling;
+		if (next.nodeName=='#text') {
+			next.nodeValue=next.nodeValue.replace(/^\s\s*/, "");
+		}
+	});
+		//do we have any app elements...? //
+	found=$xml.find( "app" );
+	if (found.length!=0) {
+		var rdgtypes= [];
+		$.each(found, function (key, value) {  
+			var foundrdg=$(this).find("rdg");
+			$.each(foundrdg, function (key, value) {
+				if (rdgtypes.indexOf(this.getAttribute("type")==-1))
+					rdgtypes.push(this.getAttribute("type"));
+			});
+		});
+		//ok, got lots of rdg types... ignore lit..
+		if (rdgtypes.length!=0) {
+			var appserializer = new XMLSerializer();
+			appxmlstr=appserializer.serializeToString($xml[0]);
+			var varrdgs=[];
+			$.each(rdgtypes, function (key, value) {
+				var thistype=value;
+				var appXml=$.parseXML( appxmlstr );
+				var $xmlApp=$(appXml);
+				if (thistype!="lit") {
+					$.each(rdgtypes, function (key, value) {
+						//remove all rdg elements except this one!
+						if (value!=thistype) {
+							found=$xmlApp.find( "rdg[type='"+value+"']" );
+							$.each(found, function (key, value) { $(this).remove();});
+						}
+					});
+				}
+				if (thistype=="orig") {
+					$origxml=$xmlApp;
+				} else { //create new object, insert in witnesses list
+					//content doc id image name [xml: not needed?] position=where to insert in witnesses
+					var rdgserializer = new XMLSerializer();
+					rdgxmlstr=rdgserializer.serializeToString($xmlApp[0]);
+					var witnessid=witness.id+thistype;
+					witnesses[witnessid]={"content": $(rdgxmlstr).text(), "doc": witness.doc, "id": witnessid, "image": witness.image, "name": witness.name+'-'+thistype, "xml": witness.xml};	
+				}
+			});
+		}
+	}
+		var serializer = new XMLSerializer(); 
+		if ($origxml) var convertxml = serializer.serializeToString($origxml[0]);
+		else var convertxml = serializer.serializeToString($xml[0]);
+		convertxml = $(convertxml).text();
+		return convertxml;
+}
 
