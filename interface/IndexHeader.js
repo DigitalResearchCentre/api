@@ -1,4 +1,4 @@
-var ENV = {	base_url: 'http://a1c30aad.ngrok.io/',};
+//var ENV = {	base_url: 'http://a1c30aad.ngrok.io/',};
 var url = ENV.base_url;
 var urlstatic = "http://textualcommunities.usask.ca/media/tc/"; 
 var allCommunities=[];
