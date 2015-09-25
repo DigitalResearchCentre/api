@@ -163,27 +163,93 @@ module.exports = function(app, passport) {
 		//can only be here because facebook has registered user, but as yet not associated with any main email
 		//so check: if our facebook email does not belong to an existing user, then just write primary fb email to local email
 		// and pass on to profile, to carry out authentication
-		console.log("who I am in facebook: "+req.user);
 		 User.findOne({ 'local.email' :  req.user.facebook.email }, function(err, user) {
 		 	if (!user) {
-		 		req.user.local.email=req.user.facebook.email;
-		 		req.user.local.name=req.user.facebook.name;
-		 		req.user.local.password=req.user.generateHash("X"); //place holder
-        		req.user.local.authenticated= "0";
-        		req.user.save();
-        		res.redirect('/profile?context=facebook');
+		 		//let's redirect -- ask if we want to associate with an existing account or not
+		 		res.redirect('/facebooklinkemail');
 		 	} else {
 		 		//by facebook rules -- this email can ONLY be assoc with one account.  So just link them
 		 		//if there is no facebook account associated with the account -- just link this facebook ac to that
 		 		if (user.facebook.token==undefined) {
 		 			user.facebook=req.user.facebook;
+		 			User.findOne({'facebook.id': req.user.facebook.id}, function(err, deleteUser) {
+    						deleteUser.remove({});
+    					});
 		 			user.save();
-		 			res.redirect('/profile?context=facebook');
+		 			req.logout();
+    				req.logIn(user, function (err) {
+               				 if(!err){ res.redirect('/profile'); }else {		//handle error
+							} })
+		 			return;
 		 		}  
 		 		else res.render('error.ejs', { message: "Error linking Facebook account", name:req.user.facebook.name, email: req.user.facebook.email }); //should not happen! if there is a fb for this user we should be in it now
 		 	}
 		 });
     });
+    
+    app.get('/facebooklinkemail', function(req, res) { 
+    	res.render('facebookemail.ejs', { message: req.flash('facebookMessage'), facebook:req.user.facebook });
+    });
+ 
+    app.post('/facebooklinkemail', function(req, res) {
+        // render the page and pass in any flash data if it exists
+        	if (req.body.email!=req.body.emailconfirm) {
+        		res.render('facebookemail.ejs', { message: "Email '"+req.body.email+"' and confirm email '"+req.body.emailconfirm+"' do not match. Try again", facebook:req.user.facebook});
+        		return;
+        	}
+        	var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;  
+        	if (!req.body.email.match(mailformat)) {
+        		res.render('facebookemail.ejs', { message: "'"+req.body.email+"' is not a valid email. Try again", facebook:req.user.facebook});
+        		return;
+        	}
+        	//ok! we have a valid email.  Write it into the local account, with the display name, and send an activation email
+        	//does this email already exist for an account? if so, and there is no twitter account for this user -- just link!
+        	//if this is so: reset authenticate to 0 to force authentication via the email account
+        	User.findOne({'local.email': req.body.email}, function(err, existingUser) {
+        		 if (existingUser) {
+        		 	//if there is no google person reg'd with this local email -- just write the details there!
+		 			if (existingUser.facebook.token==undefined) {
+        		 		existingUser.facebook=req.user.facebook;
+        		 		existingUser.local.authenticated="0";
+        		 		User.findOne({'facebook.id': req.user.facebook.id}, function(err, deleteUser) {
+    						deleteUser.remove({});
+    					});
+    					existingUser.save();     		 		
+    					//log out current user; log in existingUser
+    					req.logout();
+    					req.logIn(existingUser, function (err) {
+               				 if(!err){ res.redirect('/profile'); } else{		//handle error
+							} })
+    	 		 		return;
+        		 	}
+        		 	else {
+        		 		res.render('facebookemail.ejs', { message: "There is already a Facebook account for the Textual Communities user identified by the email '"+req.body.email+"'. If you want to link this Faceboo account to that account, log in with that email address, unlink the existing Facebook account and then link this Facebook account.", facebook:req.user.facebook});
+        				return;
+        			}
+        		 }
+        		 else {
+        		 	res.render('facebookemail.ejs', { message: "There is no Textual Communities account identified by the email '"+req.body.email+"'. If you want to start a new account identified by that email, go back to the sign up screen.", facebook:req.user.facebook});
+ 				}
+        	});
+    });
+
+	//just set up a new account
+	app.get('/facebooknew', function(req, res) {
+		req.user.local.email=req.user.facebook.email;
+		 req.user.local.name=req.user.facebook.name;
+		 req.user.local.password=req.user.generateHash("X"); //place holder
+		 req.user.local.authenticated= "0";
+		 req.user.save();
+		 res.redirect('/profile?context=facebook'); 
+	});
+		//cancel this facebook linkage
+	app.get('/facebookcancel', function(req, res) {
+		User.findOne({'facebook.id': req.user.facebook.id}, function(err, deleteUser) {
+    		deleteUser.remove({});
+    	});
+		 res.redirect('/'); 
+	});
+
 
  	// =====================================
     // TWITTER ROUTES ======================
@@ -222,8 +288,7 @@ module.exports = function(app, passport) {
     });
     app.post('/twitteremail', function(req, res) {
         // render the page and pass in any flash data if it exists
-//        	console.log("who I am: "+req.user);
-        	if (req.body.email!=req.body.emailconfirm) {
+      	if (req.body.email!=req.body.emailconfirm) {
         		res.render('twitteremail.ejs', { message: "Email '"+req.body.email+"' and confirm email '"+req.body.emailconfirm+"' do not match. Try again", name:req.user.twitter.displayName});
         		return;
         	}
@@ -234,28 +299,23 @@ module.exports = function(app, passport) {
         	}
         	//ok! we have a valid email.  Write it into the local account, with the display name, and send an activation email
         	//does this email already exist for an account? if so, and there is no twitter account for this user -- just link!
-        
+        	//if this is so: reset authenticate to 0 to force authentication via the email account
         	User.findOne({'local.email': req.body.email}, function(err, existingUser) {
         		 if (existingUser) {
         		 	//if there is no twitter person reg'd with this local email -- just write the details there!
-        		 	if (existingUser.twitter.token==undefined) {
-        		 		console.log("who I am twittering: "+req.user);
-        		 		console.log("who I am already: "+existingUser);
+        		 	//if there is no facebook account associated with the account -- just link this facebook ac to that
+		 			if (existingUser.twitter.token==undefined) {
         		 		existingUser.twitter=req.user.twitter;
-        		 		existingUser.save();
-        		 		
+        		 		existingUser.local.authenticated="0";
         		 		User.findOne({'twitter.id': req.user.twitter.id}, function(err, deleteUser) {
     						deleteUser.remove({});
     					});
+    					existingUser.save();     		 		
     					//log out current user; log in existingUser
     					req.logout();
     					req.logIn(existingUser, function (err) {
-               				 if(!err){
-               				     res.redirect('/profile');
-               				 }else{
-								//handle error
-							}
-						})
+               				 if(!err){ res.redirect('/profile'); } else{		//handle error
+							} })
     	 		 		return;
         		 	}
         		 	else {
@@ -263,13 +323,15 @@ module.exports = function(app, passport) {
         				return;
         			}
         		 }
+        		 else {
         		 //there isn't one! so, just set the local email and display name to the values here
-        		 req.user.local.email=req.body.email;
-        		 req.user.local.name=req.user.twitter.displayName;
-        		 req.user.local.password=req.user.generateHash("X"); //place holder
-        		 req.user.local.authenticated= "0";
-        		 req.user.save();
-        		 res.redirect('/profile?context=twitter');
+					 req.user.local.email=req.body.email;
+					 req.user.local.name=req.user.twitter.displayName;
+					 req.user.local.password=req.user.generateHash("X"); //place holder
+					 req.user.local.authenticated= "0";
+					 req.user.save();
+					 res.redirect('/profile?context=twitter');
+				}
         	});
     });
 
@@ -286,9 +348,109 @@ module.exports = function(app, passport) {
     // the callback after google has authenticated the user
     app.get('/auth/google/callback',
             passport.authenticate('google', {
-                    successRedirect : '/profile',
-                    failureRedirect : '/'
-     }));
+                scope: 'email',
+                failureRedirect : '/'
+     }), function(req, res) {
+    // The user has authenticated with google.  Now check to see if the profile
+    // is "complete".  If not, send them down a form to fill out more details.
+    	console.log("hi");
+		 if (isValidProfile(req, res)) {
+			  res.redirect('/profile');
+			} else {
+			  res.redirect('/googleemail');
+			}
+	 });
+
+	app.get('/googleemail', function(req, res) {
+		//can only be here because facebook has registered user, but as yet not associated with any main email
+		//so check: if our facebook email does not belong to an existing user, then just write primary fb email to local email
+		// and pass on to profile, to carry out authentication
+		 User.findOne({ 'local.email' :  req.user.google.email }, function(err, user) {
+		 	if (!user) {
+		 		//let's redirect -- ask if we want to associate with an existing account or not
+		 		res.redirect('/googlelinkemail');
+		 	} else {
+		 		//by google rules -- this email can ONLY be assoc with one account.  So just link them
+		 		//if there is no google account associated with the account -- just link this  ac to that
+		 		if (user.google.token==undefined) {
+		 			user.google=req.user.google;
+		 			User.findOne({'google.id': req.user.google.id}, function(err, deleteUser) {
+    						deleteUser.remove({});
+    					});
+		 			user.save();
+		 			req.logout();
+    				req.logIn(user, function (err) {
+               				 if(!err){ res.redirect('/profile'); }else {		//handle error
+							} })
+		 			return;
+		 		}  
+		 		else res.render('error.ejs', { message: "Error linking Google account", name:req.user.google.name, email: req.user.google.email }); //should not happen! if there is a google for this user we should be in it now
+		 	}
+		 });
+    });
+    
+    app.get('/googlelinkemail', function(req, res) { 
+    	res.render('googleemail.ejs', { message: req.flash('googleMessage'), google:req.user.google });
+    });
+    
+   app.post('/googlelinkemail', function(req, res) {
+        // render the page and pass in any flash data if it exists
+        	if (req.body.email!=req.body.emailconfirm) {
+        		res.render('googleemail.ejs', { message: "Email '"+req.body.email+"' and confirm email '"+req.body.emailconfirm+"' do not match. Try again", google:req.user.google});
+        		return;
+        	}
+        	var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;  
+        	if (!req.body.email.match(mailformat)) {
+        		res.render('googleemail.ejs', { message: "'"+req.body.email+"' is not a valid email. Try again", google:req.user.google});
+        		return;
+        	}
+        	//ok! we have a valid email.  Write it into the local account, with the display name, and send an activation email
+        	//does this email already exist for an account? if so, and there is no twitter account for this user -- just link!
+        	//if this is so: reset authenticate to 0 to force authentication via the email account
+        	User.findOne({'local.email': req.body.email}, function(err, existingUser) {
+        		 if (existingUser) {
+        		 	//if there is no google person reg'd with this local email -- just write the details there!
+		 			if (existingUser.google.token==undefined) {
+        		 		existingUser.google=req.user.google;
+        		 		existingUser.local.authenticated="0";
+        		 		User.findOne({'google.id': req.user.google.id}, function(err, deleteUser) {
+    						deleteUser.remove({});
+    					});
+    					existingUser.save();     		 		
+    					//log out current user; log in existingUser
+    					req.logout();
+    					req.logIn(existingUser, function (err) {
+               				 if(!err){ res.redirect('/profile'); } else{		//handle error
+							} })
+    	 		 		return;
+        		 	}
+        		 	else {
+        		 		res.render('googleemail.ejs', { message: "There is already a Google account for the Textual Communities user identified by the email '"+req.body.email+"'. If you want to link this Google account to that account, log in with that email address, unlink the existing Google account and then link this Google account.", google:req.user.google});
+        				return;
+        			}
+        		 }
+        		 else {
+        		 	res.render('googleemail.ejs', { message: "There is no Textual Communities account identified by the email '"+req.body.email+"'. If you want to start a new account identified by that email, go back to the sign up screen.", google:req.user.google});
+ 				}
+        	});
+    });
+	//just set up a new account
+	app.get('/googlenew', function(req, res) {
+		req.user.local.email=req.user.google.email;
+		 req.user.local.name=req.user.google.name;
+		 req.user.local.password=req.user.generateHash("X"); //place holder
+		 req.user.local.authenticated= "0";
+		 req.user.save();
+		 res.redirect('/profile?context=google'); 
+	});
+	
+		//cancel this google linkage
+	app.get('/googlecancel', function(req, res) {
+		User.findOne({'google.id': req.user.google.id}, function(err, deleteUser) {
+    		deleteUser.remove({});
+    	});
+		 res.redirect('/'); 
+	});
 
 // =============================================================================
 // AUTHORIZE (ALREADY LOGGED IN / CONNECTING OTHER SOCIAL ACCOUNT) =============
@@ -428,7 +590,7 @@ function authenticateUser (email, user) {
 	var ejs = require('ejs'), fs = require('fs'), str = fs.readFileSync(__dirname + '/../views/authenticatemail.ejs', 'utf8'); 
   	var hash=randomStringAsBase64Url(20);
   	var rendered = ejs.render(str, {email:email, hash:hash, username:user.local.name, url: nodeJSurl});
-  	console.log( TCAddresses.replyto+" "+TCAddresses.from);
+//  	console.log( TCAddresses.replyto+" "+TCAddresses.from);
   	user.local.timestamp=new Date().getTime();
   	user.local.hash=hash;
   	user.save();
