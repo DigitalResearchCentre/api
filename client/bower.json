@@ -30,7 +30,8 @@
     "bootstrap-jasny": "~2.3.1-p6",
     "dynatree": "~1.2.4",
     "jqueryui-amd": "~0.0.2",
-    "jquery-ui": "~1.10.3"
+    "jquery-ui": "~1.10.3",
+    "less": "~2.5.1"
   },
   "resolutions": {
     "jquery": "2.0.3"

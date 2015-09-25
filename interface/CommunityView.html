@@ -1,0 +1,9 @@
+<div style="display: flex;  display: -webkit-flex; -webkit-justify-content: space-between; -webkit-align-items: center; justify-content:  space-between; align-items: center; height: 54px; border-width: 1px; border-style: solid; margin: 8px; background-color: #3f3f3f" ng-controller="communityController" id="TCHead2">
+<span class="title">{{community.name}}</span>
+<div class="rh" ng-controller="editController" style="margin-right: auto" id="MyCommHead">
+</div>
+<img src="{{community.img}}"></img>
+</div>
+<div ng-controller="communityController"  auto-height style="margin-left: 8px; margin-right: 8px; margin-top: 0px" id="editHolder">
+<iframe src="{{editSrc}}"style="overflow:hidden;height:100%;width:100%;" width="100%" height="100%"></iframe>
+</div>

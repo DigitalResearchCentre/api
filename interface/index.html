@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+  	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script type="text/javascript" src="env.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-resource.min.js"></script>
+     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-route.min.js"></script>
+     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular-sanitize.min.js"></script>
+   <script type="text/javascript" src="auto-height.js"></script>
+   <link href="indexmenus.css" rel="stylesheet" />
+<script src="IndexHeader.js"></script>
+  </head>
+  <body ng-app="TCApp" ng-controller="loginController"  style="margin: 0px; padding:0px; height: 100%; ">
+  <div style="position: relative;">
+  	  <div style="position: absolute; left:100px; top: 0px; background-color:#f1f1f1" id="Minimize"></div>
+ 	  <div class="TCHead" id="TCHead"> 
+		<div class="rh"><span class="title">Textual Communities</span></div>
+		<nav class="TCHul">
+			<ul>
+				<li><a href="#">Home</a></li>
+				<li><a href="#">About</a></li>
+				<li><a href="#">Public Communities</a>
+					  <ul ng-controller="pcListController as pcList">
+						<li ng-repeat="community in pcList.communities"><a href="#" n="{{community.id}}" onClick="changeCommunity.call(this); return false;">{{community.name}}</a></li>
+					  </ul>
+				</li>
+				<li ng-if="!isLoggedIn"><a href="#" onClick="logIn()">Log In</a></li>
+				<li ng-if="isLoggedIn"><a href="#">My Communities</a>
+					<ul>
+						<li ng-repeat="community in mcList"><a href="#" n="{{community.id}}" onClick="changeCommunity.call(this); return false;">{{community.name}}</a></li>
+					</ul>
+				</li>
+				<li ng-if="isLoggedIn"><a href="#">{{loggedin}}</a>
+					   <ul>
+						<li><a href="#" onClick="logOut()">Log Out</a></li>
+					</ul>
+				</li>
+			 </ul>
+		</nav>
+		</div>
+</div>
+<!-- here is where the body goes-->
+<!-- let's have the community header first, if we have one --- else, just give us the main tc -->
+	<div ng-view  auto-height></div>
+
+  </body>
+  </html>
