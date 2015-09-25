@@ -1,0 +1,145 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+        <meta charset="utf-8" /><title>Mergely - Simple Example</title>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+        <meta name="description" content="Merge and Diff your documents with diff online and share" />
+        <meta name="keywords" content="diff,merge,compare,jsdiff,comparison,difference,file,text,unix,patch,algorithm,saas,longest common subsequence" />
+        <meta name="author" content="Jamie Peabody" />
+
+        <!-- Requires jQuery -->
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" type="text/javascript"></script>
+       <Optional jquery.corner for rounded buttons >
+        <script src="jquery.corner.js" type="text/javascript"></script>
+        
+        
+         <script src="dynatree/jquery/jquery.js" type="text/javascript"></script>
+  <script src="dynatree/jquery/jquery-ui.custom.js" type="text/javascript"></script>
+   <link href="dynatree/src/skin/ui.dynatree.css" rel="stylesheet" type="text/css" id="skinSheet">
+   <script src="dynatree/dist/jquery.dynatree-1.2.4.js" type="text/javascript"></script>
+    <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+	<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+  <script src="jquery.corner.js" type="text/javascript"></script>
+<
+        <!-- Requires CodeMirror 2.16 -->
+        <script type="text/javascript" src="codemirror-3.13/lib/codemirror.js"></script>
+        <link type="text/css" rel="stylesheet" href="codemirror-3.13/lib/codemirror.css" />
+        
+        <!-- Requires Mergely -->
+        <script type="text/javascript" src="mergely-3.3.3/lib/mergely.js"></script>
+        <link type="text/css" rel="stylesheet" href="mergely-3.3.3/lib/mergely.css" />
+        
+        <script type="text/javascript">
+
+        $(document).ready(function () {
+                        $('#compare').mergely({
+                        	editor_height: "600px",
+                          cmsettings: { readOnly: false },
+ 				lhs: function(setValue) {
+					setValue('<text><body>\
+<div n="GP" type="G" prev="urn:det:TCUSask:CT2:document=Hg:Folio=2r:Line=35:entity=Tales:Group=GP">\n\
+<lb/><l n="33">And maade forward / erly for to ryse</l>\n\
+<lb/><l n="34">To take oure wey / ther as .I. yow deuyse</l>\n\
+<lb/><l n="35">¶ But nathelees / while .I. haue tyme and space</l>\n\
+<lb/><l n="36">Er that I ferther / in this tale pace</l>\n\
+<lb/><l n="37">Me thynketh it acordant to resou<expan abbr="̄"><hi rend="ital">n</hi></expan></l>\n\
+<lb/><l n="38">To telle yow / al the condicioresou<expan abbr="̄"><hi rend="ital">n</hi></expan></l>\n\
+<lb/><l n="39">Of eech of hem / so as it seemed me</l>\n\
+<lb/><l n="40">And whiche they weere / and of what degree</l>\n\
+<lb/><l n="41">And eek in what array / þ<expan abbr="ᵗ"><hi rend="ital">at</hi></expan> they weere Inne</l>\n\
+<lb/><l n="42">And at a knyght thanne wol I first bigynne</l>\n\
+<lb/><l n="43">¶ A knyght ther was / and that a worthy man<note rend="marg">Knyght/</note></l>\n\
+<lb/><l n="44">That fro the tyme / þ<expan abbr="ᵗ"><hi rend="ital">at</hi></expan> he first bigan</l>\n\
+<lb/><l n="45">To ryden out he loued chiualrye</l>\n\
+<lb/><l n="46">Trouthe and hono<expan abbr="ʳ"><hi rend="ital">ur</hi></expan> / fredom and curteisye</l>\n\
+<lb/><l n="47">Ful worthy was he / in his lordes werre</l>\n\
+<lb/><l n="48">And ther to hadde he ryden / no man ferre</l>\n\
+<lb/><l n="49">As wel in cristendom / as hethenesse</l>\n\
+<lb/><l n="50">And euere honured / for his worthynesse</l>\n\
+<lb/><l n="51">¶ At Alisaundre he was / whan it was wonne</l>\n\
+<lb/><l n="52">Ful ofte tyme / he hadde the bord bigonne</l>\n\
+<lb/><l n="53">Abouen alle nacions / in Pruce</l>\n\
+<lb/><l n="54">In lettow / hadde he reysed / and in Ruce</l>\n\
+<lb/><l n="55">No cristen man so ofte / of his degree</l>\n\
+<lb/><l n="56">In Gernade at the seege eek hadde he be</l>\n\
+<lb/><l n="57">At Algizir / and ryden in Belmarye</l>\n\
+<lb/><l n="58">At lyeys was he / and at Satalye</l>\n\
+<lb/><l n="59">Whan they weere wonne / and in the grete see</l>\n\
+<lb/><l n="60">At many a noble armee / hadde he bee</l>\n\
+<lb/><l n="61">¶ At mortal batailles / hadde he been fiftene</l>\n\
+<lb/><l n="62">And foghten for oure feyth / at Tramyssene</l>\n\
+<lb/><l n="63">In lystes thryes / and ay slayn his foo</l>\n\
+<lb/><l n="64">¶ This ilke worthy knyght hadde been also</l>\n\
+<lb/><l n="65">Somtyme / with the lord of Palatye</l>\n\
+<lb/><l n="66">Agayn another hethen in Turkye</l>\n\
+<lb/><l n="67">And eu<expan abbr=""><hi rend="ital">re</hi></expan>e moore / he hadde a souereyn prys</l>\n\
+<lb/><l n="68">And thogh þ<expan abbr="ᵗ"><hi rend="ital">at</hi></expan> he weere worthy / he was wys</l>\n\
+<lb/><l n="69">And of his poort as meke / as is a mayde</l>\n\
+<lb/><l n="70">Ne neuere yet no vileynye he sayde</l>\n\
+<lb/><l n="71">In al his lyf vn-to no manere wight</l>\n\
+<lb/><l n="72">He was a verray <expan abbr="">p<hi rend="ital">er</hi></expan>fit gentil knyght</l>\n\
+</div>\n\
+</body>\n\
+</text>');
+				},
+				rhs: function(setValue) {
+					setValue('<body>\n\
+  <div n="GP" prev="urn:det:TCUSask:CT2:document=Hg:Folio=2r:entity=Tales:Group=GP">\n\
+    <lb/><l n="33">And maade forward / erly for to ryse</l>\n\
+    <lb/><l n="34">To take oure wey / ther as .I. yow deuyse</l>\n\
+    <lb/><l n="35">¶ But nathelees / while .I. haue tyme and space</l>\n\
+    <lb/><l n="36">Er that I ferther / in this tale pace</l>\n\
+    <lb/><l n="37">Me thynketh it acordant to resou<expan abbr="̄"><hi rend="ital">n</hi></expan></l>\n\
+    <lb/><l n="38">To telle yow / al the condiciou<expan abbr="̄"><hi rend="ital">n</hi></expan></l>\n\
+    <lb/><l n="39">Of eech of hem / so as it seemed me</l>\n\
+    <lb/><l n="40">And whiche they weere / and of what degree</l>\n\
+    <lb/><l n="41">And eek in what array / þ<expan abbr="ᵗ"><hi rend="ital">at</hi></expan> they weere Inne</l>\n\
+    <lb/><l n="42">And at a knyght thanne wol I first bigynne</l>\n\
+    <lb/><l n="43">¶ A knyght ther was / and that a worthy man<note rend="marg">Knyght/</note></l>\n\
+    <lb/><l n="44">That fro the tyme / þ<expan abbr="ᵗ"><hi rend="ital">at</hi></expan> he first bigan</l>\n\
+    <lb/><l n="45">To ryden out he loued chiualrye</l>\n\
+    <lb/><l n="46">Trouthe and hono<expan abbr="ʳ"><hi rend="ital">ur</hi></expan> / fredom and curteisye</l>\n\
+    <lb/><l n="47">Ful worthy was he / in his lordes werre</l>\n\
+    <lb/><l n="48">And ther to hadde he ryden / no man ferre</l>\n\
+    <lb/><l n="49">As wel in cristendom / as hethenesse</l>\n\
+    <lb/><l n="50">And euere honured / for his worthynesse</l>\n\
+    <lb/><l n="51">¶ At Alisaundre he was / whan it was wonne</l>\n\
+    <lb/><l n="52">Ful ofte tyme / he hadde the bord bigonne</l>\n\
+    <lb/><l n="53">Abouen alle nacions / in Pruce</l>\n\
+    <lb/><l n="54">In lettow / hadde he reysed / and in Ruce</l>\n\
+    <lb/><l n="55">No cristen man so ofte / of his degree</l>\n\
+    <lb/><l n="56">In Gernade at the seege eek hadde he be</l>\n\
+    <lb/><l n="57">At Algizir / and ryden in Belmarye</l>\n\
+    <lb/><l n="58">At lyeys was he / and at Satalye</l>\n\
+    <lb/><l n="59">Whan they weere wonne / and in the grete see</l>\n\
+    <lb/><l n="60">At many a noble armee / hadde he bee</l>\n\
+    <lb/><l n="61">¶ At mortal batailles / hadde he been fiftene</l>\n\
+    <lb/><l n="62">And foghten for oure feyth / at Tramyssene</l>\n\
+    <lb/><l n="63">In lystes thryes / and ay slayn his foo</l>\n\
+    <lb/><l n="64">¶ This ilke worthy knyght hadde been also</l>\n\
+    <lb/><l n="65">Somtyme / with the lord of Palatye</l>\n\
+    <lb/><l n="66">Agayn another hethen in Turkye</l>\n\
+    <lb/><l n="67">And eu<expan abbr=""><hi rend="ital">re</hi></expan>e moore / he hadde a souereyn prys</l>\n\
+    <lb/><l n="68">And thogh þ<expan abbr="ᵗ"><hi rend="ital">at</hi></expan> he weere worthy / he was wys</l>\n\
+    <lb/><l n="69">And of his poort as meke / as is a mayde</l>\n\
+    <lb/><l n="70">Ne neuere yet no vileynye he sayde</l>\n\
+    <lb/><l n="71">In al his lyf vn-to no manere wight</l>\n\
+    <lb/><l n="72">He was a verray <expan abbr="">p<hi rend="ital">er</hi></expan>fit gentil knyght</l>\n\
+  </div>\n\
+</body>');
+				}
+                        });
+                });
+        </script>
+</head>
+<body>
+		<div id="transcripttexts">
+        <div id="mergely-resizer">
+                <div id="compare">
+                </div>
+        </div>
+        </div>
+
+</body>
+</html>

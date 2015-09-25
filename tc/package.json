@@ -1,0 +1,44 @@
+{
+  "name": "tc",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "bower install",
+    "test": "mocha",
+    "start": "$(npm bin)/nodemon server.js < /dev/null"
+  },
+  "author": "xiaohan.zhang@usask.ca",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.4.2",
+    "bunyan": "^1.4.0",
+    "client-sessions": "^0.7.0",
+    "lodash": "^3.10.1",
+    "mongodb": "^2.0.42",
+    "mongoose": "^4.1.5",
+    "passport": "^0.3.0",
+    "passport-local": "^1.0.0",
+    "passport-restify": "^1.0.0",
+    "restangular": "^1.5.1",
+    "restify": "^4.0.0",
+    "restify-mongoose": "^0.2.5",
+    "restify-redirect": "^1.0.0",
+    "stdio": "^0.2.7",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "css-loader": "^0.17.0",
+    "exports-loader": "^0.6.2",
+    "file-loader": "^0.8.4",
+    "imports-loader": "^0.6.4",
+    "less": "^2.5.1",
+    "less-loader": "^2.2.0",
+    "node-libs-browser": "^0.5.2",
+    "pow-mongodb-fixtures": "^0.12.0",
+    "style-loader": "^0.12.3",
+    "url-loader": "^0.5.6",
+    "webpack": "^1.12.1",
+    "nodemon": "^1.4.1"
+  }
+}

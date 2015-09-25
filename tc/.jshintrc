@@ -1,0 +1,6 @@
+{
+    "laxcomma": true,
+    "laxbreak": true,
+    "node": true,
+    "predef": ["-Promise", "-Node"]
+}

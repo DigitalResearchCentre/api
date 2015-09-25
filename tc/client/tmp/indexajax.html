@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+        <title>PR Example -- ajax</title>
+
+
+
+        <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="dynatree/jquery/jquery.js" type="text/javascript"></script>
+        <script src="dynatree/jquery/jquery-ui.custom.js" type="text/javascript"></script>
+        <link href="dynatree/src/skin/ui.dynatree.css" rel="stylesheet" type="text/css" id="skinSheet">
+        <script src="dynatree/dist/jquery.dynatree-1.2.4.js" type="text/javascript"></script>
+        <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+        <!-- removed jqueryui as this interferes with mergeley -->
+        <!-- script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script -->
+        <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+        <!-- script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script -->
+        <script src="jquery.corner.js" type="text/javascript"></script>
+        <script src="fontdetect.js" type="text/javascript"></script>
+        <script src="codemirror-3.13/lib/codemirror.js"></script>
+        <link rel="stylesheet" href="codemirror-3.13/lib/codemirror.css">
+        <script src="codemirror-3.13/mode/xml/xml.js"></script>
+        <script src="moment.min.js"></script>
+        <script src="jquery.cookie.js"></script>
+        <script type="text/javascript"
+            src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOf5NdCQ0GxTBjCX1kVtavpMo-G9u_2BU&sensor=false">
+        </script>
+        <script type="text/javascript" src="map.js"></script>
+        <script type="text/javascript" src="env.js"></script>
+        <script type="text/javascript" src="mergely-3.3.3/lib/mergely.js"></script>
+        <script src="idle-timer.js" type="text/javascript"></script>
+        <script src="interface.js?version=1" type="text/javascript"></script>
+        <link type="text/css" rel="stylesheet" href="mergely-3.3.3/lib/mergely.css" />
+        <link href="TCeditor.css" rel="stylesheet" type="text/css"/>
+        <style type="text/css" media="all">
+          #showcollation {
+            width: 100%;
+            border: none;
+          }
+        </style>
+
+   
+   
+
+
+</head>
+<body>
+
+<div id="container">
+	<div id="TOCtoggle" style="position: absolute; left: 0px; top: 0px; z-index: 2; background-color:#f1f1f1" >
+		<a href="javascript:hideTOC()"  id="closepanel" title="Close toc panel"><img src="arrowsleft.png" height="26px" id="openpanelimg"></img></a>
+		<a href="javascript:showTOC()"  id="openpanel" title="Open toc panel" style="display:none"><img src="arrowsright.png" height="26px" id="openpanelimg"></img></a>
+	</div>
+	<div id="left">
+			<div id="tabs">
+				  <ul>
+					<li><a href="#bypage"><span>Documents</span></a></li>
+					<li><a href="#byentity"><span>Collations</span></a></li>
+				  </ul>
+				   <div id="bypage">
+				   		<p id="pbypage"><span id="pagebutton"><a id="bypageb">By Page</a></span><span id="itembutton"><a href="javascript:togglepageitem()" id="byitemb">By Item</a></span></a></p>
+						 <div id="tree"></div>
+						 <div id="texttree"></div>
+				   </div>
+				   <div id="byentity">
+						 <div id="entitytree"></div>
+				   </div>
+			</div>
+	</div>
+	<div id="right" style="position:absolute; z-index:1;">
+            <div id="info"><p><span  id="pageinf">
+                        <span id="prevpage"></span>&nbsp;&nbsp;&nbsp;&nbsp;<span id="docid"></span> Folio <span id="ptitle"></span>&nbsp;&nbsp;<span id="timer"></span>&nbsp;&nbsp;<span id="nextpage"></span></span><a id="splitright" name="ishorizontal" style="float: right; margin-right:10px" href="javascript:splitvertical()" title="Image and text side by side"><img id="split" src="splitvert.png"></a></p></div>
+		<div id="topright">
+			 <div id="image">
+				 <div id="docimage" class="image_map">
+				</div>
+			</div>
+		</div>
+		<div id="lowerright">
+		    <div id="transcript">
+			<div id="transcriptHeader"><table width="100%"><tr><td class="revinf" id="revinf1"></td><td class="revinf2">Compare with:</td><td  class="revinf" id="revinf2"></td></tr></table></div>
+			<div id="transcripttext">
+			    <textarea id="code"></textarea>
+			</div>
+			<div id="transcriptcontrols">
+			    <table width="100%">
+			    	<tr>
+						<td class="tcnt" id="tcnt1">
+						  <button id="tcntSaveLeft" class="btn save" value="0" data-version="0" title="Save left transcript page (not to database)" onclick="javascript:SaveTranscript(2, 1)">Save</button></td>
+						<td class="tcnt2" id="tcnt2">
+							<button id="tcntSave" class="btn save" value="0" title="Save transcript page (not to database)" 
+								onclick="javascript:SaveTranscript(1, 1)">Save</button>
+							<button id="tcntSubmit" class="btn submit" value="0" title="Submit transcript page for approval" 
+								onclick="javascript:SubmitTranscript(1)">Submit</button>
+						   <button  title="Validate and preview transcript" onclick="javascript:PreviewTranscript(1)">Preview</button>
+							<button class="btn commit" title="Parse and save to database"
+								onclick="javascript:commitTranscript()">Commit</button>
+							<button class="btn makelinks" title="Link elements running across page breaks"
+								onclick="javascript:makeLinks()">Link Pages</button>
+							<button class="btn checklinks" title="Check Links"
+								onclick="javascript:checkLinks(0)">Check Links</button>
+						  <td  class="tcnt" id="tcnt3">
+							<button id="tcntSaveRight" class="btn save" value="0"  data-version="0" title="Save right transcript page (not to database)" onclick="javascript:SaveTranscript(3, 1)">Save</button>
+						  </td>
+					</tr></table>
+			</div>
+		    </div>
+		</div>
+                <iframe id="showcollation"></iframe>
+	</div>
+</div>
+<div id="previewdiv" title="Preview" style="display:none"></div>
+<div id="dialog-confirm" title="Submit transcript" style="display:none">
+  <p id="dlog-confirm-text">Page validates and may be submitted. You can transcript to the transcription leader for approval.  You will not be able to edit this page after submission.</p>
+</div>
+<div id="dialog-alert" title="Submit transcript" style="display:none">
+  <p id="dlog-alert-text"></p>
+</div>
+</body>
+</html> 
