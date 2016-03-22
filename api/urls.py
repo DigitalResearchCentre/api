@@ -185,11 +185,10 @@ urlpatterns = patterns(
     #url(r'^auth/', include('rest_framework.urls', namespace='rest_framework')),
 ) + v1_api.urls
 
-if settings.DEBUG:
-    urlpatterns += static('/client', 
-                          document_root=settings.ROOT_PATH + '/../client')
-    urlpatterns += static('/interface',
-                          document_root=settings.ROOT_PATH + '/../interface')
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static('/client', 
+                        document_root=settings.ROOT_PATH + '/../client')
+urlpatterns += static('/interface',
+                        document_root=settings.ROOT_PATH + '/../interface')
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 

@@ -80,7 +80,6 @@ def invite(request, *args, **kwargs):
     invitor = community.get_membership(user=request.user, 
                                        role__name__in=('Leader', 'Co Leader'))
     # TODO: Co Leader can not invite leader
-    code = uuid.uuid1().hex
     role = Group.objects.get(name=role_name)
     for email in re.split('\s|[,;]', emails.lower()):
         try:
@@ -92,6 +91,7 @@ def invite(request, *args, **kwargs):
         invitee, created = community.get_or_create_membership(
             user=user, role=role, community_id=community.id)
         if created:
+            code = uuid.uuid1().hex
             invitation = Invitation.objects.create(
                     invitor=invitor, invitee=invitee,
                     code=code, email_content=content)

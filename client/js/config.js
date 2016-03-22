@@ -32,5 +32,5 @@ var require = {
     'codemirror-xml': ['codemirror']
   }
   , waitSeconds: 0
-  , urlArgs: 'bust=' + Math.round((new Date()).getTime() / (3600*24*7*1000))
+  , urlArgs: 'bust=1' + Math.round((new Date()).getTime() / (3600*24*7*1000))
 };

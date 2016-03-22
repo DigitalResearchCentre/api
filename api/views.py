@@ -13,6 +13,7 @@ from django.conf import settings
 from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.utils.cache import patch_cache_control, add_never_cache_headers
 from django.views.decorators.cache import cache_control
 from django.db.models import Manager
 
@@ -187,13 +188,12 @@ class APIView(CreateModelMixin, RelationView):
                 action=action, data={'doc': doc.get_urn()})
         return self.create(data=data)
 
-    @method_decorator(cache_control(private=True, max_age=3600))
     def _get_has_image(self, request, *args, **kwargs):
         zoom = self.kwargs.get('zoom', None)
         x = self.kwargs.get('x', None)
         y = self.kwargs.get('y', None)
-        return self.get_response(
-            self.get_object().has_image(zoom=zoom, x=x, y=y))
+        response = self.get_object().has_image(zoom=zoom, x=x, y=y)
+        return self.get_response(response)
 
     def _get_xmlvalidate(self, request, *args, **kwargs):
         xml = request.REQUEST.get('xml', None)

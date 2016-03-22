@@ -1,4 +1,5 @@
 import warnings
+import traceback
 warnings.filterwarnings("default", category=PendingDeprecationWarning)
 
 import requests
@@ -41,6 +42,8 @@ def get_first(qs):
     lst = list(qs[:1])
     return lst[0] if lst else None
 
+class MyLog(models.Model):
+    message = models.TextField() 
 
 class Community(models.Model):
     name = models.CharField(max_length=20, unique=True)
@@ -379,11 +382,6 @@ class Entity(DETNode):
             return {}
 
     def witnesses(self):
-        try:
-            return self.witnessescache.json
-        except:
-            pass
-
         def get_content(nodes, index):
             length = len(nodes)
             if index == length:
@@ -439,8 +437,6 @@ class Entity(DETNode):
                 witness['name'] = name
                 results.append(witness)
 
-        from regularize.models import WitnessesCache
-        WitnessesCache.objects.create(entity=self, json=results)
         return results
 
     def get_urn(self):
@@ -535,9 +531,12 @@ class Doc(DETNode):
                     tiler_image.read_tile(*map(int, (zoom, x, y,))),
                     content_type='image/jpeg'
                 )
-            except TypeError:
+            except TypeError as e:
+                mylog = MyLog()
+                mylog.message = e.message + traceback.format_exc()
+                mylog.save()
                 return tiler_image
-        except TilerImage.DoesNotExist:
+        except TilerImage.DoesNotExist as e:
             return None
 
     def cur_revision(self):
