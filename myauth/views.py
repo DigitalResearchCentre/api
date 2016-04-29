@@ -116,12 +116,12 @@ def activate(request, *args, **kwargs):
             return HttpResponseRedirect(
                     '%s/c/portal/sso?%s' % (settings.PARTNER_BASE, param))
 
-    if not request.user.is_authenticated():
-        return redirect_to_login(request.build_absolute_uri())
+    #if not request.user.is_authenticated():
+    #    return redirect_to_login(request.build_absolute_uri())
 
     if request.user != user:
         # TODO: merge user
         pass
     invitation.activate()
-    return HttpResponseRedirect('/client/profile.html')
+    return HttpResponseRedirect('/c/portal/login?p_l_id=10739')
 

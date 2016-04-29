@@ -1,5 +1,7 @@
 #!/bin/bash
 
+scl enable python27 bash
+
 if [ ! -d venv ]; then
     virtualenv venv
 fi
